@@ -54,11 +54,13 @@ cd plugins/dsh-group-chat
 node scripts/build.mjs           # 生成 lib/client.js（唯一入口：src/client/entry.js + parts + locale + css）
 node scripts/build.mjs --check   # 校验 lib/client.js 与源文件逐字节一致（提交前必跑）
 node scripts/verify.mjs          # 33 项打包/边界/契约校验；--json 可机读
-npm test                         # 全部 258 条（core + send + client；显式 glob，勿用裸 node --test）
+npm test                         # 全部 259 条（core 128 / send 69 / client 62；显式 glob，勿用裸 node --test）
 npm run test:core / test:send / test:client   # 分层跑
 ```
 
-> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：258 pass / 0 fail（以实际输出为准）。
+> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**259 pass / 0 fail**（core 128 / send 69 / client 62，以实际输出为准）。
+>
+> **失败诊断默认隐藏**：发送失败 caption 默认只显示用户可读文案；诊断信息（`code`/`message`/`stage`/`build`）需 `?gc-debug=1` 或 `localStorage['group-chat:debug']='1'` 才显示；`data-send-debug` / `data-build` 属性**始终保留**（tester 可断言，不依赖开关）。
 
 安装/升级/回滚（**由 Lead 用 danger-full-access 执行**；agent 不自行动手装）：
 
@@ -108,7 +110,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | --- | --- | --- |
 | 构建 | `build --check` fresh；`lib/client.js` 由源码确定性生成 | 命令输出 |
 | 打包校验 | `node scripts/verify.mjs` **33/33 PASS**（含 locale 键集 149、边界、无 Host 业务、无绝对路径、无 Node 内建） | 命令输出 |
-| 单测 | `npm test` **258+ pass / 0 fail** | 命令输出 |
+| 单测 | `npm test` **259 pass / 0 fail**（core 128 / send 69 / client 62） | 命令输出 |
 | 性能 | 1000 事件归一化 ≤50ms（本机 M1 中位数 ~1.5ms）；首屏 200 条 ≤250ms | `tests/runs/perf-01.log` |
 | 真机走查 | tester 按 `tests/design/click-walk.md` 在 DSH Desktop 真实点击；不得以静态代码阅读代替 | `tests/runs/*.md`、`tests/interactions/click-walk-results.md` |
 | 视觉/原型 | 对比 `docs/ux/prototype/*.png`（2× 基线，1440×900）；结构/尺寸/令牌核对 | `tests/artifacts/`、`tests/runs/*.md` |
@@ -121,16 +123,16 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | 项 | 当前值 |
 | --- | --- |
 | 插件版本 | `0.1.0` |
-| 最近验证 bundle | `sha256=2a5eb22cbd4976176d06ec7291e14fab85a73cea8d1e299f1f2ba3765a9f91f7`（504,997 B，task-68 记录；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
-| build 指纹 | `0.1.0+9a199f0bf3c5`（task-68 记录；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
+| 最近验证 bundle | `sha256=9558293c5ac5a524ae129a6350804fd0460d0b641f79b4c6f821fbe05152904a`（506,353 B，task-72 最终版；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
+| build 指纹 | `0.1.0+6c7e751e9e08`（task-72 最终版；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
 | PRD | v0.7.1（F1–F21 / SC1–SC38） |
 | 架构 | v1.6.1（含 DOM 契约、决策记录 v1.1–v1.6.1） |
 | UX | v3.3；原型 Figma `team-group` P1–P12（导出图 `docs/ux/prototype/01–12*.png`） |
-| 已安装验证 | 桌面 profile 已安装并可加载（task-68 PASS，无 HIGH/CRITICAL） |
+| 已安装验证 | 桌面 profile 已安装并可加载；**最终快速回归 task-72 PASS**（verify 33/33、259 tests 全绿，无 HIGH/CRITICAL） |
 
 ## 8. 安全与边界
 
-- **不入库**：`.figma/`（本地导出缓存）、`node_modules/`、`.DS_Store`、日志（`tests/runs/perf-*.log` 作为证据例外保留）。
+- **不入库**：`.figma/`（本地导出缓存）、`node_modules/`、`.DS_Store`、日志（`tests/runs/*.log` 作为测试证据例外保留，见 `.gitignore`）。
 - **不写密钥**：不把 token、API key、cookie、profile 凭据写入仓库或文档；截图与日志提交前脱敏。
 - **不碰用户会话**：不修改用户其它会话数据；真机测试只用 `e2e-*` 专用会话或只读查看；不得代用户发消息到其真实会话。
 - **安装权限**：`plugin_manager install_bundle/remove_bundle` 需 danger-full-access，由 Lead 执行；agent 不自行安装/卸载/改 profile 配置。
