@@ -1,0 +1,12 @@
+{"__session": {"id": "session-lead-0301", "name": "lead", "header": {"type": "session", "version": 4, "id": "session-lead-0301", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "turn/start", "seq": 10, "time": 1793158402000, "data": {"turn": 1}}
+{"type": "assistant/message", "seq": 11, "time": 1793158402100, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "reasoning", "text": "先想一想"}, {"type": "text", "text": "第一轮中间步骤"}]}}}
+{"type": "assistant/message", "seq": 12, "time": 1793158402200, "data": {"turn": 1, "step": 2, "message": {"role": "assistant", "content": [{"type": "text", "text": "第一轮最终答复"}, {"type": "tool-call", "id": "call_1", "name": "read", "arguments": "{}"}]}}}
+{"type": "turn/end", "seq": 14, "time": 1793158402300, "data": {"turn": 1, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 20, "time": 1793158403000, "data": {"turn": 2}}
+{"type": "assistant/message", "seq": 21, "time": 1793158403100, "data": {"turn": 2, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "第二轮草稿"}]}}}
+{"type": "assistant/message", "seq": 22, "time": 1793158403200, "data": {"turn": 2, "step": 2, "message": {"role": "assistant", "content": [{"type": "reasoning", "text": "只有推理，没有正文"}]}}}
+{"type": "turn/end", "seq": 23, "time": 1793158403300, "data": {"turn": 2, "reason": {"kind": "error", "error": {"message": "Connection error.", "code": "TRANSPORT"}}}}
+{"type": "turn/start", "seq": 30, "time": 1793158404000, "data": {"turn": 3}}
+{"type": "assistant/message", "seq": 31, "time": 1793158404100, "data": {"turn": 3, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "被 fork 丢弃的合成输出"}]}}}
+{"type": "turn/end", "seq": 32, "time": 1793158404200, "data": {"turn": 3, "reason": {"kind": "forked"}}}

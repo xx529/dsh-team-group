@@ -1,0 +1,24 @@
+[install] 群聊插件安装结果（由 Lead 执行 plugin_manager；backend 无 danger-full-access，未重复执行）
+time: 2026-10-28 ~17:52 (+08:00)
+operator: lead
+action: plugin_manager install_bundle
+target: /Users/lzx/Documents/GitHub/dsh-team-group/plugins/dsh-group-chat
+result (Lead-reported, verbatim):
+  application = applied
+  enabled = true
+  warnings = []
+  bundle = @local/dsh-group-chat v0.1.0
+notes:
+  - 包为本地 bundle，无 install/postinstall 脚本；未触发 approvedBuilds。
+  - 安装后 Desktop 未重启，页面未强制刷新：conversation.view 已出现 Group chat tab。
+  - backend 端未执行 plugin_manager（会话权限 workspace-write + approval prompts disabled）。
+
+[reinstall 2026-10-28 ~18:10 (+08:00)] D-01/D-02/D-03 修复后重装（Lead 执行）
+  plugin_manager({action:"remove_bundle", target:"@local/dsh-group-chat"}) → 成功
+  plugin_manager({action:"install_bundle", target:"/Users/lzx/Documents/GitHub/dsh-team-group/plugins/dsh-group-chat"})
+    application = applied
+    enabled = true
+    warnings = []
+  bundle = @local/dsh-group-chat v0.1.0
+  lib/client.js sha256 = 95ee3b12cbb54b1d9dbc88aa870784d556ad80b3e8f906db0855cb37135a7e14 (462,162 B)
+  观察：重装后 GUI 无需手动刷新即显示新 bundle（tab 变为中文「群聊」、文案跟随宿主中文；未重启 Desktop）。

@@ -1,0 +1,21 @@
+[F-02 identity check] DSH Desktop · AX 树摘录（2026-10-28 18:4x，群聊 tab active，滚动到历史）
+
+历史任务卡 actor（首轮曾显示 session 短 id，现为真实成员名）：
+  task-11  创建任务 → actor: "frontend" 角色标 "Teammate"   （17:09）
+  task-10  创建任务 → actor: "backend"  角色标 "Teammate"   （17:09）
+  task-49  认领任务 → "· architect" / 负责人 "architect"    （17:15）
+  task-49  完成任务 → "· architect" / 负责人 "architect"    （17:15）
+  task-10  完成任务 → "· backend"   / 负责人 "backend"      （17:32）
+  task-12  完成任务 → "· backend"   / 负责人 "backend"      （17:42）
+  task-11  完成任务 → "· frontend"  / 负责人 "frontend"     （17:47）
+  task-54  认领任务 → "· tester"    / 负责人 "tester"       （18:39）
+
+历史 agent→agent 消息 sender（真实成员名，均非 id）：
+  "backend 于 17:12 的 agent_to_agent 消息"
+  "frontend 于 17:14 的 agent_to_agent 消息"
+  "architect 于 17:16 的 agent_to_agent 消息"
+  "backend 于 17:32 / frontend 于 17:48 / backend 于 17:49 / frontend 于 17:50 的 agent_to_agent 消息"
+
+subagent 命名（后缀式）：欢迎卡片 / 成员消息使用 "label · 父名 的子体" 规则（本次可见 subagent 结算消息按 label 展示；无缩进/连接线）。
+
+说明：AX 中仍可出现形如 "8c86b049-5ed9-46ab-…" 的 **完整 UUID**，仅出现在宿主生成的 subagent 结算提示句中（例如 "Background subagent 8c86b049-… finished …"），不是 sender/actor/owner 显示名；tester 判 F-02 时应区分「身份显示名」与「系统提示正文」。

@@ -1,0 +1,26 @@
+[F-01/F-02 re-smoke] 2026-10-28 18:36–18:45 (+08:00) · bundle sha256 e6f949a576d38e0d6ba3aff2baa0eda009a10254702223b8e4fa7dc6079e0cab
+
+环境：DSH Desktop 0.2.1-rc.3（dsh-app://app/，pid 2309）· macOS 26.7.1 · 团队会话「Agent 团队群聊界面设计」（9 名成员）
+安装：Lead remove_bundle → install_bundle：applied / enabled=true / warnings=[]（bundle 0.1.0，473,781 B）
+
+F-01（团队态输入区布局）PASS：
+  - 团队会话（长 feed，滚动在历史与底部两种位置）底部均可见插件输入区：
+    "发送给 Lead · 未 @ 时默认发送给 Lead；键入 @ 可同时发送给多人" + 输入框耗时显示 "回复群聊…" + 发送键；
+  - 插件输入区与宿主 composer（"发消息或创建任务 / 调用指令 / @ 文件或对话"）上下分离、不重叠；
+  - feed 独立滚动（右侧滚动条），header/banners/composer 不随消息滚动；截图 11/11b/12/12b。
+  - 单 agent 空态沿用上一轮证据 10-no-team-after-fix.webp（群聊 active + 中文空态 + 输入区可见）；F-01 改动为视图根高度约束，空态（短内容）不受影响。
+
+F-02（历史消息/任务卡身份）PASS：
+  - 历史任务卡 actor/负责人显示真实成员名（AX 摘录 12-after-fix2-ax-identity.txt）：
+    task-11 frontend / task-10 backend / task-49 architect / task-12 backend / task-54 tester；
+  - 历史 agent→agent sender：backend(17:12/17:32/17:42)、frontend(17:14/17:48)、architect(17:16)，均为成员名；
+  - 无 session 短 id 作为显示名；唯一出现的 8c86b049 是宿主 subagent 结算句中的完整 UUID（系统提示正文，非 sender/actor/owner）；
+  - subagent 仍按「label · 父名 的子体」展示（无缩进/连接线）；成员卡/任务卡渲染正常。
+
+回归 PASS：
+  - tab 行：「对话 → 群聊（selected，中文）→ 轨迹 → 上下文 → 终端 → 编队 → 能力」；
+  - 频道头「群聊 / Lead / 9 名成员 · 2 个运行中」（非 9/9）；
+  - feed 内未见 system-reminder/skill_content/runtime-context/time-context 注入块；无白屏/错误态；
+  - 截图：11-after-fix2-f01-composer.webp、11b-after-fix2-composer-scrolled.webp、12-after-fix2-f02-identity.webp、12b-after-fix2-f02-tester-backend.webp。
+
+已知：client inspect 仍 10s 超时（环境限制）；console 未取证；单 agent 空态本轮未重复截图（沿用 10，理由如上）。

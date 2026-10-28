@@ -1,0 +1,68 @@
+{"__session": {"id": "session-lead-1101", "name": "lead", "header": {"type": "session", "version": 4, "id": "session-lead-1101", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "turn/start", "seq": 1, "time": 1793158401000, "data": {"turn": 1}}
+{"type": "tool/call", "seq": 10, "time": 1793158401100, "data": {"turn": 1, "step": 1, "callId": "call_00", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 11, "time": 1793158401101, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_00", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 13, "time": 1793158401101, "data": {"turn": 1, "step": 1, "callId": "call_01", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 14, "time": 1793158401102, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_01", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 16, "time": 1793158401102, "data": {"turn": 1, "step": 1, "callId": "call_02", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 17, "time": 1793158401103, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_02", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 19, "time": 1793158401103, "data": {"turn": 1, "step": 1, "callId": "call_03", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 20, "time": 1793158401104, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_03", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 22, "time": 1793158401104, "data": {"turn": 1, "step": 1, "callId": "call_04", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 23, "time": 1793158401105, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_04", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 25, "time": 1793158401105, "data": {"turn": 1, "step": 1, "callId": "call_05", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 26, "time": 1793158401106, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_05", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 28, "time": 1793158401106, "data": {"turn": 1, "step": 1, "callId": "call_06", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 29, "time": 1793158401107, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_06", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 31, "time": 1793158401107, "data": {"turn": 1, "step": 1, "callId": "call_07", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 32, "time": 1793158401108, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_07", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 34, "time": 1793158401108, "data": {"turn": 1, "step": 1, "callId": "call_08", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 35, "time": 1793158401109, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_08", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 37, "time": 1793158401109, "data": {"turn": 1, "step": 1, "callId": "call_09", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 38, "time": 1793158401110, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_09", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 40, "time": 1793158401110, "data": {"turn": 1, "step": 1, "callId": "call_10", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 41, "time": 1793158401111, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_10", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 43, "time": 1793158401111, "data": {"turn": 1, "step": 1, "callId": "call_11", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 44, "time": 1793158401112, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_11", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 46, "time": 1793158401112, "data": {"turn": 1, "step": 1, "callId": "call_12", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 47, "time": 1793158401113, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_12", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 49, "time": 1793158401113, "data": {"turn": 1, "step": 1, "callId": "call_13", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 50, "time": 1793158401114, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_13", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 52, "time": 1793158401114, "data": {"turn": 1, "step": 1, "callId": "call_14", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 53, "time": 1793158401115, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_14", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 55, "time": 1793158401115, "data": {"turn": 1, "step": 1, "callId": "call_15", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 56, "time": 1793158401116, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_15", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 58, "time": 1793158401116, "data": {"turn": 1, "step": 1, "callId": "call_16", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 59, "time": 1793158401117, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_16", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 61, "time": 1793158401117, "data": {"turn": 1, "step": 1, "callId": "call_17", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 62, "time": 1793158401118, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_17", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 64, "time": 1793158401118, "data": {"turn": 1, "step": 1, "callId": "call_18", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 65, "time": 1793158401119, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_18", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 67, "time": 1793158401119, "data": {"turn": 1, "step": 1, "callId": "call_19", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 68, "time": 1793158401120, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_19", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 70, "time": 1793158401120, "data": {"turn": 1, "step": 1, "callId": "call_20", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 71, "time": 1793158401121, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_20", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 73, "time": 1793158401121, "data": {"turn": 1, "step": 1, "callId": "call_21", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 74, "time": 1793158401122, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_21", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 76, "time": 1793158401122, "data": {"turn": 1, "step": 1, "callId": "call_22", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 77, "time": 1793158401123, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_22", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 79, "time": 1793158401123, "data": {"turn": 1, "step": 1, "callId": "call_23", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 80, "time": 1793158401124, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_23", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 82, "time": 1793158401124, "data": {"turn": 1, "step": 1, "callId": "call_24", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 83, "time": 1793158401125, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_24", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 85, "time": 1793158401125, "data": {"turn": 1, "step": 1, "callId": "call_25", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 86, "time": 1793158401126, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_25", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 88, "time": 1793158401126, "data": {"turn": 1, "step": 1, "callId": "call_26", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 89, "time": 1793158401127, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_26", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 91, "time": 1793158401127, "data": {"turn": 1, "step": 1, "callId": "call_27", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 92, "time": 1793158401128, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_27", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 94, "time": 1793158401128, "data": {"turn": 1, "step": 1, "callId": "call_28", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 95, "time": 1793158401129, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_28", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "tool/call", "seq": 97, "time": 1793158401129, "data": {"turn": 1, "step": 1, "callId": "call_29", "name": "read", "arguments": "{\"file_path\":\"docs/x.md\"}"}}
+{"type": "tool/result", "seq": 98, "time": 1793158401130, "data": {"turn": 1, "step": 1, "message": {"role": "tool", "toolCallId": "call_29", "content": [{"type": "text", "text": "ok"}], "isError": false}}}
+{"type": "assistant/message", "seq": 200, "time": 1793158402000, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "已读完 30 个文件，结论见下。"}]}}}
+{"type": "turn/end", "seq": 201, "time": 1793158402100, "data": {"turn": 1, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 300, "time": 1793158403000, "data": {"turn": 2}}
+{"type": "tool/call", "seq": 301, "time": 1793158403100, "data": {"turn": 2, "step": 1, "callId": "call_bg", "name": "bash", "arguments": "{}"}}
+{"type": "tool/result", "seq": 302, "time": 1793158403200, "data": {"turn": 2, "step": 1, "message": {"role": "tool", "toolCallId": "call_bg", "content": [{"type": "text", "text": "done"}], "isError": false}}}
+{"type": "turn/end", "seq": 303, "time": 1793158403300, "data": {"turn": 2, "reason": {"kind": "completed"}}}

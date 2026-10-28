@@ -1,0 +1,27 @@
+[verify-after-fix] 2026-10-28 18:10–18:14 (+08:00)
+
+1) 构建/打包（backend，工作区）
+  node scripts/build.mjs            → lib/client.js 462,162 B / 26 modules · 11 parts
+  node scripts/build.mjs --check    → up to date: lib/client.js (26 modules, 11 parts)
+  node scripts/verify.mjs           → ✅ ALL PASS · 33 checks
+  sha256(lib/client.js)             = 95ee3b12cbb54b1d9dbc88aa870784d556ad80b3e8f906db0855cb37135a7e14
+  npm test                          → 209 pass / 0 fail（core 121 / client 49 / send 39）
+
+2) D-01 真实会话离线回归（交付前验证，core 内核）
+  - 输入：dsh-htdot-bridge 团队（lead + 8 子会话，2316 条 lead 事件）与 dsh-team-group 当前团队（lead + 12 子会话）
+  - 结果：ignoredSystemContext 24/25 条被丢弃；以「消息来源是否 context kind」判定，context 泄漏 = 0
+  - 说明：文本层面可能仍出现 `<system-reminder>` 等字样，仅当它是**真实对话正文**（例如我们讨论 D-01 的消息或 subagent 结算摘要）时——非注入消息；判定以事件来源为准。
+  - 消息 kind 仅：user / agent_to_agent / agent_output / system / delivery / member_card / task_card
+
+3) GUI 冒烟（open-computer-use 操作 DSH Desktop，未改 profile）
+  - 团队会话「Agent 团队群聊界面设计」：
+    · tab 行：对话 → **群聊** → 轨迹 → 上下文 → 终端 → 编队 → 能力（中文）  ✅
+    · 频道头：「群聊 / Lead / 9 名成员 · 2 个运行中」  ✅（不再 9/9 高估）
+    · feed：时间分隔「今天 · 15:01」、任务卡（创建/认领/完成 + 待认领/进行中/已完成）、成员欢迎+名片卡（模型/上下文/创建方式/初始任务/查看会话/查看任务）、@lead 内联、agent_output + 工具折叠行
+    · AX 文本采样（当前可视区）：`system-reminder|skill_content|Current runtime context|Time sampled` 命中 **0**；英文 UI 文案命中 **0**
+    · 截图：09-team-after-fix.webp
+  - 单 agent 会话「查找 OpenUI 的 DSH 插件整合」（标准模式）：
+    · 空态「当前为单 Agent 会话（无团队）」+「仅显示该会话的用户消息与该 agent 的最终输出」+「如何组建团队」  ✅
+    · 输入器「发送给 Lead」「未 @ 时默认发送给 Lead；键入 @ 可同时发送给多人」+ 占位「回复群聊…」，空文本时发送禁用
+    · 截图：10-no-team-after-fix.webp
+  - 其它视图（对话/轨迹等 tab）保持可见、切回正常。

@@ -1,0 +1,7 @@
+{"__session": {"id": "session-lead-1201", "name": "lead", "header": {"type": "session", "version": 4, "id": "session-lead-1201", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "event", "event": {"type": "user/message", "seq": 1, "time": 1793158401000, "data": {"id": "msg-env-1", "role": "user", "content": [{"type": "text", "text": "信封里的用户消息"}], "source": {"kind": "user", "rpcId": "rpc-env-1"}}}}
+{"type": "transient", "event": {"type": "assistant/live-chunk", "seq": 1.5, "time": 1793158401100, "data": {"turn": 1, "step": 1, "text": "流式增量"}}}
+{"type": "event", "event": {"type": "turn/start", "seq": 2, "time": 1793158401150, "data": {"turn": 1}}}
+{"type": "transient", "event": {"type": "assistant/live-chunk", "seq": 2.25, "time": 1793158401200, "data": {"turn": 1, "step": 1, "text": "还在流式"}}}
+{"type": "event", "event": {"type": "assistant/message", "seq": 3, "time": 1793158401300, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "持久化后的最终输出"}]}}}}
+{"type": "event", "event": {"type": "turn/end", "seq": 4, "time": 1793158401400, "data": {"turn": 1, "reason": {"kind": "completed"}}}}

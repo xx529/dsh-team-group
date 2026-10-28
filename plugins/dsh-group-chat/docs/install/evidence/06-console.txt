@@ -1,0 +1,6 @@
+[console] 渲染进程 console 不可直接读取
+原因：open-computer-use 只暴露 AX 树 + 截图，未暴露 DevTools/console；本机 DSH Desktop 的 Web GUI 端口需鉴权（未提供已鉴权 token），Playwright 无法接管。
+替代证据：
+  - 群聊视图点击后正常渲染（频道头 / feed / 输入区 / 卡片），无错误卡、无白屏（见 04/05 截图与 02 AX 摘录）。
+  - 浏览器 console 与 DSH 日志中的 [group-chat] error 未能取证 → 记为「未取证」，不视为通过。
+后续：若 Lead 提供已鉴权 GUI URL，可用 Playwright 读取 console 补证。

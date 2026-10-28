@@ -1,0 +1,25 @@
+[slot-inspect] cordis_inspect_query client Slots listSubTree{root:"conversation.view"}
+time: 2026-10-28 17:54 / 17:56 (+08:00)
+attempt 1: Error: Slots.listSubTree: Client inspect query Slots.listSubTree timed out after 10000ms.
+attempt 2: Error: Slots.listSubTree: Client inspect query Slots.listSubTree timed out after 10000ms.
+判定：client inspect 通道本次不可用（Desktop dsh-app:// 窗口未回应该查询）；按 Lead 指示改用 open-computer-use 读 AX 树作为等价证据。
+
+[AX 证据] DSH Desktop (pid 2309) · 同一 tab group 的 accessibility 树（摘录）：
+  517 container tab group
+    518 tab (selected) 对话 Value: on
+    520 tab (settable, boolean) Group chat Value: off / on
+    522 tab (settable, boolean) 轨迹 Value: off
+    524 tab (settable, boolean) 上下文 Value: off
+    526 tab (settable, boolean) 终端 Value: off
+    528 tab (settable, boolean) 编队 Value: off
+    530 tab (settable, boolean) 能力 Value: off
+结论：conversation.view 中存在 group-chat occupant（label "Group chat"，位于「对话」之后、「轨迹」之前 = order 5）；点击后 tab 变 selected，view 渲染成功。
+
+[re-check after fix 2026-10-28 18:12–18:14 (+08:00)]
+client inspect 第 3 次仍 10s 超时（环境限制，非插件问题）。
+AX 复核（DSH Desktop pid 2309，同一 tab group）：
+  517 container tab group
+    518 tab (settable) 对话
+    520 tab (selected) **群聊** Value: on
+    522 tab 轨迹 / 524 上下文 / 526 终端 / 528 编队 / 530 能力
+结论：group-chat occupant 存在且 label 已本地化为「群聊」，位置在「对话」之后、「轨迹」之前（order 5）；点击进入后 view 正常渲染。

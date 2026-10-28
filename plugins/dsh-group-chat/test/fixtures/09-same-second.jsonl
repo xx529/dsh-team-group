@@ -1,0 +1,63 @@
+{"__session": {"id": "session-lead-0801", "name": "lead", "header": {"type": "session", "version": 4, "id": "session-lead-0801", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "team/member", "seq": 1, "time": 1793158404500, "data": {"version": 2, "teamId": "session-lead-0801", "member": {"id": "session-t1-0802", "name": "t1", "description": "t1", "provider": "spawn", "context": "fresh", "phase": "active"}}}
+{"type": "turn/start", "seq": 100, "time": 1793158405000, "data": {"turn": 1}}
+{"type": "assistant/message", "seq": 101, "time": 1793158405000, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-01"}]}}}
+{"type": "turn/end", "seq": 102, "time": 1793158405000, "data": {"turn": 1, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 110, "time": 1793158405000, "data": {"turn": 2}}
+{"type": "assistant/message", "seq": 111, "time": 1793158405000, "data": {"turn": 2, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-02"}]}}}
+{"type": "turn/end", "seq": 112, "time": 1793158405000, "data": {"turn": 2, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 120, "time": 1793158405000, "data": {"turn": 3}}
+{"type": "assistant/message", "seq": 121, "time": 1793158405000, "data": {"turn": 3, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-03"}]}}}
+{"type": "turn/end", "seq": 122, "time": 1793158405000, "data": {"turn": 3, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 130, "time": 1793158405000, "data": {"turn": 4}}
+{"type": "assistant/message", "seq": 131, "time": 1793158405000, "data": {"turn": 4, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-04"}]}}}
+{"type": "turn/end", "seq": 132, "time": 1793158405000, "data": {"turn": 4, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 140, "time": 1793158405000, "data": {"turn": 5}}
+{"type": "assistant/message", "seq": 141, "time": 1793158405000, "data": {"turn": 5, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-05"}]}}}
+{"type": "turn/end", "seq": 142, "time": 1793158405000, "data": {"turn": 5, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 150, "time": 1793158405000, "data": {"turn": 6}}
+{"type": "assistant/message", "seq": 151, "time": 1793158405000, "data": {"turn": 6, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-06"}]}}}
+{"type": "turn/end", "seq": 152, "time": 1793158405000, "data": {"turn": 6, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 160, "time": 1793158405000, "data": {"turn": 7}}
+{"type": "assistant/message", "seq": 161, "time": 1793158405000, "data": {"turn": 7, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-07"}]}}}
+{"type": "turn/end", "seq": 162, "time": 1793158405000, "data": {"turn": 7, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 170, "time": 1793158405000, "data": {"turn": 8}}
+{"type": "assistant/message", "seq": 171, "time": 1793158405000, "data": {"turn": 8, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-08"}]}}}
+{"type": "turn/end", "seq": 172, "time": 1793158405000, "data": {"turn": 8, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 180, "time": 1793158405000, "data": {"turn": 9}}
+{"type": "assistant/message", "seq": 181, "time": 1793158405000, "data": {"turn": 9, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-09"}]}}}
+{"type": "turn/end", "seq": 182, "time": 1793158405000, "data": {"turn": 9, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 190, "time": 1793158405000, "data": {"turn": 10}}
+{"type": "assistant/message", "seq": 191, "time": 1793158405000, "data": {"turn": 10, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "lead-10"}]}}}
+{"type": "turn/end", "seq": 192, "time": 1793158405000, "data": {"turn": 10, "reason": {"kind": "completed"}}}
+{"__session": {"id": "session-t1-0802", "name": "t1", "header": {"type": "session", "version": 4, "id": "session-t1-0802", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 1, "agentPreset": "standard", "parentSession": "session-lead-0801", "origin": "subagent"}}}
+{"type": "turn/start", "seq": 100, "time": 1793158405000, "data": {"turn": 1}}
+{"type": "assistant/message", "seq": 101, "time": 1793158405000, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-01"}]}}}
+{"type": "turn/end", "seq": 102, "time": 1793158405000, "data": {"turn": 1, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 110, "time": 1793158405000, "data": {"turn": 2}}
+{"type": "assistant/message", "seq": 111, "time": 1793158405000, "data": {"turn": 2, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-02"}]}}}
+{"type": "turn/end", "seq": 112, "time": 1793158405000, "data": {"turn": 2, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 120, "time": 1793158405000, "data": {"turn": 3}}
+{"type": "assistant/message", "seq": 121, "time": 1793158405000, "data": {"turn": 3, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-03"}]}}}
+{"type": "turn/end", "seq": 122, "time": 1793158405000, "data": {"turn": 3, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 130, "time": 1793158405000, "data": {"turn": 4}}
+{"type": "assistant/message", "seq": 131, "time": 1793158405000, "data": {"turn": 4, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-04"}]}}}
+{"type": "turn/end", "seq": 132, "time": 1793158405000, "data": {"turn": 4, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 140, "time": 1793158405000, "data": {"turn": 5}}
+{"type": "assistant/message", "seq": 141, "time": 1793158405000, "data": {"turn": 5, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-05"}]}}}
+{"type": "turn/end", "seq": 142, "time": 1793158405000, "data": {"turn": 5, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 150, "time": 1793158405000, "data": {"turn": 6}}
+{"type": "assistant/message", "seq": 151, "time": 1793158405000, "data": {"turn": 6, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-06"}]}}}
+{"type": "turn/end", "seq": 152, "time": 1793158405000, "data": {"turn": 6, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 160, "time": 1793158405000, "data": {"turn": 7}}
+{"type": "assistant/message", "seq": 161, "time": 1793158405000, "data": {"turn": 7, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-07"}]}}}
+{"type": "turn/end", "seq": 162, "time": 1793158405000, "data": {"turn": 7, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 170, "time": 1793158405000, "data": {"turn": 8}}
+{"type": "assistant/message", "seq": 171, "time": 1793158405000, "data": {"turn": 8, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-08"}]}}}
+{"type": "turn/end", "seq": 172, "time": 1793158405000, "data": {"turn": 8, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 180, "time": 1793158405000, "data": {"turn": 9}}
+{"type": "assistant/message", "seq": 181, "time": 1793158405000, "data": {"turn": 9, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-09"}]}}}
+{"type": "turn/end", "seq": 182, "time": 1793158405000, "data": {"turn": 9, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 190, "time": 1793158405000, "data": {"turn": 10}}
+{"type": "assistant/message", "seq": 191, "time": 1793158405000, "data": {"turn": 10, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "t1-10"}]}}}
+{"type": "turn/end", "seq": 192, "time": 1793158405000, "data": {"turn": 10, "reason": {"kind": "completed"}}}

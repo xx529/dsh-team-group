@@ -1,0 +1,10 @@
+# Bundle patch layer for the Group Chat view.
+#
+# The row loads the package's `main` entry as the host half (a plain Cordis
+# plugin; v1 keeps it an empty shell - all behavior lives in the browser half).
+# The `dsh.client` declaration in package.json makes the web app load
+# `./client` (lib/client.js) as the browser half, which registers the
+# `conversation.view` entry with id `group-chat`.
+- insert:
+    - id: group-chat
+      name: '@local/dsh-group-chat'
