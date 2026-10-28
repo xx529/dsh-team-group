@@ -14,7 +14,7 @@
  *          `buildFanoutPrefix`（T2 冻结名，string）、`buildFanoutPrefixParts`（string[]）、`fanoutSignature`
  * 7) 提及/目标：`computeMentionQuery`、`parseMentions`、`resolveTargets`、`filterMentionCandidates`、
  *               `resolveTargetSessionIds`、`isAddressable`
- * 8) 筛选：`matchesFilter`、`filterMessages`、`filterBanner`；折叠：`foldInfo`、`shouldFold`、`countLines`、`approximateChars`
+ * 8) 筛选：`matchesFilter`、`filterMessages`、`filterBanner`；折叠（v1.7 唯一口径）：`foldInfo`、`measureLines`
  * 9) 成员目录：`deriveRoster`、`deriveSnapshot`、`deriveReadonly`、`memberById`、`memberByName`、`displayNameOf`
  * 10) 常量：`LIMITS`、`limits`、`SESSION_RANK`、`KIND_RANK`、`TASK_ACTION_LABELS`、`TASK_STATUS_LABELS`、
  *           `TASK_ACTION_LABEL_KEYS`、`TASK_STATUS_LABEL_KEYS`、`WELCOME_TEXT_TEMPLATE`、`MEMBER_TEXT`、`TOOL_NAMES`、`EVENT_TYPES`
@@ -88,7 +88,29 @@ import {
   memberById,
   memberByName,
   normalizeMemberStatus,
+  resolveLeadSession,
+  resolveLeadSessionId,
 } from './roster.js';
+import {
+  ALLOWED_LINK_SCHEMES,
+  escapeHtml,
+  isSafeUrl,
+  markdownToPlainText,
+  parseInline,
+  parseMarkdown,
+} from './markdown.js';
+import {
+  FOLD_LINE_HEIGHT,
+  FOLD_MAX_LINES,
+  foldInfo,
+  measureLines,
+  renderedLineCount,
+} from './fold.js';
+import {
+  aggregateTurns,
+  summarizeTurn,
+  turnStatusFromReason,
+} from './turns.js';
 import {
   buildDirectory,
   collectSession,
@@ -150,12 +172,6 @@ import {
   filterMessages,
   matchesFilter,
 } from './filter.js';
-import {
-  approximateChars,
-  countLines,
-  foldInfo,
-  shouldFold,
-} from './folding.js';
 
 export {
   // constants
@@ -271,9 +287,23 @@ export {
   matchesFilter,
   filterMessages,
   filterBanner,
-  // folding
+  // folding（v1.7 唯一口径：50 行 foldInfo / measureLines；旧 8 行/400 字 folding.js 已不再公开导出）
   foldInfo,
-  shouldFold,
-  countLines,
-  approximateChars,
+  measureLines,
+  renderedLineCount,
+  FOLD_MAX_LINES,
+  FOLD_LINE_HEIGHT,
+  // markdown (v1.7 B1)
+  parseMarkdown,
+  parseInline,
+  escapeHtml,
+  isSafeUrl,
+  markdownToPlainText,
+  ALLOWED_LINK_SCHEMES,
+  // turns / scope (v1.7 B2)
+  aggregateTurns,
+  summarizeTurn,
+  turnStatusFromReason,
+  resolveLeadSession,
+  resolveLeadSessionId,
 };

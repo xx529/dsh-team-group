@@ -17,6 +17,7 @@
 
 import { LIMITS } from '../core/constants.js';
 import { buildParts } from '../core/protocol.js';
+import { hashText, normalizeText } from '../core/dedupe.js';
 import { normalizeSendTargets, targetNamesOf } from './targets.js';
 import { orderByLeadFirst, resolveMode, checkTargetAvailability } from './mode.js';
 import {
@@ -69,6 +70,8 @@ import { createRateLimiter, defaultSingleFlight, withTimeout } from './rate-limi
  * @property {(echo: ChannelMessage) => void} [onEcho]
  * @property {(batch: {clientBatchId: string, channelId: string, attempt?: number, targets: Array<{name: string, sessionId: string, kind?: string}>, targetNames: string[], requestIds: Record<string, string>, sessionIds: string[]}) => void} [onBatch]  F-07：prompt 前回调，UI 用它维护 localBatches
  * @property {boolean} [suppressEcho]
+ * @property {Record<string, any>} [localBatches]  M4：与 adapter ctx.localBatches 同一对象引用（UI 在 onBatch 写入）
+ * @property {(error: any) => void} [onBatchError]  M4：onBatch 回调异常可观测钩子
  */
 
 /**
@@ -322,6 +325,8 @@ export async function sendChannelBatch(request) {
       detail,
     }));
     logSendError(error, failTargets[0], requestIdOf(failTargets[0]) ?? '');
+    // M4/H1：外层异常也属于终态（failed），关闭 localBatches 条目（弱匹配不再使用，rpcId 仍可替换 echo）
+    markLocalBatchClosed(deps, batchId, 'failed', now);
     return {
       status: 'failed',
       deliveries,
@@ -414,15 +419,16 @@ export async function sendChannelBatch(request) {
     }
     knownRequestIds = requestIds;
 
+    const mode = resolveMode(targets[0], { mode: request?.mode });
+    knownMode = mode;
+
     /** @type {SendDeliveryItem[]} */
     const deliveries = [];
     /** @type {string[]} */
     const warnings = [];
-    const mode = resolveMode(targets[0], { mode: request?.mode });
-    knownMode = mode;
 
     // F-07：prompt 前把本批 id/requestIds/targets 交给 UI（维护 localBatches，权威消息才能替换本地 echo）。
-    // retry 复用同一 clientBatchId/requestIds，因此回调用同一批次信息（targets 为本次实发子集）。
+    // H1/M4：payload 含 text/textHash/at，供无 rpcId 的严格弱匹配；回调异常需可观测（warnings + onBatchError）。
     if (typeof deps.onBatch === 'function') {
       try {
         deps.onBatch({
@@ -433,9 +439,18 @@ export async function sendChannelBatch(request) {
           targetNames,
           requestIds: { ...requestIds },
           sessionIds: targets.map((t) => t.sessionId || (t.name === 'lead' ? channelId : '')).filter(Boolean),
+          text: body,
+          textHash: hashText(normalizeText(body)),
+          at: now(),
         });
       } catch (error) {
-        // 回调失败不得影响发送
+        // 回调失败不得影响发送；但必须可观测
+        warnings.push('onBatch-callback-failed');
+        try {
+          if (typeof deps.onBatchError === 'function') deps.onBatchError(error);
+        } catch {
+          /* ignore */
+        }
         try {
           if (typeof console !== 'undefined' && typeof console.warn === 'function') {
             console.warn('[group-chat send] onBatch callback failed', error);
@@ -544,6 +559,8 @@ export async function sendChannelBatch(request) {
       updatedAt: now(),
     });
 
+    markLocalBatchClosed(deps, batchId, status, now);
+
     return {
       status,
       deliveries,
@@ -582,6 +599,23 @@ export async function sendChannelBatch(request) {
       }
     }
   }
+}
+
+/**
+ * M4：批次终态后关闭 localBatches 条目（仍保留到 TTL，rpcId 精确匹配可继续，弱匹配不再使用）
+ * @param {SendDeps} deps
+ * @param {string} batchId
+ * @param {string} status
+ * @param {() => number} now
+ */
+function markLocalBatchClosed(deps, batchId, status, now) {
+  const batches = deps?.localBatches;
+  if (!batches || typeof batches !== 'object') return;
+  const entry = batches[batchId];
+  if (!entry || typeof entry !== 'object') return;
+  entry.closed = true;
+  entry.status = status;
+  entry.closedAt = typeof now === 'function' ? now() : Date.now();
 }
 
 /**

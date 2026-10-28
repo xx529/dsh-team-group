@@ -23,14 +23,7 @@ function GcMentionPopup(props) {
   } else {
     for (let i = 0; i < options.length; i += 1) {
       const member = options[i]
-      const kindText =
-        member.kind === 'subagent' ? t('mention.sub.subagent') : member.kind === 'lead' ? t('mention.sub.lead') : t('mention.sub.teammate')
-      const statusText = gcStatusText(member.status || 'unknown', t)
-      const addressableNote = member.kind === 'teammate' && (member.status === 'inactive' || member.status === 'done') ? t('mention.sub.addressable') : ''
-      const subParts = []
-      if (member.parentName) subParts.push(t('member.subagentOf', { parent: member.parentName }))
-      subParts.push(kindText)
-      if (statusText) subParts.push(statusText)
+      const description = gcStr(member.description) || t('member.noDesc')
       nodes.push(
         h(
           'li',
@@ -40,6 +33,7 @@ function GcMentionPopup(props) {
             className: 'gc-mention-option',
             role: 'option',
             'data-mention': member.name,
+            'data-member-id': gcStr(member.sessionId),
             'aria-selected': i === active ? 'true' : 'false',
             onClick: function (event) {
               event.preventDefault()
@@ -54,7 +48,7 @@ function GcMentionPopup(props) {
             'span',
             { className: 'gc-mention-option-main' },
             h('span', { className: 'gc-mention-option-name' }, member.name),
-            h('span', { className: 'gc-mention-option-sub' }, subParts.filter(Boolean).join(' · ') + addressableNote)
+            h('span', { className: 'gc-mention-option-sub' }, description)
           )
         )
       )
@@ -88,13 +82,19 @@ function GcTargetRow(props) {
   const channel = props.channel
   const names = gcTargetChipNames(draft, channel, props.sessionId)
   const mentions = gcAsArray(draft.mentions)
-  const children = [h('span', { key: 'label', className: 'gc-target-label' }, t('composer.targetLabel'))]
+  const children = []
 
+  // 默认 @Lead（business 实底白字）
   children.push(
     h(
       'span',
-      { key: 'lead', className: 'gc-chip', 'data-tone': 'lead' },
-      t('composer.leadChip')
+      {
+        key: 'lead',
+        className: 'gc-chip',
+        'data-tone': 'target',
+        'data-target': 'lead'
+      },
+      '@' + t('composer.leadChip')
     )
   )
 
@@ -108,25 +108,20 @@ function GcTargetRow(props) {
           type: 'button',
           className: 'gc-chip',
           'data-tone': 'mention',
+          'data-target': name,
           'data-mention': name,
           title: t('composer.removeMention', { name: name }),
+          'aria-label': t('composer.removeMention', { name: name }),
           onClick: function (event) {
             event.preventDefault()
             if (props.onRemoveMention) props.onRemoveMention(name)
           }
         },
-        '@' + name
+        '@' + name,
+        h('span', { className: 'gc-chip-x', 'aria-hidden': 'true' }, '×')
       )
     )
   }
-
-  children.push(
-    h(
-      'span',
-      { key: 'hint', className: 'gc-target-hint' },
-      names.length > 1 ? t('composer.multi', { n: names.length }) : t('composer.toLeadHint')
-    )
-  )
 
   return h(
     'div',
@@ -135,7 +130,14 @@ function GcTargetRow(props) {
       'data-testid': 'group-chat-target-row',
       'data-targets': names.join(',')
     },
-    children
+    h(
+      'div',
+      {
+        className: 'gc-target-chips',
+        'data-testid': 'group-chat-target-chips'
+      },
+      children
+    )
   )
 }
 
@@ -221,13 +223,6 @@ function GcComposer(props) {
         'aria-disabled': readonly ? 'true' : undefined
       },
       popup,
-      h(GcTargetRow, {
-        t: t,
-        draft: draft,
-        channel: props.channel,
-        sessionId: props.sessionId,
-        onRemoveMention: props.onRemoveMention
-      }),
       h(
         'div',
         { className: 'gc-input-row' },
@@ -277,7 +272,15 @@ function GcComposer(props) {
           },
           h(GcIconSend, { size: 16 })
         )
-      )
+      ),
+      h(GcTargetRow, {
+        t: t,
+        draft: draft,
+        channel: props.channel,
+        sessionId: props.sessionId,
+        onRemoveMention: props.onRemoveMention
+      }),
+      h('div', { className: 'gc-composer-hint', 'data-testid': 'group-chat-composer-hint' }, t('composer.hint'))
     )
   )
 }

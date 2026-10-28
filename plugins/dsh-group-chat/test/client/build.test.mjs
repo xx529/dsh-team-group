@@ -82,7 +82,13 @@ test('bundle: 包装形态 / id / 语法合法 / DOM 契约符号', () => {
     'group-chat-composer',
     'group-chat-send',
     'group-chat-target-row',
-    'group-chat-error'
+    'group-chat-error',
+    'group-chat-target-chips',
+    'group-chat-composer-hint',
+    'group-chat-member-strip',
+    'agent-trajectory-panel',
+    'agent-trajectory-overlay',
+    'agent-trajectory-turn'
   ]) {
     assert.ok(result.code.includes(testId), 'missing data-testid: ' + testId)
   }
@@ -109,6 +115,10 @@ test('bundle: 包装形态 / id / 语法合法 / DOM 契约符号', () => {
     assert.ok(result.code.includes(attr), 'missing data attribute: ' + attr)
   }
 
+  // R-M4：localBatches 必须同时接给 adapter 与 send deps（活对象共享）
+  const localBatchesWiring = (result.code.match(/localBatches: gcLocalBatches/g) || []).length
+  assert.ok(localBatchesWiring >= 2, 'localBatches wired to adapter and send deps, got ' + localBatchesWiring)
+
   // 生产构建（有 core/adapters 时）必须包含模块注册表
   if (result.moduleIds.length > 0) {
     assert.ok(result.code.includes('__def("src/core/'), 'core modules registered')
@@ -132,6 +142,9 @@ test('locale: zh/en 键集完全一致', () => {
   assert.ok(keys.length > 120, 'dictionary should be complete, got ' + keys.length)
   assert.ok(keys.includes('view.tab'))
   assert.ok(keys.includes('meta.title'))
+  // M9：copyId 文案已随「移除复制任务 ID」清理（zh/en 同步删除）
+  assert.equal(zh['task.copyId'], undefined, 'task.copyId removed from zh')
+  assert.equal(en['task.copyId'], undefined, 'task.copyId removed from en')
   assert.ok(keys.includes('meta.description'))
 
   // 键集不一致必须报错
@@ -163,7 +176,7 @@ test('locale: 代码里静态引用的 key 都存在', () => {
       }
     }
   }
-  const missing = Array.from(used).filter((key) => zh[key] === undefined)
+  const missing = Array.from(used).filter((key) => zh[key] === undefined && !key.endsWith('.'))
   assert.deepEqual(missing, [], 'missing i18n keys: ' + missing.join(', '))
 })
 

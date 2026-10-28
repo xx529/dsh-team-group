@@ -54,6 +54,116 @@ function gcFitHostLayout(rootEl) {
   }
 }
 
+/**
+ * 会话父链查询（lead 回溯用）：优先 `sessions.list.byId`（F27/§4.8.2 口径），
+ * 回退 `binding(sessionId).session.getSnapshot()`；读不到返回 undefined，不抛错。
+ */
+function gcLookupSessionParents(ctx) {
+  let listState = null
+  try {
+    if (ctx && ctx.sessions && ctx.sessions.list && typeof ctx.sessions.list.getSnapshot === 'function') {
+      listState = ctx.sessions.list.getSnapshot()
+    }
+  } catch {
+    listState = null
+  }
+  return function lookup(sessionId) {
+    try {
+      const byId = (listState && (listState.byId || listState.sessions)) || null
+      const entry = byId && sessionId ? byId[sessionId] : null
+      if (entry) {
+        return {
+          id: sessionId,
+          parentSessionId:
+            entry.parentSessionId ||
+            (entry.subagent && entry.subagent.address && entry.subagent.address.parentSessionId) ||
+            '',
+          parentSession: entry.parentSession
+        }
+      }
+      if (!ctx || !ctx.sessions || typeof ctx.sessions.binding !== 'function') return undefined
+      const binding = ctx.sessions.binding(sessionId)
+      const snapshot =
+        binding && binding.session && typeof binding.session.getSnapshot === 'function'
+          ? binding.session.getSnapshot()
+          : null
+      if (!snapshot) return undefined
+      return {
+        id: sessionId,
+        parentSessionId:
+          snapshot.parentSessionId ||
+          (snapshot.subagent && snapshot.subagent.address && snapshot.subagent.address.parentSessionId) ||
+          '',
+        parentSession: snapshot.parentSession
+      }
+    } catch {
+      return undefined
+    }
+  }
+}
+
+/**
+ * F27 作用域修正：任意 member session 打开群聊都解析 lead 频道。
+ * core/roster.resolveLeadSessionId 优先（≤4 跳、防环），缺失时回退适配器 deriveLeadSessionId，再回退自身。
+ */
+function gcResolveLeadSessionId(ctx, sessionId) {
+  const roster = gcCore('roster')
+  if (roster && typeof roster.resolveLeadSessionId === 'function' && sessionId) {
+    try {
+      const resolved = roster.resolveLeadSessionId(sessionId, gcLookupSessionParents(ctx))
+      if (typeof resolved === 'string' && resolved) return resolved
+    } catch (error) {
+      gcWarn('core resolveLeadSessionId failed:', gcShortError(error))
+    }
+  }
+  try {
+    const adapter = gcAdapter('client-session-source')
+    if (adapter && typeof adapter.deriveLeadSessionId === 'function') {
+      return adapter.deriveLeadSessionId(ctx, sessionId) || sessionId
+    }
+  } catch {}
+  return sessionId
+}
+
+/**
+ * 轮次轨迹数据（§6.15.2）：优先 core/turns 聚合该成员事件窗口；
+ * 适配器未暴露事件窗口时，用 feed 内该成员的 agent_output 降级构造。
+ */
+function gcLoadTrajectoryTurns(source, store, sessionId) {
+  const turnsMod = gcCore('turns')
+  let events = null
+  try {
+    if (source && typeof source.getEvents === 'function') events = source.getEvents(sessionId)
+    else if (source && typeof source.getMemberEvents === 'function') events = source.getMemberEvents(sessionId)
+  } catch {}
+  if (events && turnsMod && typeof turnsMod.aggregateTurns === 'function') {
+    try {
+      const turns = turnsMod.aggregateTurns(events)
+      if (Array.isArray(turns)) return turns
+    } catch (error) {
+      gcWarn('core aggregateTurns failed, using fallback:', gcShortError(error))
+    }
+  }
+  const state = store.getSnapshot()
+  const messages = gcAsArray(state.messages).filter(function (message) {
+    return message && message.sessionId === sessionId && message.kind === 'agent_output'
+  })
+  return messages
+    .map(function (message, index) {
+      return {
+        index: index,
+        turnId: index,
+        startedAt: message.time,
+        endedAt: message.time,
+        status: message.isFinal ? 'done' : 'running',
+        summary: gcClip(gcStr(message.text), 120),
+        stepCount: 0,
+        toolCount: typeof message.toolCallCount === 'number' ? message.toolCallCount : 0
+      }
+    })
+    .reverse()
+}
+
 /** Cordis client ctx（entry.apply 注入；卡片跳转 / 发送降级用）。 */
 let gcCtx = null
 
@@ -88,6 +198,16 @@ function gcPreviewLongRequested() {
 let gcActiveSource = null
 
 function gcCreateChannelSource(deps) {
+  // 预览模式优先（`?gc-preview=1`）：不依赖真实会话/适配器
+  const preview = gcPreviewVariant()
+  if (gcIsPreviewRequested() || deps.preview) {
+    return gcCreatePreviewSource({
+      readonly: /readonly/.test(preview),
+      truncated: /truncated/.test(preview),
+      members: deps.members,
+      long: gcPreviewLongRequested()
+    })
+  }
   const adapter = gcAdapter('client-session-source')
   if (adapter && typeof adapter.createClientSessionSource === 'function') {
     try {
@@ -103,15 +223,6 @@ function gcCreateChannelSource(deps) {
     } catch (error) {
       gcWarn('createChannelSource(client) failed:', gcShortError(error))
     }
-  }
-  const preview = gcPreviewVariant()
-  if (gcIsPreviewRequested() || deps.preview) {
-    return gcCreatePreviewSource({
-      readonly: /readonly/.test(preview),
-      truncated: /truncated/.test(preview),
-      members: deps.members,
-      long: gcPreviewLongRequested()
-    })
   }
   return null
 }
@@ -192,7 +303,7 @@ function gcCreateController(options) {
       sessionId: props.sessionId,
       // F-02：agentTeam 投影作为 authority 名册（适配器与事件名册 union；subagent 保留）
       members: options.getMembers ? options.getMembers() : undefined,
-      // F-07：本地发送批次（活对象；core lookupBatchId 用它给权威消息打 clientBatchId）
+      // F5（H1 后）：本地批次活对象交给 core lookupBatchId 反查（UI 不删除 echo）
       localBatches: gcLocalBatches,
       props: props,
       t: gcTranslate
@@ -478,8 +589,6 @@ function gcPerformSend(store, channelId, t) {
     meta: { draftMentions: gcAsArray(draft.mentions) }
   }
 
-  // F-07：先注册批次（targets/sessionIds 即可让 core 的无 rpcId 路径命中）；
-  // send-batch 的 deps.onBatch 会带 requestIds 再更新同一条记录。
   gcRememberBatch({
     clientBatchId: clientBatchId,
     channelId: channelId,
@@ -487,6 +596,7 @@ function gcPerformSend(store, channelId, t) {
     sessionIds: targets.map(function (target) {
       return target.sessionId
     }),
+    text: text,
     at: now
   })
 
@@ -507,7 +617,15 @@ function gcPerformSend(store, channelId, t) {
     targets: targets,
     channelId: channelId,
     clientBatchId: clientBatchId,
-    deps: { ctx: gcCtx, onBatch: gcRememberBatch }
+    deps: {
+      ctx: gcCtx,
+      // R-M4：与 adapter 共享同一份活对象，send-batch 才能在终态把批次标 closed
+      localBatches: gcLocalBatches,
+      // H1 后：onBatch 在 requestIds 生成后/prompt 前回调；带上原始正文用于无 rpcId 弱匹配
+      onBatch: function (batch) {
+        gcRememberBatch(Object.assign({ text: text, channelId: channelId }, batch || {}))
+      }
+    }
   }).then(
     function (result) {
       const deliveries = {}
@@ -517,22 +635,9 @@ function gcPerformSend(store, channelId, t) {
         const key = item.sessionId || item.target
         if (key) deliveries[key] = item.ok ? 'sent' : 'failed'
       }
+      gcCloseBatch(clientBatchId)
       const status = result && result.status ? result.status : gcAggregateDeliveries(list)
       const sendDebug = gcSendDebugFromDeliveries(status, list, result && result.diagnostics)
-      // 结果里的 requestIds 可能比 onBatch 更完整（含重试复用的 id），再登记一次
-      if (result && (result.requestIds || result.requestIdsByTarget)) {
-        gcRememberBatch({
-          clientBatchId: clientBatchId,
-          channelId: channelId,
-          targets: result.targets || targets,
-          targetNames: result.targetNames,
-          requestIds: result.requestIds || result.requestIdsByTarget,
-          sessionIds: targets.map(function (target) {
-            return target.sessionId
-          }),
-          at: Date.now()
-        })
-      }
       store.set(function (current) {
         return {
           send: { inFlight: null },
@@ -552,15 +657,7 @@ function gcPerformSend(store, channelId, t) {
       })
     },
     function (error) {
-      gcRememberBatch({
-        clientBatchId: clientBatchId,
-        channelId: channelId,
-        targets: targets,
-        sessionIds: targets.map(function (target) {
-          return target.sessionId
-        }),
-        at: Date.now()
-      })
+      gcCloseBatch(clientBatchId)
       store.set(function (current) {
         return {
           send: { inFlight: null },
@@ -734,18 +831,21 @@ function GroupChatView(props) {
   const sessionId = props && props.sessionId ? props.sessionId : 'unknown-session'
 
   // 频道根（lead）会话 id：优先用适配器的 deriveLeadSessionId（node 端同一实现）
-  const leadSessionId = React.useMemo(
+  // M7：冷启动时 sessions.list 可能尚未就绪；订阅 byId 快照变化后就绪重算
+  const sessionsById =
+    props && typeof props.useSessions === 'function'
+      ? props.useSessions(function (sessionsState) {
+          return sessionsState && sessionsState.byId ? sessionsState.byId : null
+        })
+      : null
+  const leadScope = React.useMemo(
     function () {
-      try {
-        const adapter = gcAdapter('client-session-source')
-        if (adapter && typeof adapter.deriveLeadSessionId === 'function') {
-          return adapter.deriveLeadSessionId(gcCtx, sessionId) || sessionId
-        }
-      } catch {}
-      return sessionId
+      const resolved = gcResolveLeadSessionId(gcCtx, sessionId)
+      return { leadSessionId: resolved, degraded: resolved === sessionId }
     },
-    [sessionId]
+    [sessionId, sessionsById]
   )
+  const leadSessionId = leadScope.leadSessionId
 
   // 权威名册：useSessions 的 agentTeam 投影（D-03；缺投影时退回事件名册）
   const agentTeam =
@@ -851,7 +951,7 @@ function GroupChatView(props) {
         controllerRef.current = null
       }
     },
-    [sessionId]
+    [sessionId, leadSessionId]
   )
 
   /* 新消息：未贴底时累计未读，贴底自动滚到底 */
@@ -872,6 +972,90 @@ function GroupChatView(props) {
       })
     },
     [state.messages.length]
+  )
+
+  /* 单一输入器（F24/§6.13）：body 标记隐藏宿主 composer；2×rAF 自检失败降级 */
+  React.useEffect(
+    function () {
+      const leaveBody = gcEnterGroupChatBody()
+      let disposed = false
+      if (typeof gcVerifyHostComposerHidden === 'function') {
+        gcVerifyHostComposerHidden().then(function (result) {
+          if (disposed || !result || !result.degraded) return
+          store.set({ composerFallback: true })
+        })
+      }
+      return function () {
+        disposed = true
+        leaveBody()
+      }
+    },
+    [sessionId]
+  )
+
+  /* M4：宿主若保留非激活 view（不卸载），按可见性恢复/隐藏宿主 composer */
+  React.useEffect(
+    function () {
+      const el = rootRef.current
+      if (!el || typeof IntersectionObserver === 'undefined') return function () {}
+      let observer = null
+      try {
+        observer = new IntersectionObserver(
+          function (entries) {
+            const visible = entries.some(function (entry) {
+              return entry.isIntersecting && entry.intersectionRatio > 0
+            })
+            if (visible) {
+              gcEnterGroupChatBody()
+            } else {
+              try {
+                if (typeof document !== 'undefined' && document.body) {
+                  document.body.classList.remove('gc-view-group-chat')
+                }
+              } catch {}
+            }
+          },
+          { threshold: 0.01 }
+        )
+        observer.observe(el)
+      } catch {
+        observer = null
+      }
+      return function () {
+        if (observer) {
+          try {
+            observer.disconnect()
+          } catch {}
+        }
+      }
+    },
+    [sessionId]
+  )
+
+  /* 轨迹侧栏：Esc 关闭（§6.15.2，关闭后焦点回输入框） */
+  React.useEffect(
+    function () {
+      if (!state.trajectory) return
+      const onKeyDown = function (event) {
+        if (event && event.key === 'Escape') {
+          event.preventDefault()
+          store.set({ trajectory: null, trajectoryTurns: [] })
+          try {
+            const el = currentScroll()
+            if (el && typeof el.focus === 'function') el.focus()
+          } catch {}
+        }
+      }
+      try {
+        if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('keydown', onKeyDown)
+      } catch {}
+      return function () {
+        try {
+          if (typeof document !== 'undefined' && document.removeEventListener) document.removeEventListener('keydown', onKeyDown)
+        } catch {}
+      }
+    },
+    [state.trajectory]
   )
 
   /* 宿主布局约束（F-01）：保证 root 占满 conversation.view 可用高度 */
@@ -1037,6 +1221,34 @@ function GroupChatView(props) {
     onReconnect: function () {
       if (controllerRef.current) controllerRef.current.syncNow()
     },
+    onOpenTrajectory: function (member) {
+      if (!member) return
+      const current = store.getSnapshot()
+      if (current.trajectory && current.trajectory.sessionId === member.sessionId) {
+        store.set({ trajectory: null, trajectoryTurns: [] })
+        return
+      }
+      const source = gcActiveSource
+      store.set({
+        trajectory: {
+          sessionId: member.sessionId,
+          name: member.name,
+          kind: member.kind,
+          status: member.status,
+          model: member.model
+        },
+        trajectoryTurns: gcLoadTrajectoryTurns(source, store, member.sessionId)
+      })
+    },
+    onCloseTrajectory: function () {
+      store.set({ trajectory: null, trajectoryTurns: [] })
+    },
+    onLoadOlderTurns: function () {
+      const state2 = store.getSnapshot()
+      if (!state2.trajectory) return
+      if (controllerRef.current && controllerRef.current.loadOlder) controllerRef.current.loadOlder()
+      store.set({ trajectoryTurns: gcLoadTrajectoryTurns(gcActiveSource, store, state2.trajectory.sessionId) })
+    },
     onOpenChat: function () {
       if (props && typeof props.openView === 'function') props.openView('chat', '')
       store.set({ toast: { text: t('empty.howToTeam'), at: Date.now() } })
@@ -1065,7 +1277,8 @@ function GroupChatView(props) {
       unread: state.unreadCount,
       filterOpen: state.filterOpen,
       onToggleFilter: actions.onToggleFilter,
-      onJumpLatest: handleJumpLatest
+      onJumpLatest: handleJumpLatest,
+      onOpenTrajectory: actions.onOpenTrajectory
     }),
     state.filterOpen
       ? h(GcFilterMenu, {
@@ -1082,6 +1295,21 @@ function GroupChatView(props) {
       onClearFilter: actions.onClearFilter,
       onReconnect: actions.onReconnect
     }),
+    state.composerFallback
+      ? h(
+          'div',
+          { className: 'gc-banners' },
+          h(
+            'div',
+            { className: 'gc-col' },
+            h(
+              'div',
+              { className: 'gc-banner', 'data-testid': 'group-chat-composer-fallback', role: 'status' },
+              t('composer.hostFallback')
+            )
+          )
+        )
+      : null,
     state.filter && visible.length === 0
       ? h('div', { className: 'gc-col' }, h(GcFilterEmpty, { t: t }))
       : null,
@@ -1104,6 +1332,16 @@ function GroupChatView(props) {
       onRetryOpen: actions.onRetryOpen,
       onOpenChat: actions.onOpenChat
     }),
+    state.trajectory
+      ? h(GcTrajectoryPanel, {
+          t: t,
+          member: state.trajectory,
+          turns: state.trajectoryTurns,
+          hasOlder: false,
+          onClose: actions.onCloseTrajectory,
+          onLoadOlder: actions.onLoadOlderTurns
+        })
+      : null,
     h(GcUnreadPill, { t: t, count: state.unreadCount, onJumpLatest: handleJumpLatest }),
     h(GcComposer, {
       t: t,

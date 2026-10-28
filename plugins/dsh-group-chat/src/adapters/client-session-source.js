@@ -284,6 +284,53 @@ export class ClientSessionSource {
     return this.members;
   }
 
+  /**
+   * UI 便捷（只读）：某会话已 retain 的事件窗口内**原始事件**（F3 轨迹真实轮次用）。
+   * 与 feed 同一份窗口，不新增 retain；已关闭/未知会话返回 []，不抛错。
+   * @param {string} [sessionId] 默认频道根会话
+   * @returns {any[]}
+   */
+  getEvents(sessionId = this.channelId) {
+    const sid = String(sessionId ?? this.channelId ?? '');
+    if (!sid) return [];
+    try {
+      const stored = this.store.get(sid);
+      if (stored && Array.isArray(stored.events)) return stored.events.slice();
+      const win = this._windowOf(sid);
+      return normalizeEntries(win.entries).events;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * getEvents 的别名（frontend 探测 `getEvents/getMemberEvents` 任一即可）
+   * @param {string} [sessionId]
+   * @returns {any[]}
+   */
+  getMemberEvents(sessionId = this.channelId) {
+    return this.getEvents(sessionId);
+  }
+
+  /**
+   * UI 便捷（只读）：窗口元信息 + 原始事件（轨迹侧栏可据此缓存/分页）
+   * @param {string} [sessionId]
+   * @returns {{sessionId: string, events: any[], entryCount: number, revision: number, hasMore: boolean}}
+   */
+  getWindow(sessionId = this.channelId) {
+    const sid = String(sessionId ?? this.channelId ?? '');
+    if (!sid) return { sessionId: '', events: [], entryCount: 0, revision: 0, hasMore: false };
+    const stored = this.store.get(sid);
+    const win = this._windowOf(sid);
+    return {
+      sessionId: sid,
+      events: this.getEvents(sid),
+      entryCount: win.entries.length,
+      revision: Number(stored?.revision ?? win.revision ?? 0),
+      hasMore: win.hasMore === true,
+    };
+  }
+
   // ── 内部 ─────────────────────────────────────────────────────
   _assertOpen() {
     if (this.closed) throw new Error('ClientSessionSource: closed');

@@ -28,7 +28,7 @@ import { parseParts } from './protocol.js';
 import { deriveRoster } from './roster.js';
 import { normalizeMemberStatus } from './roster.js';
 import { capInMemory } from './paginate.js';
-import { dedupeMessages } from './dedupe.js';
+import { dedupeMessages, hashText, normalizeText } from './dedupe.js';
 import { mergeFanout } from './fanout.js';
 import { sortTimeline } from './timeline.js';
 
@@ -166,6 +166,7 @@ export function textBlocks(content) {
  * @property {number} forkedTurnsDropped
  * @property {number} ignoredSubagentPrompts
  * @property {number} ignoredSystemContext
+ * @property {number} ignoredNotices
  * @property {number} eventsSeen
  */
 
@@ -209,6 +210,7 @@ export function collectSession(session) {
     forkedTurnsDropped: 0,
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
+    ignoredNotices: 0,
     eventsSeen: 0,
   };
 
@@ -749,19 +751,61 @@ export function senderOf(dir, sessionId, fallback = {}) {
  * @param {string[]} targets
  * @returns {string|undefined}
  */
-export function lookupBatchId(ctx, rpcId, sessionId, targets) {
-  const batches = ctx.localBatches;
-  if (!batches || typeof batches !== 'object') return undefined;
+export function getLocalBatches(source) {
+  const batches = source && typeof source === 'object' ? source.localBatches : undefined;
+  return batches && typeof batches === 'object' && !Array.isArray(batches) ? batches : {};
+}
+
+/**
+ * 由 ctx.localBatches 反查 clientBatchId（H1 修复）
+ *
+ * - **有 rpcId**：只认 `requestIds` 精确匹配（禁止 sessionIds 兜底，避免把旧批次 TTL 内的无关消息误归并）；
+ * - **无 rpcId**：必须同时满足 ① text hash 匹配 ② targets 集合完全一致 ③ 时间窗（默认 ±2min）；
+ * - `closed:true` 的终态批次：仅允许 rpcId 精确匹配（晚到权威消息仍可替换 echo），不允许弱匹配。
+ *
+ * @param {NormalizeContext} ctx
+ * @param {string|undefined} rpcId
+ * @param {string} sessionId
+ * @param {string[]} targets 目标名（不含 @）
+ * @param {{text?: string, time?: number, windowMs?: number}} [extra]
+ * @returns {string|undefined}
+ */
+export function lookupBatchId(ctx, rpcId, sessionId, targets, extra = {}) {
+  const batches = getLocalBatches(ctx);
+  const list = Array.isArray(targets) ? targets.map((t) => String(t).replace(/^@/, '')) : [];
+  const windowMs = Number.isFinite(extra.windowMs) ? Number(extra.windowMs) : LIMITS.localBatchFallbackWindowMs;
+  const text = typeof extra.text === 'string' ? extra.text : '';
+  const time = Number(extra.time);
+  const textHash = text ? hashText(normalizeText(text)) : '';
+  const extraChannelId = typeof extra.channelId === 'string' ? extra.channelId : '';
   for (const [key, batch] of Object.entries(batches)) {
     if (!batch) continue;
     const batchId = batch.clientBatchId ?? key;
     const requestIds = batch.requestIds ?? {};
-    if (rpcId && Object.values(requestIds).includes(rpcId)) return batchId;
-    if (!rpcId && Array.isArray(batch.targets) && targets.length > 1) {
-      const same = batch.targets.length === targets.length && batch.targets.every((t) => targets.includes(t.replace(/^@/, '')));
-      if (same) return batchId;
+    if (rpcId) {
+      // H1：有 rpcId 只认精确 requestId（终态批次也允许，保证晚到权威消息替换 echo）
+      if (Object.values(requestIds).includes(rpcId)) return batchId;
+      continue;
     }
-    if (batch.sessionIds && Array.isArray(batch.sessionIds) && batch.sessionIds.includes(sessionId)) return batchId;
+    if (batch.closed === true) continue; // 无 rpcId 的弱匹配不用于终态批次
+    if (!textHash || !Number.isFinite(time)) continue;
+    if (list.length === 0) continue;
+    // R-WEAK：弱匹配必须同频道/同会话域，防止跨频道（历史/回放）误归并
+    if (extraChannelId && typeof batch.channelId === 'string' && batch.channelId && batch.channelId !== extraChannelId) continue;
+    if (Array.isArray(batch.sessionIds) && batch.sessionIds.length > 0 && sessionId && !batch.sessionIds.includes(sessionId)) continue;
+    if (!Array.isArray(batch.targets) || batch.targets.length !== list.length) continue;
+    const sameTargets = batch.targets.every((t) => list.includes(String(t).replace(/^@/, '')));
+    if (!sameTargets) continue;
+    const batchHash =
+      typeof batch.textHash === 'string'
+        ? batch.textHash
+        : typeof batch.text === 'string'
+          ? hashText(normalizeText(batch.text))
+          : '';
+    if (!batchHash || batchHash !== textHash) continue;
+    const batchAt = Number(batch.at ?? batch.createdAt ?? batch.sentAt ?? batch.time);
+    if (!Number.isFinite(batchAt) || Math.abs(time - batchAt) > windowMs) continue;
+    return batchId;
   }
   return undefined;
 }
@@ -804,6 +848,13 @@ export function emitSessionMessages(scan, dir, ctx) {
       continue;
     }
 
+    // 通用兜底：宿主通知类注入（`form:'notice'` 且带 senderSessionId）不是用户发言，直接丢弃；
+    // 真正用户消息（kind=user/空、无 notice form）不受影响。
+    if (String(source.form ?? '') === 'notice' && String(source.senderSessionId ?? source.senderId ?? '')) {
+      scan.ignoredNotices += 1;
+      continue;
+    }
+
     if (kind === SOURCE_KIND.user || kind === '') {
       const isChild = sid !== leadSessionId;
       if (!rpcId && isChild) {
@@ -823,7 +874,11 @@ export function emitSessionMessages(scan, dir, ctx) {
         continue;
       }
       const targets = proto.ok ? proto.targets : [];
-      const batchId = lookupBatchId(ctx, rpcId, sid, targets);
+      const batchId = lookupBatchId(ctx, rpcId, sid, targets, {
+      text: proto.ok ? proto.text : fullText,
+      time: um.time,
+      channelId: leadSessionId,
+    });
       const msg = makeMessage({
         id: `u:${sid}:${String(data.id ?? um.seq)}`,
         kind: 'user',
@@ -880,27 +935,6 @@ export function emitSessionMessages(scan, dir, ctx) {
       if (fullText !== body) msg.rawText = fullText;
       messages.push(msg);
       if (data.id) byDataId.set(String(data.id), msg);
-      continue;
-    }
-
-    if (kind === SOURCE_KIND.subagentSettled) {
-      const closingText = settlementClosingText(parts);
-      messages.push(makeMessage({
-        id: `s:${sid}:${um.seq}`,
-        kind: 'system',
-        sessionId: sid,
-        sender: senderOf(dir, String(source.senderSessionId ?? ''), { name: 'subagent', kind: 'subagent' }),
-        time: um.time,
-        seq: um.seq,
-        text: parts.join('\n'),
-        systemReason: 'subagent-settled',
-        meta: {
-          copy: 'settlement',
-          summary: String(source.summary ?? ''),
-          senderSessionId: String(source.senderSessionId ?? ''),
-          closingText,
-        },
-      }));
       continue;
     }
 
@@ -1242,6 +1276,7 @@ export function normalizeChannel(sessions, ctx) {
     unknownEvents: 0,
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
+    ignoredNotices: 0,
     duplicatesRemoved: 0,
     fanoutMerged: 0,
     memberCards: 0,
@@ -1272,6 +1307,7 @@ export function normalizeChannel(sessions, ctx) {
   for (const scan of scans) {
     diagnostics.ignoredSubagentPrompts += scan.ignoredSubagentPrompts;
     diagnostics.ignoredSystemContext += scan.ignoredSystemContext;
+    diagnostics.ignoredNotices += scan.ignoredNotices;
   }
 
   /** @type {ChannelMessage[]} */

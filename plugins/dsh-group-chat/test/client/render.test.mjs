@@ -30,7 +30,7 @@ import {
 
 const here = dirname(fileURLToPath(import.meta.url))
 const pluginRoot = join(here, '..', '..')
-const bundleCode = buildBundleSource({ modules: 'none' }).code
+const bundleCode = buildBundleSource().code
 const runtime = createReactRuntime()
 const h = runtime.React.createElement
 
@@ -147,7 +147,7 @@ test('render: 频道头 / 时间分隔 / 气泡 / 说明行', async () => {
     assert.ok(header, 'channel header')
     assert.match(visibleText(header), /群聊/)
     assert.match(visibleText(header), /dsh-team-group/)
-    assert.match(visibleText(header), /6 名成员 · 4 个运行中/)
+    assert.match(visibleText(header), /6 名成员 · 4 工作中 · 2 等待/)
 
     const feed = findByTestId(rendered, 'group-chat-feed')
     assert.ok(feed, 'feed container')
@@ -198,8 +198,11 @@ test('render: 消息类型齐全（user/agent_to_agent/agent_output/system/membe
     const mentions = findAllByAttr(tree, 'data-mention')
     assert.ok(mentions.some((node) => node.props['data-mention'] === 'backend'), 'inline @backend')
 
-    // 工具调用折叠行（agent_output.toolCallCount）
-    assert.ok(findAllByAttr(tree, 'data-field', 'tool-calls').length > 0, 'tool collapse line')
+    // v1.7：M6 工具摘要行作废（不渲染工具过程文本）
+    assert.equal(findAllByAttr(tree, 'data-field', 'tool-calls').length, 0, 'tool line removed (M6 deprecated)')
+    // v1.7：气泡正文走受控 Markdown 渲染
+    assert.ok(findAllByAttr(tree, 'data-md').length > 0, 'markdown container present')
+    assert.ok(findAll(tree, (node) => node.props && node.props.className === 'gc-md').length > 0)
 
     // 每个消息行只有一个头像、一个 SenderLine（避免重复头像回归）
     for (const kind of ['agent_output', 'agent_to_agent']) {
@@ -282,7 +285,11 @@ test('render: 任务卡（M9）严格映射 action/status，且无「返工/失�
     assert.equal(create.props['data-replay'], 'false')
     assert.match(visibleText(create), /创建任务/)
     assert.match(visibleText(create), /待认领/)
-    assert.match(visibleText(create), /复制任务 ID/)
+    assert.equal(create.props['data-card-accent'], 'pending')
+    assert.ok(findAll(create, (node) => node.props && node.props['data-card-avatar']).length > 0, 'actor avatar rendered')
+    assert.ok(findAll(create, (node) => node.props && node.props['data-task-owner-avatar']).length > 0, 'owner avatar rendered')
+    // v1.7：移除「复制任务 ID」
+    assert.equal(findAll(create, (node) => node.props && node.props['data-action'] === 'copy-task-id').length, 0)
 
     const claim = byAction.get('claim')
     assert.equal(claim.props['data-sender'], 'scout')
@@ -297,15 +304,16 @@ test('render: 任务卡（M9）严格映射 action/status，且无「返工/失�
     const reopen = byAction.get('reopen')
     assert.equal(reopen.props['data-task-status'], 'pending')
     assert.match(visibleText(reopen), /重新打开任务/)
-    assert.match(visibleText(reopen), /未指派/)
+    assert.match(visibleText(reopen), /未认领/)
 
     for (const card of cards) {
       const text = visibleText(card)
       assert.ok(!/返工|失败|failed/.test(text), 'task card must not contain forbidden wording: ' + text)
     }
-    // 依赖为空时整行隐藏；有依赖才渲染 data-field=blocked-by
-    assert.equal(findByAttr(create, 'data-field', 'blocked-by'), null)
-    assert.ok(findByAttr(claim, 'data-field', 'blocked-by'), 'blocked-by row when blockedBy present')
+    // v1.7：依赖行常显（空→「无」），有依赖→「被 … 阻塞」
+    assert.ok(findByAttr(create, 'data-field', 'blocked-by'), 'blocked-by row always rendered')
+    assert.match(visibleText(create), /依赖/)
+    assert.match(visibleText(claim), /被 task-13 阻塞/)
   } finally {
     mounted.restore()
   }
@@ -322,8 +330,11 @@ test('render: 气泡圆角按发送者区分（CSS 变量）/ 输入卡 radius 2
   assert.match(css, /--gc-header-h:\s*56px/)
   assert.match(css, /--gc-content-w:\s*920px/)
   assert.match(css, /container-type:\s*inline-size/)
-  assert.match(css, /--gc-fold-max:\s*192px/)
+  assert.match(css, /--gc-fold-max:\s*1100px/)
   assert.match(css, /--gc-fold-mask:\s*56px/)
+  // v1.7 单一输入器：宿主 composer 隐藏规则
+  assert.match(css, /body\.gc-view-group-chat \[data-conversation-region='composer'\]/)
+  assert.match(css, /body\.gc-view-group-chat \[data-composer-seat\]/)
   // 只用主题 token 取色（不出现裸色值）
   const colorLiterals = css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g) || []
   const allowed = colorLiterals.filter((value) => /rgba\(0, 0, 0/.test(value))
@@ -413,7 +424,8 @@ test('交互: 长文本折叠展开（aria-expanded + 文案切换）', async ()
     assert.ok(toggles.length > 0, 'fold toggle for long text')
     const toggle = toggles[0]
     assert.equal(toggle.props['aria-expanded'], 'false')
-    assert.match(visibleText(toggle), /展开全部（约 \d+ 字）/)
+    assert.match(visibleText(toggle), /展开全部（共 \d+ 行）/)
+    assert.ok(toggle.props['data-line-count'], 'data-line-count present')
 
     await renderer.act(() => click(toggle))
     const togglesAfter = findAllByTestId(renderer.tree, 'group-chat-fold-toggle')
@@ -476,9 +488,11 @@ test('交互: 卡片动作（查看会话降级 Toast / 复制任务 ID）', asy
     assert.ok(toast, 'toast after fallback copy')
     assert.match(visibleText(toast), /已复制会话 ID/)
 
-    const copyTask = findAll(renderer.tree, (node) => node.props && node.props['data-action'] === 'copy-task-id')[0]
-    assert.ok(copyTask)
-    await renderer.act(() => click(copyTask))
+    // v1.7：消息操作为图标 copy-message / open-session（无 copy-task-id）
+    const copyMessage = findAll(renderer.tree, (node) => node.props && node.props['data-action'] === 'copy-message')[0]
+    assert.ok(copyMessage, 'copy-message icon action')
+    assert.equal(copyMessage.props['aria-label'], '复制原文')
+    await renderer.act(() => click(copyMessage))
     assert.ok(findAll(renderer.tree, (node) => node.props && node.props.className === 'gc-toast').length > 0)
   } finally {
     mounted.restore()
@@ -600,6 +614,45 @@ test('task-70: 默认隐藏诊断（caption 无 code/stage/build），data-send-
     } finally {
       debugMount.mounted.restore()
     }
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F26 轨迹: source.getEvents → core/turns.aggregateTurns（真实轮次，最新在前）', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const t = new Date(2026, 0, 15, 12, 0, 0).getTime()
+    const events = [
+      { type: 'turn/start', seq: 1, time: t, data: { turn: 1 } },
+      {
+        type: 'assistant/message',
+        seq: 2,
+        time: t,
+        data: { turn: 1, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'first turn output' }] } }
+      },
+      { type: 'turn/end', seq: 3, time: t, data: { turn: 1, reason: { kind: 'completed' } } },
+      { type: 'turn/start', seq: 4, time: t + 1000, data: { turn: 2 } },
+      {
+        type: 'assistant/message',
+        seq: 5,
+        time: t + 1000,
+        data: { turn: 2, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: 'second turn output' }] } }
+      },
+      { type: 'turn/end', seq: 6, time: t + 1000, data: { turn: 2, reason: { kind: 'error' } } }
+    ]
+    const source = { getEvents: (sessionId) => (sessionId === 's-x' ? events : []), getMemberEvents: () => [] }
+    const store = { getSnapshot: () => ({ messages: [] }) }
+    const turns = gc.loadTrajectoryTurns(source, store, 's-x')
+    assert.equal(turns.length, 2, 'two turns from events')
+    assert.equal(turns[0].status, 'error', 'newest first')
+    assert.equal(turns[0].summary, 'second turn output')
+    assert.equal(turns[1].status, 'done')
+    assert.equal(turns[1].summary, 'first turn output')
+    // 未知会话 → 空轮次（不抛错；core 会给数组挂 emptyReason）
+    const empty = gc.loadTrajectoryTurns(source, store, 's-missing')
+    assert.equal(empty.length, 0)
   } finally {
     mounted.restore()
   }
@@ -768,6 +821,16 @@ test('F-01: CSS 契约 — root/shell 满高不溢出，feed 唯一滚动，head
   assert.match(compact, /\.gc-header \{[^}]*flex: 0 0 auto/s)
   assert.match(compact, /\.gc-banners \{[^}]*flex: none/s)
   assert.match(compact, /\.gc-composer-area \{[^}]*flex: 0 0 auto/s)
+  // M1：成员条换行优先 + 26/24/22 响应式 + 16px 渐隐
+  assert.match(compact, /\.gc-member-strip \{[^}]*flex-wrap: wrap/s)
+  assert.match(compact, /\.gc-member-strip \{[^}]*mask-image: linear-gradient[^;]*16px/s)
+  assert.match(compact, /\.gc-member-strip \.gc-avatar \{[^}]*width: 26px/s)
+  // M6 欢迎提示：11.5 tertiary 居中
+  assert.match(compact, /\.gc-welcome-note \{[^}]*font-size: 11\.5px/s)
+  assert.match(compact, /\.gc-welcome-note \{[^}]*color: var\(--dsw-alias-label-tertiary\)/s)
+  // M4 宿主 composer 在插件卸载时也要恢复
+  const entrySource = readFileSync(join(pluginRoot, 'src', 'client', 'entry.js'), 'utf8')
+  assert.match(entrySource, /host composer restore/)
   // 宿主 slot wrapper 适配（:has）+ JS 兜底
   assert.match(compact, /\[class\*='viewArea'\] > :has\(> \.gc-root\)/)
   const bundled = readFileSync(join(pluginRoot, 'lib', 'client.js'), 'utf8')
@@ -800,6 +863,304 @@ test('F-02: agentTeam 投影经 getMembers 传入数据源（预览源回写成�
     assert.ok(names.includes('ux'), 'projection name ux present')
     assert.ok(names.includes('pm'), 'projection name pm present')
     assert.ok(!names.includes('scout'), 'event roster name replaced by authority')
+  } finally {
+    mounted.restore()
+  }
+})
+
+/* ══════════════════════════════════════════════════════════════════════
+ * v1.7（F22–F29 / Figma v4.1）
+ * ══════════════════════════════════════════════════════════════════════ */
+
+test('F22 Markdown: 受控渲染（rich/plain、禁止 innerHTML、链接安全属性）', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const tree = renderer.tree
+
+    const markdowns = findAll(tree, (node) => node.props && node.props.className === 'gc-md')
+    assert.ok(markdowns.length > 0, 'markdown containers')
+    const richs = markdowns.filter((node) => node.props['data-md'] === 'rich')
+    assert.ok(richs.length > 0, 'rich markdown container')
+    const rich = richs.find((node) => /关键点/.test(visibleText(node)))
+    assert.ok(rich, 'rich markdown container with markdown content')
+
+    const texts = findAll(rich, (node) => node.props && node.props.className === 'gc-md-strong').map(visibleText)
+    assert.ok(texts.includes('发送通路'), 'strong rendered: ' + JSON.stringify(texts))
+    assert.ok(findAll(rich, (node) => node.props && node.props.className === 'gc-md-pre').length > 0, 'code block')
+    assert.ok(findAll(rich, (node) => node.props && node.props.className === 'gc-md-li').length > 0, 'list items')
+    assert.ok(findAll(rich, (node) => node.props && node.props.className === 'gc-md-code').length > 0, 'inline code')
+    const links = findAll(rich, (node) => node.props && node.props.className === 'gc-md-link')
+    assert.ok(links.length > 0, 'links')
+    for (const link of links) {
+      assert.equal(link.props.target, '_blank')
+      assert.match(link.props.rel, /noopener/)
+      assert.equal(link.props['data-md-link'], 'true')
+      assert.ok(!/^javascript:/i.test(link.props.href || ''), 'no javascript: link')
+    }
+    // 禁止 innerHTML：渲染树中不存在 dangerouslySetInnerHTML
+    assert.equal(findAll(tree, (node) => node.props && node.props.dangerouslySetInnerHTML !== undefined).length, 0)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F29 折叠: 默认前 50 行 + data-line-count + 展开/收起', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const toggles = findAllByTestId(renderer.tree, 'group-chat-fold-toggle')
+    assert.ok(toggles.length > 0, 'fold toggle present for >50-line message')
+    const toggle = toggles[0]
+    const lineCount = Number(toggle.props['data-line-count'])
+    assert.ok(lineCount > 50, 'line count over 50: ' + lineCount)
+    assert.match(visibleText(toggle), new RegExp('展开全部（共 ' + lineCount + ' 行）'))
+    assert.equal(toggle.props['aria-expanded'], 'false')
+
+    await renderer.act(() => click(toggle))
+    const expanded = findAllByTestId(renderer.tree, 'group-chat-fold-toggle')[0]
+    assert.equal(expanded.props['aria-expanded'], 'true')
+    assert.equal(visibleText(expanded), '收起')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F26 成员条 + 轨迹侧栏: 头像状态点、点击打开 380px 抽屉、Esc 关闭', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const strip = findByTestId(renderer.tree, 'group-chat-member-strip')
+    assert.ok(strip, 'member strip in header')
+    const items = findAll(strip, (node) => node.props && node.props['data-testid'] === 'group-chat-member-strip-item')
+    assert.ok(items.length > 0, 'member strip items')
+    // Lead 裁决：全部成员显示，禁止 +N；预览频道共 6 名成员
+    assert.equal(items.length, 6, 'all members rendered, no overflow')
+    assert.equal(
+      findAll(strip, (node) => node.props && node.props.className === 'gc-member-strip-more').length,
+      0,
+      'no +N overflow node'
+    )
+    assert.ok(!/\+\d+/.test(visibleText(strip)), 'no +N text')
+    for (const item of items) {
+      assert.ok(['working', 'waiting'].includes(item.props['data-member-state']))
+      assert.ok(item.props['data-member-id'])
+      assert.equal(item.props['data-action'], 'open-trajectory')
+    }
+    // header 状态文案包含工作中/等待
+    assert.match(visibleText(findByTestId(renderer.tree, 'group-chat-header')), /工作中.*等待/)
+
+    // 点击有输出的成员头像（scout）→ 轨迹侧栏
+    const scoutItem = items.find((item) => item.props['data-member-id'] === 'preview-scout') || items[0]
+    await renderer.act(() => click(scoutItem))
+    const panel = findByTestId(renderer.tree, 'agent-trajectory-panel')
+    assert.ok(panel, 'trajectory panel opens')
+    assert.equal(panel.props.role, 'dialog')
+    assert.equal(panel.props['aria-modal'], 'true')
+    assert.ok(findByTestId(renderer.tree, 'agent-trajectory-overlay'), 'overlay present')
+    // 轮次行来自 fallback（该成员 agent_output）
+    assert.ok(findAllByTestId(renderer.tree, 'agent-trajectory-turn').length > 0, 'turn rows')
+
+    // 关闭按钮
+    const close = findAll(renderer.tree, (node) => node.props && node.props['data-action'] === 'close-trajectory')[0]
+    assert.ok(close)
+    await renderer.act(() => click(close))
+    assert.equal(findByTestId(renderer.tree, 'agent-trajectory-panel'), null)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F25 输入器: chips 在输入框下方（默认 @Lead + 已选 mention）、hint 唯一提示', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+
+    const targetRow = findByTestId(renderer.tree, 'group-chat-target-row')
+    assert.ok(targetRow, 'target chips row')
+    const leadChip = findAll(targetRow, (node) => node.props && node.props['data-target'] === 'lead')[0]
+    assert.ok(leadChip, 'default @Lead chip')
+    assert.equal(leadChip.props['data-tone'], 'target')
+    assert.match(visibleText(leadChip), /@Lead/)
+
+    const hint = findByTestId(renderer.tree, 'group-chat-composer-hint')
+    assert.ok(hint, 'composer hint')
+    assert.equal(visibleText(hint), '键入 @ 可同时发送给多人')
+
+    // chips 行在输入行之后（视觉下方）
+    const shell = findByTestId(renderer.tree, 'group-chat-composer')
+    const children = shell.children.filter(Boolean)
+    const inputIndex = children.findIndex((node) => node.props && node.props.className === 'gc-input-row')
+    const chipsIndex = children.findIndex(
+      (node) => node.props && String(node.props['data-testid']) === 'group-chat-target-row'
+    )
+    assert.ok(chipsIndex > inputIndex, 'chips below input row')
+    assert.equal(chipsIndex, children.length - 2, 'chips right before hint')
+
+    // 键入 @ → 补全条目展示角色描述（不是状态）
+    const textarea = findAll(renderer.tree, (node) => node.type === 'textarea')[0]
+    await renderer.act(() => change(textarea, '@sc', 3))
+    const popup = findByTestId(renderer.tree, 'group-chat-mention-popup')
+    assert.ok(popup)
+    const option = findAll(popup, (node) => node.props && node.props.role === 'option')[0]
+    assert.ok(option)
+    assert.ok(visibleText(option).includes('负责接口取证与技术可行性'), 'option shows description, got: ' + visibleText(option))
+    assert.ok(!/运行中|已完成/.test(visibleText(option)), 'option has no runtime status text')
+
+    // 选中后 chip 出现在 chips 行，且 hint 不变
+    const textarea2 = findAll(renderer.tree, (node) => node.type === 'textarea')[0]
+    await renderer.act(() => keyDown(textarea2, 'Enter'))
+    const targetRow2 = findByTestId(renderer.tree, 'group-chat-target-row')
+    assert.equal(targetRow2.props['data-targets'], 'lead,scout')
+    const mentionChip = findAll(targetRow2, (node) => node.props && node.props['data-mention'] === 'scout')[0]
+    assert.ok(mentionChip)
+    assert.equal(mentionChip.props['data-target'], 'scout')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F24 单一输入器: 群聊视图激活期 body 标记存在，卸载后移除', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const body = mounted.globals.document.body
+    assert.equal(body.classList.contains('gc-view-group-chat'), true, 'body marker while view active')
+    // 卸载视图（清空 root）→ cleanup 移除标记
+    renderer.render('div')
+    await renderer.settle()
+    assert.equal(body.classList.contains('gc-view-group-chat'), false, 'body marker removed after unmount')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F27 作用域: member session 沿 parentSession 链解析 lead；失败回退自身', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const lookup = (id) => {
+      const table = {
+        's-lead': {},
+        's-teammate': { parentSessionId: 's-lead' },
+        's-sub': { parentSessionId: 's-teammate' }
+      }
+      return table[id]
+    }
+    assert.equal(gc.resolveLeadSessionId({ sessions: { binding: () => undefined } }, 's-lead'), 's-lead')
+    // core 未注入 ctx 时回退会话自身
+    assert.equal(gc.resolveLeadSessionId({ sessions: { binding: () => undefined } }, 's-sub'), 's-sub')
+    assert.equal(typeof gc.resolveLeadSessionId({}, 'missing'), 'string')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F28 降噪: M6 工具行不渲染、消息操作为图标 + aria-label', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const tree = renderer.tree
+    assert.equal(findAll(tree, (node) => node.props && node.props.className === 'gc-tool-line').length, 0)
+    assert.equal(findAllByAttr(tree, 'data-field', 'tool-calls').length, 0)
+
+    const copyActions = findAll(tree, (node) => node.props && node.props['data-action'] === 'copy-message')
+    assert.ok(copyActions.length > 0, 'copy-message icon actions')
+    for (const action of copyActions) {
+      assert.ok(action.props['aria-label'])
+      assert.ok(action.props.title)
+    }
+    const openActions = findAll(tree, (node) => node.props && node.props['data-action'] === 'open-session')
+    assert.ok(openActions.length > 0, 'open-session icon actions')
+    for (const action of openActions) assert.ok(action.props['aria-label'])
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F5 subagent-settled 通知不渲染', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    assert.equal(gc.isSettledNotice({ kind: 'system', systemReason: 'subagent-settled' }), true)
+    assert.equal(gc.isSettledNotice({ kind: 'system', meta: { event: 'subagent-settled' } }), true)
+    assert.equal(gc.isSettledNotice({ kind: 'system', text: '团队已组建' }), false)
+    assert.equal(gc.isSettledNotice({ kind: 'user' }), false)
+  } finally {
+    mounted.restore()
+  }
+})
+
+/* ══════════════════════════════════════════════════════════════════════
+ * task-90 复审修复（H1/H2 + M1/M3/M6/M7/M9）
+ * ══════════════════════════════════════════════════════════════════════ */
+
+test('H2/SC43: 所有任务卡（含 compact）都渲染操作者头像 data-card-avatar', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const rows = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card')
+    assert.ok(rows.length >= 4, 'task cards present')
+    for (const row of rows) {
+      const avatars = findAll(row, (node) => node.props && node.props['data-card-avatar'] === 'true')
+      assert.equal(avatars.length, 1, 'exactly one actor avatar per task card')
+      assert.ok(visibleText(avatars[0]).length > 0, 'avatar has letter content')
+    }
+    // compact（claim）卡同样有头像
+    const compact = rows.find((row) => row.props['data-task-action'] === 'claim')
+    assert.ok(compact)
+    assert.ok(findAll(compact, (node) => node.props && node.props['data-card-avatar'] === 'true').length === 1)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('M3: 渲染端二次链接校验 —— javascript:/data: 降级纯文本（无 <a>）', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const renderer = runtime.createRenderer()
+    const tree = renderer.render(
+      h(gc.GcMarkdown, { text: '[click](javascript:alert(1)) and [ok](https://example.com/x)' })
+    )
+    const links = findAll(tree, (node) => node.props && node.props['data-md-link'] === 'true')
+    assert.equal(links.length, 1, 'only safe link renders as anchor')
+    assert.equal(links[0].props.href, 'https://example.com/x')
+    // core 已在解析期降级 unsafe link；渲染端 isSafeUrl 作为防御纵深（直接断言谓词）
+    assert.equal(gc.isSafeLinkUrl('javascript:alert(1)'), false)
+    assert.equal(gc.isSafeLinkUrl('data:text/html,x'), false)
+    assert.equal(gc.isSafeLinkUrl('file:///etc/passwd'), false)
+    assert.equal(gc.isSafeLinkUrl('https://example.com/x'), true)
+    assert.equal(gc.isSafeLinkUrl('mailto:a@b.c'), true)
+    // 渲染树中所有 <a> 的 href 必须是安全 scheme
+    for (const link of findAll(tree, (node) => node.type === 'a')) {
+      assert.ok(/^(https?:|mailto:)/i.test(link.props.href || ''), 'anchor href scheme safe: ' + link.props.href)
+    }
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('M9: 任务卡负责人空回退为中性占位（无「?」文本）', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const rows = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card')
+    const unassigned = rows.filter((row) => row.props['data-task-owner'] === '')
+    assert.ok(unassigned.length > 0, 'unassigned cards present')
+    for (const row of unassigned) {
+      const ownerAvatar = findAll(row, (node) => node.props && node.props['data-task-owner-avatar'] === 'true')[0]
+      assert.ok(ownerAvatar, 'owner placeholder avatar exists')
+      assert.equal(visibleText(ownerAvatar), '', 'placeholder must not render "?" text')
+    }
   } finally {
     mounted.restore()
   }

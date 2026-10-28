@@ -253,6 +253,15 @@ function gcPreviewTaskCard(time, variant) {
   })
 }
 
+/** 折叠回归填充（>50 行，用于 P3 与折叠测试；不改变视觉语言） */
+const GC_PREVIEW_FOLD_FILLER =
+  '\n' +
+  Array.from({ length: 46 })
+    .map(function (_, i) {
+      return '· 折叠回归占位第 ' + (i + 1) + ' 行：验证默认只展示前 50 行 + 56px 渐隐遮罩 + 「展开全部（共 N 行）」。'
+    })
+    .join('\n')
+
 function gcPreviewAgentMessage(time, options) {
   return Object.assign(
     {
@@ -358,7 +367,8 @@ function gcPreviewMessages(now, options) {
       kind: 'delivery',
       sessionId: 'preview-backend',
       sender: { sessionId: 'preview-backend', name: 'backend', kind: 'teammate' },
-      text: '发送通路实现在 host 侧完成，重试幂等。',
+      text:
+        '**发送通路**已完成，关键点：\n\n- `sendChannelBatch` 负责 fan-out 与重试\n- 前缀 canonical：`[群聊 · 同发] 收件人：@lead、@ux`\n- 参考 [ADR](https://example.com/docs/adr/group-chat-send.md)\n\n```js\nconst result = await sendChannelBatch(request)\nconsole.log(result.status)\n```',
       files: [
         { name: 'group-chat-send.md', path: 'docs/adr/group-chat-send.md' },
         { name: 'send-batch.js', path: 'src/send/send-batch.js' }
@@ -371,7 +381,7 @@ function gcPreviewMessages(now, options) {
       kind: 'agent_output',
       sessionId: 'preview-scout',
       sender: { sessionId: 'preview-scout', name: 'scout', kind: 'teammate' },
-      text: GC_PREVIEW_LONG_TEXT,
+      text: GC_PREVIEW_LONG_TEXT + GC_PREVIEW_FOLD_FILLER,
       toolCallCount: 27
     }),
     {

@@ -289,13 +289,30 @@ export function createSandbox(overrides = {}) {
         return node
       }
     },
-    body: {
-      appendChild(node) {
-        node.parentNode = document.body
-        return node
-      },
-      removeChild() {}
-    },
+    body: (() => {
+      const classes = new Set()
+      return {
+        appendChild(node) {
+          node.parentNode = document.body
+          return node
+        },
+        removeChild() {},
+        classList: {
+          add(name) {
+            classes.add(String(name))
+          },
+          remove(name) {
+            classes.delete(String(name))
+          },
+          contains(name) {
+            return classes.has(String(name))
+          },
+          toString() {
+            return Array.from(classes).join(' ')
+          }
+        }
+      }
+    })(),
     createElement(tag) {
       return { tagName: String(tag).toUpperCase(), dataset: {}, style: {}, textContent: '', children: [] }
     },
@@ -310,6 +327,9 @@ export function createSandbox(overrides = {}) {
     }
   }
   const location = { search: overrides.search || '', href: 'http://localhost/' }
+  if (typeof globalThis.getComputedStyle !== 'function') {
+    globalThis.getComputedStyle = () => ({ display: 'none' })
+  }
   const navigator = {
     language: overrides.language || 'zh-CN',
     clipboard: overrides.clipboard === undefined ? undefined : overrides.clipboard

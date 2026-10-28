@@ -306,7 +306,7 @@ function GcTaskCardMessage(props) {
   const payload = message.taskCard || {}
   const task = payload.task || {}
   const actor = payload.actor || message.sender || {}
-  const actorName = gcStr(actor.name) || 'lead'
+  const actorName = gcStr(actor.name) || t('task.actorSystem')
   const actorKind = actor.kind === 'lead' || actor.kind === 'teammate' || actor.kind === 'subagent' ? actor.kind : 'lead'
   const actionLabel = gcTaskActionLabel(payload, t)
   const statusLabel = gcTaskStatusLabel(payload, t)
@@ -314,30 +314,54 @@ function GcTaskCardMessage(props) {
   const expanded = !!props.expanded
   const compact = !!payload.compact
   const description = gcStr(task.description)
-  const ownerText = gcTaskOwnerText(task, payload, t)
-  const blockedByText = gcTaskBlockedByText(task, t)
+  const ownerName = gcStr(task.ownerName) || gcStr(task.ownerId)
+  const ownerText = ownerName || t('task.ownerUnassigned')
+  const blockedBy = gcAsArray(task.blockedBy)
+  const blockedText = blockedBy.length > 0 ? t('task.blockedByList', { list: gcJoinNames(blockedBy) }) : t('task.noBlockedBy')
   const timeText = gcMessageTimeText(payload.time || message.time)
   const taskId = gcStr(task.id) || gcStr(payload.id)
 
   const fields = []
   fields.push(
-    h(GcTaskFieldRow, { key: 'owner', field: 'owner', label: t('task.owner'), value: ownerText })
+    h(
+      'div',
+      { key: 'owner', className: 'gc-task-owner-row', 'data-field': 'owner' },
+      h('span', { key: 'label', className: 'gc-task-owner-label' }, t('task.owner')),
+      h(
+        'span',
+        { key: 'avatar', className: 'gc-task-owner-avatar', 'data-task-owner-avatar': 'true' },
+        ownerName
+          ? h(GcAvatar, { name: ownerName, kind: actorKind === 'lead' ? 'teammate' : actorKind, size: 20 })
+          : h('span', {
+              className: 'gc-avatar gc-avatar-placeholder',
+              'data-kind': 'teammate',
+              'data-size': '20',
+              'aria-hidden': 'true'
+            })
+      ),
+      h('span', { key: 'name' }, ownerText)
+    )
   )
-  if (blockedByText) {
-    fields.push(h(GcTaskFieldRow, { key: 'blocked', field: 'blocked-by', label: t('task.blockedBy'), value: blockedByText }))
-  }
-  if (gcStr(payload.action) === 'complete') {
+  fields.push(
+    h(
+      'div',
+      { key: 'blocked', className: 'gc-task-field', 'data-field': 'blocked-by' },
+      h('span', { className: 'gc-task-field-label' }, t('task.blockedBy')),
+      h('span', { className: 'gc-task-field-value' }, blockedText)
+    )
+  )
+  if (status === 'completed') {
     fields.push(
-      h(GcTaskFieldRow, {
-        key: 'completion',
-        field: 'completion-time',
-        label: t('task.completionTime'),
-        value: timeText
-      })
+      h(
+        'div',
+        { key: 'completion', className: 'gc-task-field', 'data-field': 'completion-time' },
+        h('span', { className: 'gc-task-field-label' }, t('task.completionTime')),
+        h('span', { className: 'gc-task-field-value' }, timeText)
+      )
     )
   }
 
-  const showDescription = description !== '' && (gcStr(payload.action) === 'create' || !compact)
+  const showDescription = description !== ''
   const descNode = showDescription
     ? h(
         'p',
@@ -351,35 +375,21 @@ function GcTaskCardMessage(props) {
       )
     : null
 
-  const copyAction = h(
-    'button',
-    {
-      key: 'copy',
-      type: 'button',
-      className: 'gc-card-action',
-      'data-action': 'copy-task-id',
-      onClick: function (event) {
-        event.preventDefault()
-        if (props.onCopyId) props.onCopyId(taskId)
-      }
-    },
-    t('task.copyId')
-  )
-
   const bodyChildren = [
     h(
       'div',
       { key: 'head', className: 'gc-task-head' },
+      h('span', { key: 'icon', className: 'gc-task-icon', 'aria-hidden': 'true' }, h(GcIconTasks, { size: 16 })),
       h('span', { className: 'gc-task-action' }, actionLabel),
       h(GcPill, { status: status, label: statusLabel }),
-      h('span', { className: 'gc-task-id' }, taskId)
+      h('span', { key: 'id', className: 'gc-task-id' }, taskId)
     ),
     h('h3', { key: 'title', className: 'gc-task-title', title: gcStr(task.subject) }, gcStr(task.subject)),
     descNode,
     fields.length > 0 ? h('div', { key: 'fields', className: 'gc-task-fields' }, fields) : null
   ]
 
-  const actionNodes = [copyAction]
+  const actionNodes = []
   if (gcStr(payload.action) === 'create' && countCodePoints(description) > 100) {
     actionNodes.push(
       h(
@@ -397,10 +407,22 @@ function GcTaskCardMessage(props) {
             if (props.onAction) props.onAction('expand-task')
           }
         },
-        expanded ? t('msg.collapse') : t('msg.expandAll', { n: countCodePoints(description) })
+        expanded ? t('msg.collapse') : t('msg.expandLines', { n: countCodePoints(description) })
       )
     )
   }
+  actionNodes.push(
+    h(GcRowActions, {
+      key: 'icon-actions',
+      t: t,
+      onCopy: function () {
+        if (props.onCopyMessage) props.onCopyMessage(message)
+      },
+      onOpen: function () {
+        if (props.onOpenSession) props.onOpenSession(message)
+      }
+    })
+  )
   bodyChildren.push(h('div', { key: 'actions', className: 'gc-task-actions' }, actionNodes))
 
   const rowAttrs = {
@@ -408,14 +430,15 @@ function GcTaskCardMessage(props) {
     'data-kind': 'task_card',
     'data-message-id': message.id,
     'data-card': 'task',
+    'data-card-accent': status,
     'data-sender': actorName,
     'data-task-id': taskId,
     'data-task-revision': String(task.revision === undefined ? '' : task.revision),
     'data-task-action': gcStr(payload.action),
     'data-task-status': status,
-    'data-task-owner': gcStr(task.ownerName) || gcStr(task.ownerId),
+    'data-task-owner': ownerName,
     'data-task-actor': actorName,
-    'data-task-blocked-by': gcAsArray(task.blockedBy).join(','),
+    'data-task-blocked-by': blockedBy.join(','),
     'data-replay': payload.replay ? 'true' : 'false',
     role: 'article',
     'aria-label': t('a11y.taskCard', { action: actionLabel, id: taskId })
@@ -423,7 +446,7 @@ function GcTaskCardMessage(props) {
 
   const card = h(
     'div',
-    { className: 'gc-card', 'data-card': 'task', 'data-compact': compact ? 'true' : 'false' },
+    { className: 'gc-card', 'data-card': 'task', 'data-card-accent': status, 'data-compact': compact ? 'true' : 'false' },
     bodyChildren
   )
 
@@ -431,6 +454,11 @@ function GcTaskCardMessage(props) {
     return h(
       'div',
       rowAttrs,
+      h(
+        'span',
+        { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
+        h(GcAvatar, { name: actorName, kind: actorKind, size: 24 })
+      ),
       h(
         'div',
         { className: 'gc-row-main' },
@@ -448,7 +476,11 @@ function GcTaskCardMessage(props) {
   return h(
     'div',
     rowAttrs,
-    h(GcAvatar, { name: actorName, kind: actorKind, size: 32 }),
+    h(
+      'span',
+      { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
+      h(GcAvatar, { name: actorName, kind: actorKind, size: 32 })
+    ),
     h(
       'div',
       { className: 'gc-row-main' },

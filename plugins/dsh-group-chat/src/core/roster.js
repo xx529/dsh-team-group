@@ -410,3 +410,94 @@ function shortenLabel(label) {
   const s = String(label).replace(/\s+/g, ' ').trim();
   return s.length > 24 ? `${s.slice(0, 24)}…` : s;
 }
+
+/**
+ * 作用域回溯：任意 member session → lead sessionId（F27 / §4.8.2）
+ *
+ * - 沿 `parentSession` 链最多 `maxHops`（默认 4）跳；
+ * - `seen` 防环；无 parent / parent===自身 / 回溯失败 → 回退 `startId`（不抛错）；
+ * - `sessionsOrLookup` 支持：函数 `(id)=>{parentSessionId,parentSession}` / Map / 数组 /
+ *   `{[id]: summary}` / `sessions.list.byId` 形状。
+ *
+ * @param {string} startId
+ * @param {any} sessionsOrLookup
+ * @param {{maxHops?: number}} [options]
+ * @returns {{leadSessionId: string, hops: number, degraded: boolean, cycle: boolean}}
+ */
+export function resolveLeadSession(startId, sessionsOrLookup, options = {}) {
+  const start = String(startId ?? '');
+  const maxHops = Number.isInteger(options.maxHops) && options.maxHops >= 0 ? options.maxHops : LIMITS.maxParentHops;
+  const parentOf = makeParentLookup(sessionsOrLookup);
+  const seen = new Set();
+  let id = start;
+  let hops = 0;
+  let degraded = false;
+  let cycle = false;
+  for (let hop = 0; hop <= maxHops; hop += 1) {
+    if (!id) return { leadSessionId: start, hops, degraded: true, cycle };
+    if (seen.has(id)) {
+      cycle = true;
+      degraded = true;
+      break;
+    }
+    seen.add(id);
+    const parent = parentOf(id);
+    if (!parent || parent === id) break;
+    if (hop === maxHops) {
+      // 已到最大跳数仍有 parent → 视为无法完整回到根，回退当前 id 并标 degraded
+      degraded = true;
+      break;
+    }
+    id = parent;
+    hops += 1;
+  }
+  return { leadSessionId: id || start, hops, degraded, cycle };
+}
+
+/**
+ * 便捷版：只返回 leadSessionId（F27 接线用）
+ * @param {string} startId
+ * @param {any} sessionsOrLookup
+ * @param {{maxHops?: number}} [options]
+ * @returns {string}
+ */
+export function resolveLeadSessionId(startId, sessionsOrLookup, options = {}) {
+  return resolveLeadSession(startId, sessionsOrLookup, options).leadSessionId;
+}
+
+/**
+ * @param {any} input
+ * @returns {(id: string) => string|undefined}
+ */
+function makeParentLookup(input) {
+  if (typeof input === 'function') {
+    return (id) => parentOfValue(input(id));
+  }
+  /** @type {Map<string, any>|null} */
+  let map = null;
+  if (input instanceof Map) map = input;
+  else if (Array.isArray(input)) map = new Map(input.map((item) => [String(item?.id ?? item?.sessionId ?? ''), item]));
+  else if (input && typeof input === 'object') {
+    const source = input.byId && typeof input.byId === 'object' ? input.byId : input;
+    map = new Map(Object.entries(source));
+  }
+  if (!map) return () => undefined;
+  return (id) => parentOfValue(map.get(id));
+}
+
+/**
+ * @param {any} value
+ * @returns {string|undefined}
+ */
+function parentOfValue(value) {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value || undefined;
+  if (typeof value !== 'object') return undefined;
+  const parent =
+    value.parentSessionId ??
+    value.parentSession ??
+    value.subagent?.address?.parentSessionId ??
+    value.parent ??
+    value.parentId;
+  return parent ? String(parent) : undefined;
+}

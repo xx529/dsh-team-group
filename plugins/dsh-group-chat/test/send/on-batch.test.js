@@ -45,6 +45,10 @@ test('onBatch 在 prompt 前调用一次，参数含 clientBatchId/requestIds/ta
 
   const batch = batches[0];
   assert.equal(batch.clientBatchId, 'gc-onbatch-1');
+  assert.equal(batch.text, 'hi');
+  assert.equal(typeof batch.textHash, 'string');
+  assert.equal(batch.textHash.length, 16);
+  assert.equal(typeof batch.at, 'number');
   assert.equal(batch.channelId, LEAD);
   assert.equal(batch.attempt, 1);
   assert.deepEqual(batch.targetNames, ['lead', 'ux']);
@@ -95,9 +99,11 @@ test('retry：再次回调一次，复用同 clientBatchId 与失败目标 reque
   assert.equal(host.calls[0].sessionId, UX);
 });
 
-test('onBatch 回调抛错：不影响发送，仍 sent', async () => {
+test('onBatch 回调抛错：不影响发送、warnings 可观测、onBatchError 被调用', async () => {
   const { deps, host } = makeSendDeps();
   let calls = 0;
+  const reported = [];
+  deps.onBatchError = (error) => reported.push(error);
   deps.onBatch = () => {
     calls += 1;
     throw new Error('ui onBatch boom');
@@ -113,6 +119,57 @@ test('onBatch 回调抛错：不影响发送，仍 sent', async () => {
   assert.equal(result.status, 'sent');
   assert.equal(host.calls.length, 1);
   assert.deepEqual(result.diagnostics, []);
+  assert.ok(result.warnings.includes('onBatch-callback-failed'), 'M4：回调异常必须可观测');
+  assert.equal(reported.length, 1);
+  assert.equal(reported[0].message, 'ui onBatch boom');
+});
+
+test('M4：批次终态后 localBatches 条目 closed=true（同一对象引用）', async () => {
+  const { deps, host } = makeSendDeps();
+  /** @type {Record<string, any>} */
+  const localBatches = {};
+  deps.localBatches = localBatches;
+  deps.onBatch = (batch) => {
+    localBatches[batch.clientBatchId] = batch;
+  };
+  const result = await sendChannelBatch({
+    text: 'hi',
+    targets: [{ name: 'lead', sessionId: LEAD }],
+    channelId: LEAD,
+    clientBatchId: 'gc-local-closed',
+    deps,
+  });
+  assert.equal(result.status, 'sent');
+  assert.equal(host.calls.length, 1);
+  const entry = localBatches['gc-local-closed'];
+  assert.ok(entry, 'onBatch 已写入');
+  assert.equal(entry.closed, true);
+  assert.equal(entry.status, 'sent');
+  assert.equal(typeof entry.closedAt, 'number');
+});
+
+test('M4：外层异常（onBatch 已写入后失败）也会把 localBatches 标记 closed/failed', async () => {
+  const { deps } = makeSendDeps();
+  /** @type {Record<string, any>} */
+  const localBatches = {};
+  deps.localBatches = localBatches;
+  deps.onBatch = (batch) => {
+    localBatches[batch.clientBatchId] = batch;
+  };
+  deps.onEcho = () => {
+    throw new Error('echo boom after onBatch');
+  };
+  const result = await sendChannelBatch({
+    text: 'hi',
+    targets: [{ name: 'lead', sessionId: LEAD }],
+    channelId: LEAD,
+    clientBatchId: 'gc-local-failed',
+    deps,
+  });
+  assert.equal(result.status, 'failed');
+  assert.equal(result.diagnostics[0].stage, 'echo');
+  assert.equal(localBatches['gc-local-failed'].closed, true);
+  assert.equal(localBatches['gc-local-failed'].status, 'failed');
 });
 
 test('retry 时 onBatch 抛错：重试仍成功 sent', async () => {

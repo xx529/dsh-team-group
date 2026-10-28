@@ -40,7 +40,8 @@ export function aggregateDeliveryState(deliveries) {
  */
 export function mergeFanout(messages, opts = {}) {
   const leadSessionId = String(opts.leadSessionId ?? '');
-  const windowMs = opts.weakWindowMs ?? LIMITS.fanoutTimeWindowMs;
+  // M6：无 clientBatchId 的「前缀签名」只允许同一批次的近似同时副本（默认 5s），避免两次同文群发被合并
+  const signatureWindowMs = opts.signatureWindowMs ?? LIMITS.fanoutSignatureWindowMs;
   const list = Array.isArray(messages) ? messages : [];
 
   /** @type {Array<{kind: 'echo'|'copy', msg: ChannelMessage, index: number, batchId?: string}>} */
@@ -49,7 +50,9 @@ export function mergeFanout(messages, opts = {}) {
     const m = list[i];
     if (!m || m.kind !== 'user') continue;
     const isEcho = m.meta?.localEcho === true || String(m.id).startsWith('local:');
-    const isCopy = m.meta?.fanout === true;
+    // F30/§5.3.1：权威消息若经 localBatches 拿到 clientBatchId，也要与 echo 归并（替换本地气泡）
+    const hasBatchId = typeof m.clientBatchId === 'string' && m.clientBatchId !== '';
+    const isCopy = m.meta?.fanout === true || (!isEcho && hasBatchId);
     if (!isEcho && !isCopy) continue;
     const batchId = typeof m.clientBatchId === 'string' ? m.clientBatchId : typeof m.meta?.clientBatchId === 'string' ? m.meta.clientBatchId : undefined;
     candidates.push({ kind: isEcho ? 'echo' : 'copy', msg: m, index: i, batchId });
@@ -60,7 +63,7 @@ export function mergeFanout(messages, opts = {}) {
   for (const c of candidates) {
     const batchId =
       c.batchId ??
-      `sig:${(c.msg.targets ?? []).join(',')}|${normalizeText(c.msg.text)}|${Math.floor(Number(c.msg.time ?? 0) / windowMs)}`;
+      `sig:${(c.msg.targets ?? []).join(',')}|${normalizeText(c.msg.text)}|${Math.floor(Number(c.msg.time ?? 0) / signatureWindowMs)}`;
     if (!groups.has(batchId)) groups.set(batchId, { echoes: [], copies: [] });
     const g = groups.get(batchId);
     if (c.kind === 'echo') g.echoes.push(c.msg);
@@ -75,6 +78,19 @@ export function mergeFanout(messages, opts = {}) {
 
   for (const [batchId, g] of groups) {
     if (g.copies.length === 0 && g.echoes.length === 0) continue;
+    if (batchId.startsWith('sig:')) {
+      // M6：签名组必须跨 ≥2 个会话（同一批 fan-out 副本），否则不合并；同时不允许同一会话重复副本。
+      // 单副本仍按「临时气泡」规范化（lead 副本未到时不闪断），只是不做跨副本合并。
+      const counts = new Map();
+      for (const m of g.copies) counts.set(m.sessionId, (counts.get(m.sessionId) ?? 0) + 1);
+      const onePerSession = [...counts.values()].every((n) => n === 1);
+      const leadCopies = leadSessionId ? g.copies.filter((m) => m.sessionId === leadSessionId).length : 1;
+      // R-M6：同一批副本必须「每会话 ≤1 份 + 恰 1 份 lead 副本」才归并；否则保留临时气泡，等 lead 到达后再合并
+      if (counts.size < 2 || !onePerSession || leadCopies !== 1) {
+        for (const c of g.copies) normalizeSingleCopy(c, leadSessionId, batchId);
+        continue;
+      }
+    }
     if (g.copies.length <= 1 && g.echoes.length === 0) {
       const only = g.copies[0];
       if (only) normalizeSingleCopy(only, leadSessionId, batchId);

@@ -102,6 +102,13 @@ function apply(ctx) {
     ctx.effect(function () {
       return gcRegisterLocale(ctx)
     }, 'group-chat: dictionaries')
+    ctx.effect(function () {
+      return function () {
+        try {
+          if (typeof document !== 'undefined' && document.body) document.body.classList.remove('gc-view-group-chat')
+        } catch {}
+      }
+    }, 'group-chat: host composer restore')
   } else {
     gcInsertStyle()
     gcRegisterLocale(ctx)
@@ -172,6 +179,9 @@ const __internals = {
   GcErrorState: GcErrorState,
   GcTargetRow: GcTargetRow,
   GcRichText: GcRichText,
+  GcMarkdown: GcMarkdown,
+  GcTrajectoryPanel: GcTrajectoryPanel,
+  GcMemberStrip: (typeof GcMemberStrip === 'function' ? GcMemberStrip : undefined),
   // 纯逻辑
   createStore: gcCreateStore,
   initialState: gcInitialState,
@@ -210,7 +220,17 @@ const __internals = {
   pruneLocalBatches: gcPruneLocalBatches,
   lookupLocalBatchByRpc: gcLookupLocalBatchByRpc,
   localBatchIds: gcLocalBatchIds,
+  closeBatch: gcCloseBatch,
   buildLabel: GC_BUILD_LABEL,
+  // v1.7 helpers
+  foldDecisionV17: gcFoldDecision,
+  memberStripData: gcMemberStripData,
+  memberWorkStatus: gcMemberWorkStatus,
+  membersStatusModel: gcMembersStatusModel,
+  isSettledNotice: gcIsSettledNotice,
+  isSafeLinkUrl: gcIsSafeLinkUrl,
+  resolveLeadSessionId: gcResolveLeadSessionId,
+  loadTrajectoryTurns: gcLoadTrajectoryTurns,
   setDebugVisible: gcSetDebugVisible,
   debugVisible: gcDebugEnabled,
   normalizeRosterStatus: gcNormalizeRosterStatus,

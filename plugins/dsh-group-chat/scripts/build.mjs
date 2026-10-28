@@ -315,7 +315,29 @@ const REQUIRED_TESTIDS = [
   'group-chat-composer',
   'group-chat-send',
   'group-chat-target-row',
-  'group-chat-error'
+  'group-chat-error',
+  // v1.7（架构 §6.5.2）
+  'group-chat-target-chips',
+  'group-chat-composer-hint',
+  'group-chat-member-strip',
+  'group-chat-member-strip-item',
+  'agent-trajectory-panel',
+  'agent-trajectory-overlay',
+  'agent-trajectory-turn',
+  'agent-trajectory-load-older'
+]
+
+const REQUIRED_STRINGS = [
+  // v1.7 图标动作与 Markdown 类名（架构 §6.5.2 / §6.12 / §6.16）
+  'copy-message',
+  'open-session',
+  'gc-md-strong',
+  'gc-md-pre',
+  'gc-md-link',
+  'gc-md-code',
+  'gc-md-list',
+  'gc-trajectory-panel',
+  'gc-member-strip'
 ]
 
 const REQUIRED_DATA_ATTRS = [
@@ -345,7 +367,18 @@ const REQUIRED_DATA_ATTRS = [
   'data-filter',
   'data-count',
   'data-targets',
-  'data-retryable'
+  'data-retryable',
+  // v1.7
+  'data-md',
+  'data-md-link',
+  'data-card-accent',
+  'data-card-avatar',
+  'data-task-owner-avatar',
+  'data-member-state',
+  'data-turn-index',
+  'data-turn-status',
+  'data-line-count',
+  'data-target'
 ]
 
 /* ── 组装 bundle ──────────────────────────────────────────────────────── */
@@ -466,9 +499,9 @@ window.__ModuleLoader__.load({
 `
 
   // 契约守卫：冻结的 DOM 选择器必须出现在产物里（架构 §6.5.2）
-  const missing = REQUIRED_TESTIDS.filter((testId) => code.indexOf(testId) < 0).concat(
-    REQUIRED_DATA_ATTRS.filter((attr) => code.indexOf(attr) < 0)
-  )
+  const missing = REQUIRED_TESTIDS.filter((testId) => code.indexOf(testId) < 0)
+    .concat(REQUIRED_DATA_ATTRS.filter((attr) => code.indexOf(attr) < 0))
+    .concat(REQUIRED_STRINGS.filter((token) => code.indexOf(token) < 0))
   if (missing.length > 0) {
     throw new Error('[build] DOM contract symbols missing from bundle: ' + missing.join(', '))
   }

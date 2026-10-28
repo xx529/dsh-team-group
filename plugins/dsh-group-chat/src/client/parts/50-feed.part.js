@@ -120,7 +120,7 @@ function gcRenderBubbleContent(props) {
   }
 
   children.push(
-    h(GcRichText, {
+    h(GcMarkdown, {
       key: 'text',
       text: message.text,
       mentionSet: gcMentionSetFor(props.channel),
@@ -173,7 +173,6 @@ function GcMessageRow(props) {
   const foldedMap = (props.state && props.state.folded) || {}
   const expanded = foldedMap[message.id] ? true : !foldDecision.foldable
   const captionModel = gcCaptionModel(message, t)
-  const toolCount = typeof message.toolCallCount === 'number' ? message.toolCallCount : 0
 
   const bubble = h(
     GcBubble,
@@ -233,28 +232,6 @@ function GcMessageRow(props) {
     )
   )
 
-  if (toolCount > 0) {
-    mainChildren.push(
-      h(
-        'div',
-        { key: 'tools', className: 'gc-tool-line', 'data-field': 'tool-calls' },
-        h(
-          'button',
-          {
-            type: 'button',
-            className: 'gc-link',
-            'data-action': 'open-trajectory',
-            onClick: function (event) {
-              event.preventDefault()
-              if (props.onOpenTrajectory) props.onOpenTrajectory(message)
-            }
-          },
-          t('msg.toolCalls', { n: toolCount })
-        )
-      )
-    )
-  }
-
   mainChildren.push(
     h(GcRowActions, {
       key: 'actions',
@@ -303,7 +280,7 @@ function gcWelcomeText(message, t) {
 
 function GcFeedItem(props) {
   const message = props.message
-  if (gcIsContextNoise(message)) return null
+  if (gcIsContextNoise(message) || gcIsSettledNotice(message)) return null
   if (message.kind === 'system') {
     const isWelcome =
       message.systemReason === 'member-welcome' || (message.meta && message.meta.systemVariant === 'welcome')
@@ -328,9 +305,8 @@ function GcFeedItem(props) {
       onAction: function (action) {
         if (props.onCardAction) props.onCardAction(message, action)
       },
-      onCopyId: function (id) {
-        if (props.onCopyTaskId) props.onCopyTaskId(id)
-      }
+      onCopyMessage: props.onCopyMessage,
+      onOpenSession: props.onOpenSession
     })
   }
   return h(GcMessageRow, props)

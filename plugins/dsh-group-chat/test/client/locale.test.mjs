@@ -23,7 +23,7 @@ import {
   change
 } from './harness.mjs'
 
-const bundleCode = buildBundleSource({ modules: 'none' }).code
+const bundleCode = buildBundleSource().code
 const runtime = createReactRuntime()
 const h = runtime.React.createElement
 const CJK = /[\u4e00-\u9fa5]/
@@ -117,7 +117,8 @@ test('locale: getSnapshot().active=zh-CN 时中文渲染（navigator=en-US 也�
     assert.match(visibleText(findByTestId(tree, 'group-chat-header')), /群聊/)
     const textarea = findAll(tree, (node) => node.type === 'textarea')[0]
     assert.equal(textarea.props.placeholder, '回复群聊…')
-    assert.match(visibleText(findByTestId(tree, 'group-chat-target-row')), /发送给/)
+    const targetRowZh = findByTestId(tree, 'group-chat-target-row')
+    assert.match(visibleText(targetRowZh), /@Lead/)
   } finally {
     mounted.restore()
   }
@@ -139,14 +140,18 @@ test('locale: subscribe 切换 zh→en→zh，label / 频道头 / 输入器 / �
     const tree = renderer.tree
     const header = findByTestId(tree, 'group-chat-header')
     assert.match(visibleText(header), /Group chat/)
-    assert.match(visibleText(header), /members · .* running/)
-    assert.ok(!CJK.test(visibleText(header)), 'header must be English only')
+    assert.match(visibleText(header), /members · .* working · .* waiting/)
+    const statusRow = findAll(header, (node) => node.props && node.props.className === 'gc-header-status')[0]
+    assert.ok(statusRow, 'header status row')
+    assert.ok(!CJK.test(visibleText(statusRow)), 'header status copy must be English only')
 
     const textarea = findAll(tree, (node) => node.type === 'textarea')[0]
     assert.equal(textarea.props.placeholder, 'Reply to the group…')
     const targetRow = findByTestId(tree, 'group-chat-target-row')
-    assert.match(visibleText(targetRow), /To/)
-    assert.ok(!CJK.test(visibleText(targetRow)), 'target row must be English only')
+    assert.match(visibleText(targetRow), /@Lead/)
+    const hint = findByTestId(tree, 'group-chat-composer-hint')
+    assert.equal(visibleText(hint), 'Type @ to send to more members')
+    assert.ok(!CJK.test(visibleText(targetRow) + visibleText(hint)), 'target row/hint must be English only')
 
     // 空态（无团队）也跟随
     const empty = renderer.render(h(gc.GcEmptyNoTeam, { t: gc.translate }))
@@ -276,8 +281,8 @@ test('D-03: agentTeam 投影把 inactive 成员纠正，running 数不再高估'
     const header = findByTestId(renderer.tree, 'group-chat-header')
     const text = visibleText(header)
     // 6 名成员：lead + 5；running = lead + backend + 产品设计 = 3（scout 被投影纠正为 inactive）
-    assert.match(text, /6 名成员 · 3 个运行中/)
-    assert.ok(!/6 名成员 · 4 个运行中/.test(text), 'running count must be corrected by projection')
+    assert.match(text, /6 名成员 · 3 工作中 · 3 等待/)
+    assert.ok(!/6 名成员 · 4 工作中/.test(text), 'running count must be corrected by projection')
   } finally {
     mounted.restore()
   }

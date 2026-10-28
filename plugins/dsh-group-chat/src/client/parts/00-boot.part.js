@@ -215,6 +215,70 @@ function gcCopyFallback(value) {
   }
 }
 
+/* ── 单一输入器（F24/§6.13）：body 标记 + 宿主 composer 隐藏 + 2×rAF 自检 ── */
+
+const GC_BODY_CLASS = 'gc-view-group-chat'
+const GC_HOST_COMPOSER_SELECTORS = ['[data-conversation-region="composer"]', '[data-composer-seat]']
+
+/** 视图激活期给 body 加标记（幂等；卸载时 remove，防止切走后宿主输入器仍被隐藏）。 */
+function gcEnterGroupChatBody() {
+  try {
+    if (typeof document === 'undefined' || !document.body) return function () {}
+    document.body.classList.add(GC_BODY_CLASS)
+    return function gcLeaveGroupChatBody() {
+      try {
+        document.body.classList.remove(GC_BODY_CLASS)
+      } catch {}
+    }
+  } catch {
+    return function () {}
+  }
+}
+
+function gcHostComposerVisible() {
+  try {
+    if (typeof document === 'undefined') return false
+    for (let i = 0; i < GC_HOST_COMPOSER_SELECTORS.length; i += 1) {
+      const nodes = document.querySelectorAll(GC_HOST_COMPOSER_SELECTORS[i])
+      for (let j = 0; j < nodes.length; j += 1) {
+        const node = nodes[j]
+        const style = typeof getComputedStyle === 'function' ? getComputedStyle(node) : null
+        if ((!style || style.display !== 'none') && (node.offsetHeight || 0) > 0) return true
+      }
+    }
+  } catch {}
+  return false
+}
+
+/**
+ * 2×rAF 自检宿主 composer 是否真的被隐藏：仍可见 → 降级（移除 body 标记，恢复宿主输入器）
+ * 并返回 degraded=true；调用方据此显示一次性提示 composer.hostFallback。
+ * 绝不因隐藏失败而禁用/清空插件输入器。
+ */
+function gcVerifyHostComposerHidden() {
+  return new Promise(function (resolve) {
+    const check = function () {
+      const visible = gcHostComposerVisible()
+      if (visible) {
+        try {
+          if (typeof document !== 'undefined' && document.body) document.body.classList.remove(GC_BODY_CLASS)
+        } catch {}
+        gcWarn('host composer could not be hidden; compatibility mode enabled')
+        resolve({ degraded: true, visible: true })
+        return
+      }
+      resolve({ degraded: false, visible: false })
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(check)
+      })
+      return
+    }
+    check()
+  })
+}
+
 function gcIsPreviewRequested() {
   try {
     if (typeof location === 'undefined') return false

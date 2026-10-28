@@ -5,7 +5,7 @@
  *   - src/{core,adapters,send}/*.js（ES module → 每文件独立 factory）
  *   - src/client/parts/NN-*.part.js（按文件名顺序）
  *   - src/client/entry.js（apply / inject）
- *   - locale/{zh,en}.json（内联字典，键集 149）
+ *   - locale/{zh,en}.json（内联字典，键集 172）
  *   - src/styles/group-chat.css（内联样式）
  *
  * 重新生成：node scripts/build.mjs   ·   一致性校验：node scripts/build.mjs --check
@@ -22,8 +22,8 @@ window.__ModuleLoader__.load({
     var __GC_BUILD = {
   "id": "@local/dsh-group-chat",
   "version": "0.1.0",
-  "hash": "6c7e751e9e08",
-  "build": "0.1.0+6c7e751e9e08",
+  "hash": "39821306f18c",
+  "build": "0.1.0+39821306f18c",
   "modules": [
     "src/adapters/client-session-source.js",
     "src/adapters/index.js",
@@ -33,8 +33,10 @@ window.__ModuleLoader__.load({
     "src/core/dedupe.js",
     "src/core/fanout.js",
     "src/core/filter.js",
+    "src/core/fold.js",
     "src/core/folding.js",
     "src/core/index.js",
+    "src/core/markdown.js",
     "src/core/mentions.js",
     "src/core/model.js",
     "src/core/normalize.js",
@@ -42,6 +44,7 @@ window.__ModuleLoader__.load({
     "src/core/protocol.js",
     "src/core/roster.js",
     "src/core/timeline.js",
+    "src/core/turns.js",
     "src/send/delivery.js",
     "src/send/errors.js",
     "src/send/index.js",
@@ -60,12 +63,13 @@ window.__ModuleLoader__.load({
     "src/client/parts/40-cards.part.js",
     "src/client/parts/50-feed.part.js",
     "src/client/parts/60-header.part.js",
+    "src/client/parts/65-trajectory.part.js",
     "src/client/parts/70-composer.part.js",
     "src/client/parts/80-states.part.js",
     "src/client/parts/85-preview.part.js",
     "src/client/parts/90-view.part.js"
   ],
-  "localeKeys": 149
+  "localeKeys": 172
 };
 
     /* ── 模块注册表（src/core|adapters|send） ─────────────────────────── */
@@ -98,8 +102,8 @@ window.__ModuleLoader__.load({
     }
 
     /* ── 内联字典 / 样式 ──────────────────────────────────────────────── */
-    var GC_LOCALE = {"zh":{"meta.title":"群聊","meta.description":"以聊天室视角聚合 lead、teammate 与 subagent 的会话时间线，并支持多目标同发。","view.tab":"群聊","channel.title":"群聊","channel.membersRunning":"{n} 名成员 · {m} 个运行中","channel.newMessages":"{n} 条新消息","channel.filterSuffix":"· 筛选: {name}","channel.readonlySuffix":"· 团队已结束","channel.noMembers":"无团队成员","composer.targetLabel":"发送给","composer.leadChip":"Lead","composer.placeholder":"回复群聊…","composer.toLeadHint":"未 @ 时默认发送给 Lead；键入 @ 可同时发送给多人","composer.multi":"共 {n} 位 · 同一份内容同时发送","composer.queued":"Lead 运行中，已排队","composer.send":"发送","composer.removeMention":"移除 {name}","mention.header":"选择成员","mention.hint":"键入以过滤","mention.empty":"无匹配成员","mention.footer":"↑↓ 选择 · Enter/Tab 确认 · Esc 关闭","mention.sub.lead":"主 agent","mention.sub.teammate":"Teammate","mention.sub.subagent":"Subagent","mention.sub.addressable":"（仍可寻址）","msg.sentTo":"已同时发送给 {list}","msg.deliveredTo":"已同时发送给 {list}","msg.partialDelivered":"已送达 {ok}/{total}","msg.partialWithNames":"已送达 {ok}/{total} · 失败：{names}","msg.partialWithNamesMore":"已送达 {ok}/{total} · 失败：{names} 等 {n} 人","msg.sendToLead":"发送给 Lead","msg.sending":"发送中…","msg.failed":"发送失败：{reason}，已保留原文","msg.retry":"重试","msg.copy":"复制原文","msg.copied":"已复制","msg.expandAll":"展开全部（约 {n} 字）","msg.collapse":"收起","msg.foldMeta":"共 {n} 字 · {state}","msg.foldStateFolded":"显示前 {lines} 行","msg.foldStateExpanded":"完整显示 {lines} 行","msg.toolCalls":"{n} 个工具调用 · 见「轨迹」","msg.openSession":"打开所属会话","msg.reactions":"消息操作","msg.file.open":"打开","time.today":"今天","time.yesterday":"昨天","status.running":"运行中","status.done":"已完成","status.failed":"失败","status.inactive":"已完成","status.provisioning":"创建中","status.unknown":"未知","member.subagentOf":"· {parent} 的子体","member.leftNotSent":"{name} 已离开，未发送","member.welcome":"欢迎 @{name} 加入群聊","member.cardTitle":"「@{name}」加入群聊","member.noDesc":"暂无角色描述","member.roleLead":"主 Agent","member.roleTeammate":"Teammate","member.roleSubagent":"Subagent","member.roleFallback":"成员","member.contextFresh":"全新上下文（fresh）","member.contextForkLead":"继承 Lead 已完成回合（fork）","member.contextSubagent":"全新上下文（subagent）","member.contextSubagentFork":"继承父会话（subagent_fork）","member.modeOneShot":"· 一次性（one-shot）","member.modelInheritedLead":"{model}（继承 Lead）","member.modelInheritedFrom":"{model}（继承 {parent}）","member.expandTask":"展开","member.collapseTask":"收起","member.initialTask":"初始任务","member.fieldModel":"模型","member.fieldContext":"上下文","member.fieldCreateTool":"创建方式","member.fieldParent":"父成员","member.fieldDescription":"角色描述","member.fieldTask":"初始任务","member.viewSession":"查看会话","member.viewTask":"查看任务","member.sessionCopied":"无法直接跳转，已复制会话 ID","member.noPermission":"无权限打开该会话","filter.button":"筛选成员","filter.active":"正在只看 {name}（{n} 条）","filter.clear":"清除","filter.empty":"该成员暂无消息","filter.suffix":"· 筛选: {name}","readonly.banner":"当前为只读历史，不能发送","readonly.placeholder":"团队已结束，群聊为只读历史","readonly.suffix":"· 团队已结束","empty.noTeam":"当前为单 Agent 会话（无团队）","empty.noTeamDesc":"仅显示该会话的用户消息与该 agent 的最终输出","empty.team":"团队还没有发言","empty.teamDesc":"成员每轮结束后会在这里发言。","empty.howToTeam":"如何组建团队","history.earliest":"已到最早消息","history.loadingOlder":"加载更早消息…","unread.jump":"↓ {n} 条新消息","error.load":"加载失败：数据源不可用","error.retry":"重试","error.reconnect":"实时更新暂停（连接断开），已加载历史可读","error.reconnectAction":"重连","error.noPermission":"无权限查看该成员会话","error.source":"群聊数据源暂不可用","error.sourceHint":"插件数据适配器尚未就绪（src/adapters）。界面已降级为只读，不会白屏。","toast.copied":"已复制","toast.copyFailed":"复制失败","task.action.create":"创建任务","task.action.claim":"认领任务","task.action.complete":"完成任务","task.action.reopen":"重新打开任务","task.action.reassign":"改派任务","task.action.edit":"编辑任务","task.action.setDependencies":"依赖变更","task.action.delete":"取消任务","task.action.release":"放回任务","task.state.pending":"待认领","task.state.inProgress":"进行中","task.state.completed":"已完成","task.state.cancelled":"已取消","task.owner":"负责人","task.blockedBy":"依赖","task.completionTime":"完成时间","task.copyId":"复制任务 ID","task.unassigned":"未指派","task.noBlockedBy":"无","task.actorSystem":"系统操作者","task.revision":"版本","task.changed":"变更","a11y.feed":"群聊消息流","a11y.message":"{sender} 于 {time} 的 {kind} 消息","a11y.send":"发送消息","a11y.fold":"展开或收起长消息","a11y.mention":"成员提及补全","a11y.filter":"按成员筛选消息","a11y.unread":"查看新消息","msg.failedReasonFallback":"未知错误","channel.omittedSubagents":"已省略 {n} 个深层子会话","a11y.taskCard":"{action} {id}","send.error.generic":"未知错误","send.error.parentUnavailable":"父 Agent 不在线","send.error.forbidden":"无发送权限","send.error.network":"网络中断","send.error.busy":"正在发送中，请稍后","send.error.retryExhausted":"重试次数已用完","send.error.targetsOverflow":"接收方过多","msg.failedDetail":"发送失败：{reason}（{detail}）","send.error.debugSuffix":"（{detail}）","send.error.channelMissing":"当前会话不可用，无法发送"},"en":{"meta.title":"Group chat","meta.description":"Aggregates the lead, teammate and subagent sessions into one chat-style timeline, with multi-target sending.","view.tab":"Group chat","channel.title":"Group chat","channel.membersRunning":"{n} members · {m} running","channel.newMessages":"{n} new messages","channel.filterSuffix":"· Filter: {name}","channel.readonlySuffix":"· Team finished","channel.noMembers":"No team members","composer.targetLabel":"To","composer.leadChip":"Lead","composer.placeholder":"Reply to the group…","composer.toLeadHint":"Without @, sends to Lead. Type @ to send to more members","composer.multi":"{n} recipients · one copy sent to all","composer.queued":"Lead is running — queued","composer.send":"Send","composer.removeMention":"Remove {name}","mention.header":"Pick a member","mention.hint":"Type to filter","mention.empty":"No matching member","mention.footer":"↑↓ select · Enter/Tab confirm · Esc close","mention.sub.lead":"Main agent","mention.sub.teammate":"Teammate","mention.sub.subagent":"Subagent","mention.sub.addressable":" (still addressable)","msg.sentTo":"Also sent to {list}","msg.deliveredTo":"Also sent to {list}","msg.partialDelivered":"Delivered {ok}/{total}","msg.partialWithNames":"Delivered {ok}/{total} · failed: {names}","msg.partialWithNamesMore":"Delivered {ok}/{total} · failed: {names} +{n}","msg.sendToLead":"Sent to Lead","msg.sending":"Sending…","msg.failed":"Failed: {reason}. Text kept","msg.retry":"Retry","msg.copy":"Copy text","msg.copied":"Copied","msg.expandAll":"Show all (~{n} chars)","msg.collapse":"Collapse","msg.foldMeta":"{n} chars · {state}","msg.foldStateFolded":"first {lines} lines shown","msg.foldStateExpanded":"all {lines} lines shown","msg.toolCalls":"{n} tool calls · see Trajectory","msg.openSession":"Open source session","msg.reactions":"Message actions","msg.file.open":"Open","time.today":"Today","time.yesterday":"Yesterday","status.running":"Running","status.done":"Done","status.failed":"Failed","status.inactive":"Done","status.provisioning":"Starting","status.unknown":"Unknown","member.subagentOf":"· sub-agent of {parent}","member.leftNotSent":"{name} left — not sent","member.welcome":"Welcome @{name} to the group","member.cardTitle":"@{name} joined the group","member.noDesc":"No description","member.roleLead":"Main agent","member.roleTeammate":"Teammate","member.roleSubagent":"Subagent","member.roleFallback":"Member","member.contextFresh":"Fresh context (fresh)","member.contextForkLead":"Continue from Lead's finished turn (fork)","member.contextSubagent":"Fresh context (subagent)","member.contextSubagentFork":"Forked parent context (subagent_fork)","member.modeOneShot":"· One-shot","member.modelInheritedLead":"{model} (inherited from Lead)","member.modelInheritedFrom":"{model} (inherited from {parent})","member.expandTask":"Expand","member.collapseTask":"Collapse","member.initialTask":"Initial task","member.fieldModel":"Model","member.fieldContext":"Context","member.fieldCreateTool":"Created by","member.fieldParent":"Parent","member.fieldDescription":"Description","member.fieldTask":"Initial task","member.viewSession":"Open session","member.viewTask":"Open task","member.sessionCopied":"Cannot open directly — session ID copied","member.noPermission":"No permission to open this session","filter.button":"Filter by member","filter.active":"Filtered to {name} ({n})","filter.clear":"Clear","filter.empty":"No messages from this member","filter.suffix":"· Filter: {name}","readonly.banner":"Read-only history — sending is disabled","readonly.placeholder":"Team finished — read-only history","readonly.suffix":"· Team finished","empty.noTeam":"Single-agent session (no team)","empty.noTeamDesc":"Shows only this session's user messages and the agent's final output","empty.team":"No messages yet","empty.teamDesc":"Members will speak here after each turn.","empty.howToTeam":"How to build a team","history.earliest":"Beginning of channel","history.loadingOlder":"Loading earlier messages…","unread.jump":"↓ {n} new messages","error.load":"Failed to load: data source unavailable","error.retry":"Retry","error.reconnect":"Live updates paused (disconnected) — loaded history stays readable","error.reconnectAction":"Reconnect","error.noPermission":"No permission to read this member session","error.source":"Group chat data source unavailable","error.sourceHint":"The plugin adapter (src/adapters) is not ready yet. The view degrades to read-only instead of a blank screen.","toast.copied":"Copied","toast.copyFailed":"Copy failed","task.action.create":"Task created","task.action.claim":"Task claimed","task.action.complete":"Task completed","task.action.reopen":"Task reopened","task.action.reassign":"Task reassigned","task.action.edit":"Task edited","task.action.setDependencies":"Dependencies changed","task.action.delete":"Task cancelled","task.action.release":"Task released","task.state.pending":"Unclaimed","task.state.inProgress":"In progress","task.state.completed":"Completed","task.state.cancelled":"Cancelled","task.owner":"Owner","task.blockedBy":"Blocked by","task.completionTime":"Completed at","task.copyId":"Copy task ID","task.unassigned":"Unassigned","task.noBlockedBy":"None","task.actorSystem":"System","task.revision":"Revision","task.changed":"Changed","a11y.feed":"Group chat message feed","a11y.message":"{kind} message from {sender} at {time}","a11y.send":"Send message","a11y.fold":"Expand or collapse a long message","a11y.mention":"Member mention completion","a11y.filter":"Filter messages by member","a11y.unread":"See new messages","msg.failedReasonFallback":"Unknown error","channel.omittedSubagents":"{n} deep sub-sessions omitted","a11y.taskCard":"{action} {id}","send.error.generic":"Unknown error","send.error.parentUnavailable":"Parent agent is offline","send.error.forbidden":"No permission to send","send.error.network":"Network interrupted","send.error.busy":"A send is already in progress","send.error.retryExhausted":"Retry limit reached","send.error.targetsOverflow":"Too many recipients","msg.failedDetail":"Failed: {reason} ({detail})","send.error.debugSuffix":" ({detail})","send.error.channelMissing":"This conversation is unavailable; cannot send."}};
-    var GC_CSS = "/*\n * group-chat.css — 「群聊」视图样式\n *\n * 规则（架构 v1.6 §6.7）：\n *  - 只允许使用 --dsw-alias-* / --dsw-specific-* 主题变量取色（禁止写死品牌色）；\n *  - 尺寸/字号/圆角一律走本文件的 :where(.gc-root) 常量；\n *  - 暗色由宿主 body[data-ds-dark-theme] 切换，本文件不写 dark 分支；\n *  - 响应式用容器查询（视图住在对话内容区，宽度取决于宿主侧栏）。\n */\n\n:where(.gc-root) {\n  /* —— 本地尺寸常量（UX §11 / 架构 §6.7.2 / 6.7.3） —— */\n  --gc-radius-xs: 4px;\n  --gc-radius-sm: 8px;\n  --gc-radius-md: 12px;\n  --gc-radius-lg: 16px;\n  --gc-radius-xl: 20px;\n  --gc-radius-panel: 28px;\n\n  /* 气泡：用户气泡与 agent 气泡按发送者区分（Lead 裁决 2026-10-28） */\n  --gc-user-bubble-radius: 20px;\n  --gc-user-bubble-padding: 10px 16px;\n  --gc-bubble-radius: 12px;\n  --gc-bubble-padding: 10px 14px;\n  --gc-bubble-max: 600px;\n\n  --gc-header-h: 56px;\n  --gc-content-w: 920px;\n  --gc-col-pad: 24px;\n  --gc-avatar: 32px;\n  --gc-avatar-radius: 8px;\n  --gc-row-gap: 16px;      /* 消息间距 */\n  --gc-row-gap-tight: 8px; /* 同一发送者连续消息 */\n  --gc-indent: 40px;       /* 气泡/卡片相对头像行的缩进（32 头像 + 8 gap） */\n  --gc-indent-gap: 8px;\n  --gc-fold-max: 192px;    /* 8 × 24 */\n  --gc-fold-mask: 56px;\n\n  --gc-font: 14px;\n  --gc-line: 22px;\n  --gc-code-font: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);\n}\n\n/* ── 宿主挂载适配（F-01）─────────────────────────────────────────────────\n * conversation.view 的宿主容器是 `…viewArea`（flex:1;min-height:0;flex column）。\n * slot 渲染器可能在本视图外再包一层普通 div（无高度规则），会把 height:100% 的\n * 参照系变成「内容高度」，从而把输入区顶出可视区。这里用 :has() 把「包含 .gc-root\n * 的直接 wrapper」补成 flex 填满，宿主版本不支持 :has() 时由 gcFitHostLayout() JS 兜底。\n * ──────────────────────────────────────────────────────────────────────── */\n\n[class*='viewArea'] > :has(> .gc-root),\n[class*='viewArea'] > :has(> .gc-shell) {\n  flex: 1 1 auto;\n  min-height: 0;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  position: relative;\n}\n\n/* ── 根容器 ───────────────────────────────────────────────────────────── */\n\n.gc-root {\n  container-type: inline-size;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n  max-height: 100%;\n  min-height: 0;\n  overflow: hidden; /* header/banners/composer 固定，.gc-scroll 是唯一滚动区 */\n  box-sizing: border-box;\n  background: var(--dsw-alias-bg-base);\n  color: var(--dsw-alias-label-primary);\n  font-family: inherit;\n  -webkit-font-smoothing: antialiased;\n}\n\n.gc-root *,\n.gc-root *::before,\n.gc-root *::after {\n  box-sizing: border-box;\n}\n\n/* 容器查询的落点：@container 不能命中容器自身，故尺寸/响应式变量放在 .gc-shell 上 */\n.gc-shell {\n  display: flex;\n  flex-direction: column;\n  flex: 1 1 auto;\n  min-height: 0;\n  overflow: hidden;\n  position: relative;\n  color: var(--dsw-alias-label-primary);\n  font-size: var(--gc-font);\n  line-height: var(--gc-line);\n}\n\n.gc-sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n.gc-col {\n  width: var(--gc-content-w);\n  max-width: calc(100% - (var(--gc-col-pad) * 2));\n  margin: 0 auto;\n  padding: 0;\n}\n\n.gc-link {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  margin: 0;\n  font: inherit;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n  text-align: left;\n  border-radius: var(--gc-radius-xs);\n}\n\n.gc-link:hover {\n  text-decoration: underline;\n}\n\n.gc-link:disabled,\n.gc-link[aria-disabled='true'] {\n  color: var(--dsw-alias-label-dimmed);\n  cursor: default;\n  text-decoration: none;\n}\n\n.gc-focusable:focus-visible,\n.gc-link:focus-visible,\n.gc-btn:focus-visible,\n.gc-chip:focus-visible {\n  outline: 2px solid var(--dsw-alias-state-business-primary);\n  outline-offset: 2px;\n}\n\n/* ── 频道头 ───────────────────────────────────────────────────────────── */\n\n.gc-header {\n  flex: 0 0 auto;\n  height: var(--gc-header-h);\n  min-height: var(--gc-header-h);\n  padding: 0 28px;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  border-bottom: 1px solid var(--dsw-alias-border-l3);\n  background: var(--dsw-alias-bg-base);\n}\n\n.gc-group-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  overflow: hidden;\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  grid-template-rows: 1fr 1fr;\n  gap: 1px;\n  background: var(--dsw-alias-border-l2);\n}\n\n.gc-group-avatar > i {\n  display: block;\n  background: var(--dsw-alias-bg-layer-3);\n}\n\n.gc-group-avatar > i[data-slot='0'] {\n  background: var(--dsw-alias-state-business-primary);\n}\n\n.gc-group-avatar > i[data-slot='1'] {\n  background: var(--dsw-alias-state-business-tertiary);\n}\n\n.gc-group-avatar > i[data-slot='2'] {\n  background: var(--dsw-alias-bg-layer-3);\n}\n\n.gc-group-avatar > i[data-slot='3'] {\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-header-main {\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  gap: 2px;\n}\n\n.gc-header-row {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  min-width: 0;\n}\n\n.gc-header-title {\n  flex: none;\n  font-size: 14px;\n  font-weight: 500;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n}\n\n.gc-header-divider {\n  flex: none;\n  width: 1px;\n  height: 14px;\n  background: var(--dsw-alias-border-l2);\n}\n\n.gc-header-team {\n  min-width: 0;\n  flex: 0 1 auto;\n  font-size: 14px;\n  font-weight: 400;\n  line-height: 20px;\n  color: var(--dsw-alias-label-secondary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-header-status {\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: nowrap;\n}\n\n.gc-header-status .gc-status-suffix {\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-header-status .gc-dot {\n  flex: none;\n}\n\n.gc-spacer {\n  flex: 1 1 auto;\n}\n\n.gc-newmessages-hint {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.gc-newmessages-hint:hover {\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-truncation-hint {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-icon-btn {\n  flex: none;\n  width: 32px;\n  height: 32px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 0;\n  border-radius: var(--gc-radius-sm);\n  background: transparent;\n  color: var(--dsw-alias-label-tertiary);\n  cursor: pointer;\n  padding: 0;\n}\n\n.gc-icon-btn:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-icon-btn[aria-expanded='true'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-dot {\n  display: inline-block;\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-dot[data-state='running'] {\n  background: var(--dsw-alias-state-success-primary);\n}\n\n.gc-dot[data-state='failed'] {\n  background: var(--dsw-alias-state-error-primary);\n}\n\n/* ── 筛选菜单（频道头右侧） ─────────────────────────────────────────── */\n\n.gc-filter-menu {\n  position: absolute;\n  top: calc(var(--gc-header-h) + 4px);\n  right: 28px;\n  z-index: 20;\n  min-width: 200px;\n  max-height: 320px;\n  overflow-y: auto;\n  padding: 6px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-md);\n  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-2));\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n}\n\n.gc-filter-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  min-height: 32px;\n  padding: 4px 8px;\n  border: 0;\n  border-radius: var(--gc-radius-sm);\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font-size: 12px;\n  line-height: 18px;\n  cursor: pointer;\n  text-align: left;\n}\n\n.gc-filter-item:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.gc-filter-item[data-active='true'] {\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-filter-item .gc-filter-item-sub {\n  color: var(--dsw-alias-label-caption);\n  font-size: 11px;\n}\n\n/* ── 提示条（只读 / 筛选 / 断线） ───────────────────────────────────── */\n\n.gc-banners {\n  flex: none;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding-top: 8px;\n}\n\n.gc-banner {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 32px;\n  padding: 6px 12px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.gc-banner[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.gc-banner[data-tone='filter'] {\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.gc-banner .gc-banner-action {\n  margin-left: auto;\n  flex: none;\n  font-size: 12px;\n  color: var(--dsw-alias-state-business-primary);\n}\n\n/* ── 消息流 ───────────────────────────────────────────────────────────── */\n\n.gc-scroll {\n  flex: 1 1 auto;\n  min-height: 0;\n  max-height: 100%;\n  overflow-y: auto;\n  overflow-x: hidden;\n  overscroll-behavior: contain;\n  scrollbar-width: thin;\n  scrollbar-color: var(--dsw-alias-scrollbar-bg-l1) transparent;\n}\n\n.gc-scroll::-webkit-scrollbar {\n  width: 8px;\n}\n\n.gc-scroll::-webkit-scrollbar-thumb {\n  background: var(--dsw-alias-scrollbar-bg-l1);\n  border-radius: 4px;\n}\n\n.gc-scroll::-webkit-scrollbar-thumb:hover {\n  background: var(--dsw-alias-scrollbar-bg-hover-l1);\n}\n\n.gc-feed {\n  position: relative;\n  min-height: 100%;\n  padding: 12px 0 16px;\n}\n\n.gc-feed[aria-busy='true'] {\n  opacity: 0.85;\n}\n\n.gc-feed-top {\n  display: flex;\n  justify-content: center;\n  padding: 4px 0 8px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 时间分隔 */\n.gc-time-divider {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 12px 0 8px;\n  font-size: 12px;\n  font-weight: 400;\n  line-height: 18px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 行布局 */\n.gc-row {\n  display: flex;\n  align-items: flex-start;\n  gap: var(--gc-indent-gap);\n  padding: 0 0 var(--gc-row-gap);\n}\n\n.gc-row[data-tight='true'] {\n  padding-bottom: var(--gc-row-gap-tight);\n}\n\n.gc-row[data-self='true'] {\n  justify-content: flex-end;\n}\n\n.gc-row-main {\n  min-width: 0;\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  align-items: flex-start;\n}\n\n.gc-row[data-self='true'] .gc-row-main {\n  align-items: flex-end;\n}\n\n/* 头像 */\n.gc-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  font-weight: 500;\n  line-height: 1;\n  background: var(--dsw-alias-state-business-tertiary);\n  color: var(--dsw-alias-label-primary);\n  user-select: none;\n  overflow: hidden;\n}\n\n.gc-avatar[data-kind='lead'] {\n  background: var(--dsw-alias-state-business-primary);\n  color: var(--dsw-alias-button-primary-fill);\n}\n\n.gc-avatar[data-kind='user'] {\n  background: var(--dsw-alias-label-dimmed);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-avatar[data-size='24'] {\n  width: 24px;\n  height: 24px;\n  border-radius: 6px;\n  font-size: 11px;\n}\n\n.gc-avatar[data-size='40'] {\n  width: 40px;\n  height: 40px;\n  border-radius: 10px;\n  font-size: 14px;\n}\n\n/* SenderLine */\n.gc-sender {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 20px;\n  margin-bottom: 4px;\n  max-width: 100%;\n}\n\n.gc-sender-name {\n  font-size: 14px;\n  font-weight: 500;\n  line-height: 20px;\n  color: var(--dsw-alias-label-secondary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  max-width: 320px;\n}\n\n.gc-sender[data-card='true'] .gc-sender-name {\n  font-weight: 600;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-sender-sub {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-sender-role {\n  flex: none;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-sender-status {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-sender-time {\n  margin-left: auto;\n  padding-left: 8px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n/* 气泡 */\n.gc-bubble-wrap {\n  position: relative;\n  display: flex;\n  flex-direction: column;\n  align-items: flex-start;\n  max-width: min(var(--gc-bubble-max), 100%);\n}\n\n.gc-row[data-self='true'] .gc-bubble-wrap {\n  align-items: flex-end;\n}\n\n/* 发送中：说明行在气泡**外左侧**（UX §7 统一口径，无 spinner） */\n.gc-bubble-wrap[data-sending='true'] {\n  flex-direction: row;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n}\n\n.gc-bubble-wrap[data-sending='true'] .gc-caption {\n  margin-top: 0;\n  flex: none;\n  white-space: nowrap;\n}\n\n.gc-bubble {\n  max-width: 100%;\n  border-radius: var(--gc-bubble-radius);\n  padding: var(--gc-bubble-padding);\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-primary);\n  font-size: var(--gc-font);\n  line-height: var(--gc-line);\n  overflow-wrap: anywhere;\n  word-break: break-word;\n}\n\n.gc-bubble[data-self='true'] {\n  border-radius: var(--gc-user-bubble-radius);\n  padding: var(--gc-user-bubble-padding);\n  background: var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-3));\n}\n\n.gc-bubble[data-state='sending'] {\n  opacity: 0.6;\n}\n\n.gc-bubble[data-state='failed'] {\n  border: 1px solid var(--dsw-alias-state-error-primary);\n}\n\n.gc-bubble p {\n  margin: 0;\n}\n\n.gc-bubble p + p {\n  margin-top: 8px;\n}\n\n.gc-bubble code {\n  font-family: var(--gc-code-font);\n  font-size: 12.5px;\n  padding: 1px 4px;\n  border-radius: var(--gc-radius-xs);\n  background: var(--dsw-alias-markdown-inline-code);\n}\n\n.gc-bubble pre {\n  margin: 8px 0;\n  padding: 10px 12px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-markdown-code-block);\n  overflow-x: auto;\n}\n\n.gc-bubble pre code {\n  background: none;\n  padding: 0;\n}\n\n.gc-bubble a {\n  color: var(--dsw-alias-link, var(--dsw-alias-state-business-primary));\n}\n\n.gc-bubble .gc-mention {\n  color: var(--dsw-alias-state-business-primary);\n  white-space: nowrap;\n}\n\n.gc-bubble .gc-mention[role='button'],\n.gc-bubble .gc-mention[data-clickable='true'] {\n  cursor: pointer;\n}\n\n.gc-bubble .gc-mention[data-clickable='true']:hover {\n  text-decoration: underline;\n}\n\n/* 折叠 */\n.gc-foldable {\n  position: relative;\n  max-height: var(--gc-fold-max);\n  overflow: hidden;\n}\n\n.gc-foldable[data-expanded='true'] {\n  max-height: none;\n  overflow: visible;\n}\n\n.gc-foldable[data-expanded='false']::after {\n  content: '';\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: var(--gc-fold-mask);\n  pointer-events: none;\n  background: linear-gradient(to bottom, transparent, var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-2)));\n}\n\n.gc-bubble[data-self='true'] .gc-foldable[data-expanded='false']::after {\n  background: linear-gradient(to bottom, transparent, var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-3)));\n}\n\n.gc-fold-meta {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-fold-toggle {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-fold-toggle:hover {\n  text-decoration: underline;\n}\n\n/* 气泡下说明 */\n.gc-caption {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex-wrap: wrap;\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-row[data-self='true'] .gc-caption {\n  justify-content: flex-end;\n}\n\n.gc-caption[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.gc-caption .gc-caption-action {\n  font-size: 11px;\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-caption-sep {\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 工具调用折叠行 / 文件行 */\n.gc-tool-line {\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-file-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 8px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n  flex-wrap: wrap;\n}\n\n.gc-file-row .gc-file-name {\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-file-row .gc-file-path {\n  font-size: 11px;\n  color: var(--dsw-alias-label-caption);\n  font-family: var(--gc-code-font);\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* 行内操作（hover / focus 才出现） */\n.gc-row-actions {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 2px;\n  opacity: 0;\n  transition: opacity 150ms ease-out;\n}\n\n.gc-row:hover .gc-row-actions,\n.gc-row:focus-within .gc-row-actions {\n  opacity: 1;\n}\n\n@media (hover: none) {\n  .gc-row-actions {\n    opacity: 1;\n  }\n}\n\n.gc-row-action {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  cursor: pointer;\n}\n\n.gc-row-action:hover {\n  color: var(--dsw-alias-label-secondary);\n}\n\n/* ── 系统提示 / 欢迎提示 ──────────────────────────────────────────────── */\n\n.gc-system-note {\n  display: flex;\n  justify-content: center;\n  padding: 2px 0 12px;\n  font-size: 11.5px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-tertiary);\n  text-align: center;\n}\n\n.gc-welcome-note {\n  display: flex;\n  flex-direction: column;\n  align-items: flex-end;\n  gap: 4px;\n  padding: 2px 0 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-state-business-primary);\n  text-align: right;\n}\n\n.gc-welcome-note .gc-welcome-time {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* ── 卡片（M8 入群消息 / M9 任务卡） ─────────────────────────────────── */\n\n.gc-card-row {\n  display: flex;\n  align-items: flex-start;\n  gap: var(--gc-indent-gap);\n  padding: 0 0 var(--gc-row-gap);\n}\n\n.gc-card-row .gc-row-main {\n  min-width: 0;\n  flex: 1 1 auto;\n}\n\n.gc-card {\n  width: 100%;\n  max-width: 520px;\n  padding: 16px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-md);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.gc-card[data-compact='true'] {\n  padding: 12px 16px;\n}\n\n.gc-card-title {\n  margin: 0 0 6px;\n  font-size: 13px;\n  font-weight: 500;\n  line-height: 19px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-card-desc {\n  margin: 0 0 8px;\n  font-size: 12px;\n  line-height: 19px;\n  color: var(--dsw-alias-label-secondary);\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-card-desc[data-empty='true'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-card-fields {\n  display: flex;\n  flex-direction: column;\n  gap: 0;\n  margin: 2px 0 0;\n}\n\n.gc-field-row {\n  display: flex;\n  align-items: flex-start;\n  gap: 0;\n  min-height: 22px;\n  font-size: 12px;\n  line-height: 22px;\n}\n\n.gc-field-label {\n  flex: none;\n  width: 68px;\n  font-size: 11px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-field-value {\n  min-width: 0;\n  flex: 1 1 auto;\n  font-size: 12px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-secondary);\n  overflow-wrap: anywhere;\n}\n\n.gc-field-value[data-mono='true'] {\n  font-family: var(--gc-code-font);\n  font-size: 11px;\n}\n\n.gc-card-task-block {\n  margin-top: 10px;\n}\n\n.gc-card-task-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-bottom: 2px;\n}\n\n.gc-card-task-label {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-card-task-body {\n  margin: 0;\n  font-size: 11px;\n  line-height: 17px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n\n.gc-card-task-body[data-clamped='true'] {\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-card-actions {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n  margin-top: 12px;\n}\n\n.gc-card-action {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  line-height: 18px;\n  font-weight: 500;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-card-action[data-tone='secondary'] {\n  font-weight: 400;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-card-action[data-state='disabled'],\n.gc-card-action:disabled {\n  color: var(--dsw-alias-label-dimmed);\n  cursor: default;\n}\n\n.gc-card-action:hover:not(:disabled) {\n  text-decoration: underline;\n}\n\n/* 任务卡 */\n.gc-task-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.gc-task-action {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-task-id {\n  margin-left: auto;\n  font-family: var(--gc-code-font);\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-pill {\n  display: inline-flex;\n  align-items: center;\n  height: 20px;\n  padding: 0 8px;\n  border-radius: 999px;\n  font-size: 11px;\n  line-height: 20px;\n  white-space: nowrap;\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-pill[data-status='in_progress'] {\n  background: var(--dsw-alias-state-business-tertiary);\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-pill[data-status='completed'] {\n  background: var(--dsw-alias-state-success-tertiary);\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.gc-pill[data-status='deleted'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-task-title {\n  margin: 0 0 4px;\n  font-size: 14px;\n  font-weight: 600;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-task-desc {\n  margin: 0 0 6px;\n  font-size: 11.5px;\n  line-height: 17px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n\n.gc-task-desc[data-clamped='true'] {\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-task-fields {\n  display: flex;\n  flex-direction: column;\n}\n\n.gc-task-field {\n  display: flex;\n  align-items: flex-start;\n  gap: 0;\n  min-height: 20px;\n  font-size: 11.5px;\n  line-height: 20px;\n}\n\n.gc-task-field-label {\n  flex: none;\n  width: 68px;\n  font-size: 11px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-task-field-value {\n  min-width: 0;\n  flex: 1 1 auto;\n  color: var(--dsw-alias-label-secondary);\n  overflow-wrap: anywhere;\n}\n\n.gc-task-actions {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n  margin-top: 10px;\n}\n\n/* ── 空态 / 骨架 / 错误态 ─────────────────────────────────────────────── */\n\n.gc-center-state {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 64px 24px;\n  text-align: center;\n}\n\n.gc-empty-icon {\n  width: 48px;\n  height: 48px;\n  border-radius: 50%;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-tertiary);\n  font-size: 20px;\n  line-height: 1;\n  margin-bottom: 4px;\n}\n\n.gc-empty-title {\n  font-size: 14px;\n  font-weight: 600;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-empty-desc {\n  max-width: 460px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-empty-action {\n  margin-top: 4px;\n  appearance: none;\n  border: 0;\n  padding: 4px 10px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 11px;\n  line-height: 16px;\n  cursor: pointer;\n}\n\n.gc-skeleton {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n}\n\n.gc-skeleton-body {\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding-top: 2px;\n}\n\n.gc-skeleton-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  background: var(--dsw-alias-bg-skeleton);\n}\n\n.gc-skeleton-bar {\n  height: 10px;\n  border-radius: 4px;\n  background: var(--dsw-alias-bg-skeleton);\n}\n\n@keyframes gc-skeleton-pulse {\n  0% { opacity: 0.65; }\n  50% { opacity: 1; }\n  100% { opacity: 0.65; }\n}\n\n.gc-skeleton-avatar,\n.gc-skeleton-bar {\n  animation: gc-skeleton-pulse 1.4s ease-in-out infinite;\n}\n\n.gc-error-card {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  justify-content: center;\n  flex-wrap: wrap;\n  padding: 10px 12px;\n  margin: 32px 0;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-layer-1);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.gc-error-card[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* ── 未读浮标 ─────────────────────────────────────────────────────────── */\n\n.gc-unread-pill {\n  position: absolute;\n  right: 28px;\n  bottom: 116px;\n  z-index: 15;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  height: 28px;\n  padding: 0 12px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 16px;\n  background: var(--dsw-alias-bg-layer-2);\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n  color: var(--dsw-alias-state-business-primary);\n  font-size: 12px;\n  line-height: 18px;\n  cursor: pointer;\n  animation: gc-pill-in 180ms ease-out;\n}\n\n.gc-unread-pill .gc-dot {\n  background: var(--dsw-alias-state-business-primary);\n}\n\n@keyframes gc-pill-in {\n  from { opacity: 0; transform: translateY(4px); }\n  to { opacity: 1; transform: none; }\n}\n\n/* ── 输入区 ───────────────────────────────────────────────────────────── */\n\n.gc-composer-area {\n  flex: 0 0 auto;\n  padding: 8px 0 16px;\n}\n\n.gc-composer {\n  position: relative;\n  min-height: 96px;\n  width: calc(var(--gc-content-w) + 32px);\n  max-width: calc(100% - (var(--gc-col-pad) * 2));\n  margin: 0 auto;\n  padding: 12px 16px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-panel);\n  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));\n  transition: border-color 150ms ease-out;\n}\n\n.gc-composer[data-focused='true'] {\n  border-color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-composer[data-readonly='true'] {\n  opacity: 0.4;\n  pointer-events: none;\n}\n\n.gc-target-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 20px;\n  margin-bottom: 6px;\n  flex-wrap: wrap;\n}\n\n.gc-target-label {\n  flex: none;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-chip {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  height: 20px;\n  padding: 0 8px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--dsw-alias-bg-layer-3);\n  color: var(--dsw-alias-label-primary);\n  font-size: 11px;\n  line-height: 20px;\n  white-space: nowrap;\n  cursor: default;\n}\n\n.gc-chip[data-tone='mention'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 18%, transparent);\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-chip[data-tone='mention']:hover {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 26%, transparent);\n}\n\n.gc-target-hint {\n  min-width: 0;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-input-row {\n  display: flex;\n  align-items: flex-end;\n  gap: 12px;\n}\n\n.gc-textarea {\n  flex: 1 1 auto;\n  min-height: 32px;\n  max-height: 336px;\n  padding: 4px 0;\n  border: 0;\n  outline: none;\n  resize: none;\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 14px;\n  line-height: 22px;\n  overflow-y: auto;\n}\n\n.gc-textarea::placeholder {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-send-btn {\n  flex: none;\n  width: 34px;\n  height: 34px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 0;\n  border-radius: 50%;\n  padding: 0;\n  background: var(--dsw-alias-state-business-primary);\n  color: var(--dsw-alias-bg-base);\n  cursor: pointer;\n  transition: opacity 150ms ease-out;\n}\n\n.gc-send-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n/* @ 补全浮层 */\n.gc-mention-popup {\n  position: absolute;\n  left: 16px;\n  bottom: calc(100% + 8px);\n  z-index: 30;\n  width: 380px;\n  max-width: calc(100% - 32px);\n  max-height: 340px;\n  display: flex;\n  flex-direction: column;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 14px;\n  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-2));\n  box-shadow: var(--dsw-shadow-lv2, 0 12px 28px rgba(0, 0, 0, 0.35));\n  overflow: hidden;\n}\n\n.gc-mention-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 8px 12px 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-mention-head .gc-spacer {\n  flex: 1;\n}\n\n.gc-mention-list {\n  margin: 0;\n  padding: 4px;\n  list-style: none;\n  overflow-y: auto;\n  scrollbar-width: thin;\n}\n\n.gc-mention-option {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 46px;\n  padding: 6px 8px;\n  border-radius: var(--gc-radius-sm);\n  cursor: pointer;\n  position: relative;\n}\n\n.gc-mention-option[aria-selected='true'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.gc-mention-option[aria-selected='true']::before {\n  content: '';\n  position: absolute;\n  left: 0;\n  top: 6px;\n  bottom: 6px;\n  width: 2px;\n  border-radius: 1px;\n  background: var(--dsw-alias-state-business-primary);\n}\n\n.gc-mention-option-main {\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n}\n\n.gc-mention-option-name {\n  font-size: 13px;\n  font-weight: 500;\n  line-height: 18px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-mention-option-sub {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-mention-empty {\n  padding: 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-mention-foot {\n  padding: 6px 12px 8px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* ── Toast ────────────────────────────────────────────────────────────── */\n\n.gc-toast {\n  position: absolute;\n  left: 50%;\n  bottom: 24px;\n  transform: translateX(-50%);\n  z-index: 40;\n  max-width: 80%;\n  padding: 8px 14px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-toast-bg);\n  color: var(--dsw-alias-toast-label);\n  font-size: 12px;\n  line-height: 18px;\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n}\n\n/* ── 响应式（容器查询） ───────────────────────────────────────────────── */\n\n@container (max-width: 1079px) {\n  .gc-shell {\n    --gc-content-w: 856px;\n  }\n}\n\n@container (max-width: 899px) {\n  .gc-shell {\n    --gc-content-w: 720px;\n    --gc-col-pad: 24px;\n    --gc-bubble-max: 70%;\n  }\n\n  .gc-header {\n    padding: 0 16px;\n    gap: 8px;\n  }\n\n  .gc-header-team,\n  .gc-header-title {\n    display: none;\n  }\n\n  .gc-header-divider {\n    display: none;\n  }\n\n  .gc-banner {\n    min-height: 32px;\n  }\n\n  .gc-composer {\n    min-height: 88px;\n    width: calc(var(--gc-content-w) + 0px);\n    max-width: calc(100% - 32px);\n    padding: 10px 14px;\n  }\n\n  .gc-unread-pill {\n    right: 16px;\n    bottom: 104px;\n  }\n\n  .gc-filter-menu {\n    right: 16px;\n  }\n\n  .gc-row,\n  .gc-card-row {\n    gap: 8px;\n  }\n\n  .gc-sender-name {\n    max-width: 180px;\n  }\n\n  .gc-mention-popup {\n    left: 8px;\n  }\n}\n\n@container (max-width: 620px) {\n  .gc-shell {\n    --gc-content-w: 100%;\n    --gc-col-pad: 16px;\n  }\n\n  .gc-header {\n    height: 52px;\n    min-height: 52px;\n    padding: 0 12px;\n  }\n\n  .gc-composer {\n    max-width: calc(100% - 24px);\n  }\n\n  .gc-card {\n    padding: 12px;\n  }\n\n  .gc-field-label,\n  .gc-task-field-label {\n    width: 56px;\n  }\n}\n\n/* ── 动效降级 ─────────────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .gc-root *,\n  .gc-root *::before,\n  .gc-root *::after {\n    animation: none !important;\n    transition: none !important;\n  }\n}\n";
+    var GC_LOCALE = {"zh":{"meta.title":"群聊","meta.description":"以聊天室视角聚合 lead、teammate 与 subagent 的会话时间线，并支持多目标同发。","view.tab":"群聊","channel.title":"群聊","channel.membersRunning":"{n} 名成员 · {m} 个运行中","channel.newMessages":"{n} 条新消息","channel.filterSuffix":"· 筛选: {name}","channel.readonlySuffix":"· 团队已结束","channel.noMembers":"无团队成员","composer.targetLabel":"发送给","composer.leadChip":"Lead","composer.placeholder":"回复群聊…","composer.toLeadHint":"未 @ 时默认发送给 Lead；键入 @ 可同时发送给多人","composer.multi":"共 {n} 位 · 同一份内容同时发送","composer.queued":"Lead 运行中，已排队","composer.send":"发送","composer.removeMention":"移除 {name}","mention.header":"选择成员","mention.hint":"键入以过滤","mention.empty":"无匹配成员","mention.footer":"↑↓ 选择 · Enter/Tab 确认 · Esc 关闭","mention.sub.lead":"主 agent","mention.sub.teammate":"Teammate","mention.sub.subagent":"Subagent","mention.sub.addressable":"（仍可寻址）","msg.sentTo":"已同时发送给 {list}","msg.deliveredTo":"已同时发送给 {list}","msg.partialDelivered":"已送达 {ok}/{total}","msg.partialWithNames":"已送达 {ok}/{total} · 失败：{names}","msg.partialWithNamesMore":"已送达 {ok}/{total} · 失败：{names} 等 {n} 人","msg.sendToLead":"发送给 Lead","msg.sending":"发送中…","msg.failed":"发送失败：{reason}，已保留原文","msg.retry":"重试","msg.copy":"复制原文","msg.copied":"已复制","msg.expandAll":"展开全部（约 {n} 字）","msg.collapse":"收起","msg.foldMeta":"共 {n} 字 · {state}","msg.foldStateFolded":"显示前 {lines} 行","msg.foldStateExpanded":"完整显示 {lines} 行","msg.toolCalls":"{n} 个工具调用 · 见「轨迹」","msg.openSession":"打开所属会话","msg.reactions":"消息操作","msg.file.open":"打开","time.today":"今天","time.yesterday":"昨天","status.running":"运行中","status.done":"已完成","status.failed":"失败","status.inactive":"已完成","status.provisioning":"创建中","status.unknown":"未知","member.subagentOf":"· {parent} 的子体","member.leftNotSent":"{name} 已离开，未发送","member.welcome":"欢迎 @{name} 加入群聊","member.cardTitle":"「@{name}」加入群聊","member.noDesc":"无描述","member.roleLead":"主 Agent","member.roleTeammate":"Teammate","member.roleSubagent":"Subagent","member.roleFallback":"成员","member.contextFresh":"全新上下文（fresh）","member.contextForkLead":"继承 Lead 已完成回合（fork）","member.contextSubagent":"全新上下文（subagent）","member.contextSubagentFork":"继承父会话（subagent_fork）","member.modeOneShot":"· 一次性（one-shot）","member.modelInheritedLead":"{model}（继承 Lead）","member.modelInheritedFrom":"{model}（继承 {parent}）","member.expandTask":"展开","member.collapseTask":"收起","member.initialTask":"初始任务","member.fieldModel":"模型","member.fieldContext":"上下文","member.fieldCreateTool":"创建方式","member.fieldParent":"父成员","member.fieldDescription":"角色描述","member.fieldTask":"初始任务","member.viewSession":"查看会话","member.viewTask":"查看任务","member.sessionCopied":"无法直接跳转，已复制会话 ID","member.noPermission":"无权限打开该会话","filter.button":"筛选成员","filter.active":"正在只看 {name}（{n} 条）","filter.clear":"清除","filter.empty":"该成员暂无消息","filter.suffix":"· 筛选: {name}","readonly.banner":"当前为只读历史，不能发送","readonly.placeholder":"团队已结束，群聊为只读历史","readonly.suffix":"· 团队已结束","empty.noTeam":"当前为单 Agent 会话（无团队）","empty.noTeamDesc":"仅显示该会话的用户消息与该 agent 的最终输出","empty.team":"团队还没有发言","empty.teamDesc":"成员每轮结束后会在这里发言。","empty.howToTeam":"如何组建团队","history.earliest":"已到最早消息","history.loadingOlder":"加载更早消息…","unread.jump":"↓ {n} 条新消息","error.load":"加载失败：数据源不可用","error.retry":"重试","error.reconnect":"实时更新暂停（连接断开），已加载历史可读","error.reconnectAction":"重连","error.noPermission":"无权限查看该成员会话","error.source":"群聊数据源暂不可用","error.sourceHint":"插件数据适配器尚未就绪（src/adapters）。界面已降级为只读，不会白屏。","toast.copied":"已复制","toast.copyFailed":"复制失败","task.action.create":"创建任务","task.action.claim":"认领任务","task.action.complete":"完成任务","task.action.reopen":"重新打开任务","task.action.reassign":"改派任务","task.action.edit":"编辑任务","task.action.setDependencies":"依赖变更","task.action.delete":"取消任务","task.action.release":"放回任务","task.state.pending":"待认领","task.state.inProgress":"进行中","task.state.completed":"已完成","task.state.cancelled":"已取消","task.owner":"负责人","task.blockedBy":"依赖","task.completionTime":"完成时间","task.unassigned":"未指派","task.noBlockedBy":"无","task.actorSystem":"系统操作者","task.revision":"版本","task.changed":"变更","a11y.feed":"群聊消息流","a11y.message":"{sender} 于 {time} 的 {kind} 消息","a11y.send":"发送消息","a11y.fold":"展开或收起长消息","a11y.mention":"成员提及补全","a11y.filter":"按成员筛选消息","a11y.unread":"查看新消息","msg.failedReasonFallback":"未知错误","channel.omittedSubagents":"已省略 {n} 个深层子会话","a11y.taskCard":"{action} {id}","send.error.generic":"未知错误","send.error.parentUnavailable":"父 Agent 不在线","send.error.forbidden":"无发送权限","send.error.network":"网络中断","send.error.busy":"正在发送中，请稍后","send.error.retryExhausted":"重试次数已用完","send.error.targetsOverflow":"接收方过多","msg.failedDetail":"发送失败：{reason}（{detail}）","send.error.debugSuffix":"（{detail}）","send.error.channelMissing":"当前会话不可用，无法发送","composer.hint":"键入 @ 可同时发送给多人","composer.hostFallback":"兼容模式：宿主输入器未隐藏","channel.membersStatus":"{n} 名成员 · {m} 工作中 · {k} 等待","member.status.working":"工作中","member.status.waiting":"等待","member.stripOverflow":"+{n} 名成员","trajectory.title":"轮次轨迹","trajectory.empty":"无轮次数据","trajectory.noOutput":"无输出摘要","trajectory.toolCount":"{n} 个工具调用","trajectory.status.done":"已完成","trajectory.status.aborted":"已中断","trajectory.status.error":"错误","trajectory.status.truncated":"已截断","trajectory.status.running":"进行中","trajectory.status.unknown":"未知","trajectory.loadOlder":"加载更早轮次","trajectory.close":"关闭","msg.action.copy":"复制原文","msg.action.openSession":"打开所属会话","msg.expandLines":"展开全部（共 {n} 行）","msg.foldMetaLines":"显示前 {n} 行","task.ownerUnassigned":"未认领","task.blockedByList":"被 {list} 阻塞"},"en":{"meta.title":"Group chat","meta.description":"Aggregates the lead, teammate and subagent sessions into one chat-style timeline, with multi-target sending.","view.tab":"Group chat","channel.title":"Group chat","channel.membersRunning":"{n} members · {m} running","channel.newMessages":"{n} new messages","channel.filterSuffix":"· Filter: {name}","channel.readonlySuffix":"· Team finished","channel.noMembers":"No team members","composer.targetLabel":"To","composer.leadChip":"Lead","composer.placeholder":"Reply to the group…","composer.toLeadHint":"Without @, sends to Lead. Type @ to send to more members","composer.multi":"{n} recipients · one copy sent to all","composer.queued":"Lead is running — queued","composer.send":"Send","composer.removeMention":"Remove {name}","mention.header":"Pick a member","mention.hint":"Type to filter","mention.empty":"No matching member","mention.footer":"↑↓ select · Enter/Tab confirm · Esc close","mention.sub.lead":"Main agent","mention.sub.teammate":"Teammate","mention.sub.subagent":"Subagent","mention.sub.addressable":" (still addressable)","msg.sentTo":"Also sent to {list}","msg.deliveredTo":"Also sent to {list}","msg.partialDelivered":"Delivered {ok}/{total}","msg.partialWithNames":"Delivered {ok}/{total} · failed: {names}","msg.partialWithNamesMore":"Delivered {ok}/{total} · failed: {names} +{n}","msg.sendToLead":"Sent to Lead","msg.sending":"Sending…","msg.failed":"Failed: {reason}. Text kept","msg.retry":"Retry","msg.copy":"Copy text","msg.copied":"Copied","msg.expandAll":"Show all (~{n} chars)","msg.collapse":"Collapse","msg.foldMeta":"{n} chars · {state}","msg.foldStateFolded":"first {lines} lines shown","msg.foldStateExpanded":"all {lines} lines shown","msg.toolCalls":"{n} tool calls · see Trajectory","msg.openSession":"Open source session","msg.reactions":"Message actions","msg.file.open":"Open","time.today":"Today","time.yesterday":"Yesterday","status.running":"Running","status.done":"Done","status.failed":"Failed","status.inactive":"Done","status.provisioning":"Starting","status.unknown":"Unknown","member.subagentOf":"· sub-agent of {parent}","member.leftNotSent":"{name} left — not sent","member.welcome":"Welcome @{name} to the group","member.cardTitle":"@{name} joined the group","member.noDesc":"No description","member.roleLead":"Main agent","member.roleTeammate":"Teammate","member.roleSubagent":"Subagent","member.roleFallback":"Member","member.contextFresh":"Fresh context (fresh)","member.contextForkLead":"Continue from Lead's finished turn (fork)","member.contextSubagent":"Fresh context (subagent)","member.contextSubagentFork":"Forked parent context (subagent_fork)","member.modeOneShot":"· One-shot","member.modelInheritedLead":"{model} (inherited from Lead)","member.modelInheritedFrom":"{model} (inherited from {parent})","member.expandTask":"Expand","member.collapseTask":"Collapse","member.initialTask":"Initial task","member.fieldModel":"Model","member.fieldContext":"Context","member.fieldCreateTool":"Created by","member.fieldParent":"Parent","member.fieldDescription":"Description","member.fieldTask":"Initial task","member.viewSession":"Open session","member.viewTask":"Open task","member.sessionCopied":"Cannot open directly — session ID copied","member.noPermission":"No permission to open this session","filter.button":"Filter by member","filter.active":"Filtered to {name} ({n})","filter.clear":"Clear","filter.empty":"No messages from this member","filter.suffix":"· Filter: {name}","readonly.banner":"Read-only history — sending is disabled","readonly.placeholder":"Team finished — read-only history","readonly.suffix":"· Team finished","empty.noTeam":"Single-agent session (no team)","empty.noTeamDesc":"Shows only this session's user messages and the agent's final output","empty.team":"No messages yet","empty.teamDesc":"Members will speak here after each turn.","empty.howToTeam":"How to build a team","history.earliest":"Beginning of channel","history.loadingOlder":"Loading earlier messages…","unread.jump":"↓ {n} new messages","error.load":"Failed to load: data source unavailable","error.retry":"Retry","error.reconnect":"Live updates paused (disconnected) — loaded history stays readable","error.reconnectAction":"Reconnect","error.noPermission":"No permission to read this member session","error.source":"Group chat data source unavailable","error.sourceHint":"The plugin adapter (src/adapters) is not ready yet. The view degrades to read-only instead of a blank screen.","toast.copied":"Copied","toast.copyFailed":"Copy failed","task.action.create":"Task created","task.action.claim":"Task claimed","task.action.complete":"Task completed","task.action.reopen":"Task reopened","task.action.reassign":"Task reassigned","task.action.edit":"Task edited","task.action.setDependencies":"Dependencies changed","task.action.delete":"Task cancelled","task.action.release":"Task released","task.state.pending":"Unclaimed","task.state.inProgress":"In progress","task.state.completed":"Completed","task.state.cancelled":"Cancelled","task.owner":"Owner","task.blockedBy":"Blocked by","task.completionTime":"Completed at","task.unassigned":"Unassigned","task.noBlockedBy":"None","task.actorSystem":"System","task.revision":"Revision","task.changed":"Changed","a11y.feed":"Group chat message feed","a11y.message":"{kind} message from {sender} at {time}","a11y.send":"Send message","a11y.fold":"Expand or collapse a long message","a11y.mention":"Member mention completion","a11y.filter":"Filter messages by member","a11y.unread":"See new messages","msg.failedReasonFallback":"Unknown error","channel.omittedSubagents":"{n} deep sub-sessions omitted","a11y.taskCard":"{action} {id}","send.error.generic":"Unknown error","send.error.parentUnavailable":"Parent agent is offline","send.error.forbidden":"No permission to send","send.error.network":"Network interrupted","send.error.busy":"A send is already in progress","send.error.retryExhausted":"Retry limit reached","send.error.targetsOverflow":"Too many recipients","msg.failedDetail":"Failed: {reason} ({detail})","send.error.debugSuffix":" ({detail})","send.error.channelMissing":"This conversation is unavailable; cannot send.","composer.hint":"Type @ to send to more members","composer.hostFallback":"Compatibility mode: host composer is still visible","channel.membersStatus":"{n} members · {m} working · {k} waiting","member.status.working":"Working","member.status.waiting":"Waiting","member.stripOverflow":"+{n} members","trajectory.title":"Turn trajectory","trajectory.empty":"No turns","trajectory.noOutput":"No output summary","trajectory.toolCount":"{n} tool calls","trajectory.status.done":"Done","trajectory.status.aborted":"Aborted","trajectory.status.error":"Error","trajectory.status.truncated":"Truncated","trajectory.status.running":"Running","trajectory.status.unknown":"Unknown","trajectory.loadOlder":"Load earlier turns","trajectory.close":"Close","msg.action.copy":"Copy text","msg.action.openSession":"Open session","msg.expandLines":"Show all ({n} lines)","msg.foldMetaLines":"first {n} lines shown","task.ownerUnassigned":"Unclaimed","task.blockedByList":"Blocked by {list}"}};
+    var GC_CSS = "/*\n * group-chat.css — 「群聊」视图样式\n *\n * 规则（架构 v1.6 §6.7）：\n *  - 只允许使用 --dsw-alias-* / --dsw-specific-* 主题变量取色（禁止写死品牌色）；\n *  - 尺寸/字号/圆角一律走本文件的 :where(.gc-root) 常量；\n *  - 暗色由宿主 body[data-ds-dark-theme] 切换，本文件不写 dark 分支；\n *  - 响应式用容器查询（视图住在对话内容区，宽度取决于宿主侧栏）。\n */\n\n:where(.gc-root) {\n  /* —— 本地尺寸常量（UX §11 / 架构 §6.7.2 / 6.7.3） —— */\n  --gc-radius-xs: 4px;\n  --gc-radius-sm: 8px;\n  --gc-radius-md: 12px;\n  --gc-radius-lg: 16px;\n  --gc-radius-xl: 20px;\n  --gc-radius-panel: 28px;\n\n  /* 气泡：用户气泡与 agent 气泡按发送者区分（Lead 裁决 2026-10-28） */\n  --gc-user-bubble-radius: 20px;\n  --gc-user-bubble-padding: 10px 16px;\n  --gc-bubble-radius: 12px;\n  --gc-bubble-padding: 10px 14px;\n  --gc-bubble-max: 600px;\n\n  --gc-header-h: 56px;\n  --gc-content-w: 920px;\n  --gc-col-pad: 24px;\n  --gc-avatar: 32px;\n  --gc-avatar-radius: 8px;\n  --gc-row-gap: 16px;      /* 消息间距 */\n  --gc-row-gap-tight: 8px; /* 同一发送者连续消息 */\n  --gc-indent: 40px;       /* 气泡/卡片相对头像行的缩进（32 头像 + 8 gap） */\n  --gc-indent-gap: 8px;\n  --gc-fold-max: 1100px;   /* v1.7：50 行 × 22px */\n  --gc-fold-mask: 56px;\n\n  --gc-font: 14px;\n  --gc-line: 22px;\n  --gc-code-font: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);\n}\n\n/* ── 宿主挂载适配（F-01）─────────────────────────────────────────────────\n * conversation.view 的宿主容器是 `…viewArea`（flex:1;min-height:0;flex column）。\n * slot 渲染器可能在本视图外再包一层普通 div（无高度规则），会把 height:100% 的\n * 参照系变成「内容高度」，从而把输入区顶出可视区。这里用 :has() 把「包含 .gc-root\n * 的直接 wrapper」补成 flex 填满，宿主版本不支持 :has() 时由 gcFitHostLayout() JS 兜底。\n * ──────────────────────────────────────────────────────────────────────── */\n\n[class*='viewArea'] > :has(> .gc-root),\n[class*='viewArea'] > :has(> .gc-shell) {\n  flex: 1 1 auto;\n  min-height: 0;\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  overflow: hidden;\n  position: relative;\n}\n\n/* ── 根容器 ───────────────────────────────────────────────────────────── */\n\n.gc-root {\n  container-type: inline-size;\n  display: flex;\n  flex-direction: column;\n  height: 100%;\n  max-height: 100%;\n  min-height: 0;\n  overflow: hidden; /* header/banners/composer 固定，.gc-scroll 是唯一滚动区 */\n  box-sizing: border-box;\n  background: var(--dsw-alias-bg-base);\n  color: var(--dsw-alias-label-primary);\n  font-family: inherit;\n  -webkit-font-smoothing: antialiased;\n}\n\n.gc-root *,\n.gc-root *::before,\n.gc-root *::after {\n  box-sizing: border-box;\n}\n\n/* 容器查询的落点：@container 不能命中容器自身，故尺寸/响应式变量放在 .gc-shell 上 */\n.gc-shell {\n  display: flex;\n  flex-direction: column;\n  flex: 1 1 auto;\n  min-height: 0;\n  overflow: hidden;\n  position: relative;\n  color: var(--dsw-alias-label-primary);\n  font-size: var(--gc-font);\n  line-height: var(--gc-line);\n}\n\n.gc-sr-only {\n  position: absolute;\n  width: 1px;\n  height: 1px;\n  padding: 0;\n  margin: -1px;\n  overflow: hidden;\n  clip: rect(0, 0, 0, 0);\n  white-space: nowrap;\n  border: 0;\n}\n\n.gc-col {\n  width: var(--gc-content-w);\n  max-width: calc(100% - (var(--gc-col-pad) * 2));\n  margin: 0 auto;\n  padding: 0;\n}\n\n.gc-link {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  margin: 0;\n  font: inherit;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n  text-align: left;\n  border-radius: var(--gc-radius-xs);\n}\n\n.gc-link:hover {\n  text-decoration: underline;\n}\n\n.gc-link:disabled,\n.gc-link[aria-disabled='true'] {\n  color: var(--dsw-alias-label-dimmed);\n  cursor: default;\n  text-decoration: none;\n}\n\n.gc-focusable:focus-visible,\n.gc-link:focus-visible,\n.gc-btn:focus-visible,\n.gc-chip:focus-visible {\n  outline: 2px solid var(--dsw-alias-state-business-primary);\n  outline-offset: 2px;\n}\n\n/* ── 频道头 ───────────────────────────────────────────────────────────── */\n\n.gc-header {\n  flex: 0 0 auto;\n  height: auto;\n  min-height: var(--gc-header-h);\n  padding: 6px 28px;\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  border-bottom: 1px solid var(--dsw-alias-border-l3);\n  background: var(--dsw-alias-bg-base);\n}\n\n.gc-group-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  overflow: hidden;\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  grid-template-rows: 1fr 1fr;\n  gap: 1px;\n  background: var(--dsw-alias-border-l2);\n}\n\n.gc-group-avatar > i {\n  display: block;\n  background: var(--dsw-alias-bg-layer-3);\n}\n\n.gc-group-avatar > i[data-slot='0'] {\n  background: var(--dsw-alias-state-business-primary);\n}\n\n.gc-group-avatar > i[data-slot='1'] {\n  background: var(--dsw-alias-state-business-tertiary);\n}\n\n.gc-group-avatar > i[data-slot='2'] {\n  background: var(--dsw-alias-bg-layer-3);\n}\n\n.gc-group-avatar > i[data-slot='3'] {\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-header-main {\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n  justify-content: center;\n  gap: 2px;\n}\n\n.gc-header-row {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  min-width: 0;\n}\n\n.gc-header-title {\n  flex: none;\n  font-size: 14px;\n  font-weight: 500;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n}\n\n.gc-header-divider {\n  flex: none;\n  width: 1px;\n  height: 14px;\n  background: var(--dsw-alias-border-l2);\n}\n\n.gc-header-team {\n  min-width: 0;\n  flex: 0 1 auto;\n  font-size: 14px;\n  font-weight: 400;\n  line-height: 20px;\n  color: var(--dsw-alias-label-secondary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-header-status {\n  min-width: 0;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: nowrap;\n}\n\n.gc-header-status .gc-status-suffix {\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-header-status .gc-dot {\n  flex: none;\n}\n\n.gc-spacer {\n  flex: 1 1 auto;\n}\n\n.gc-newmessages-hint {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  cursor: pointer;\n  white-space: nowrap;\n}\n\n.gc-newmessages-hint:hover {\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-truncation-hint {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-icon-btn {\n  flex: none;\n  width: 32px;\n  height: 32px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 0;\n  border-radius: var(--gc-radius-sm);\n  background: transparent;\n  color: var(--dsw-alias-label-tertiary);\n  cursor: pointer;\n  padding: 0;\n}\n\n.gc-icon-btn:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-icon-btn[aria-expanded='true'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-dot {\n  display: inline-block;\n  width: 6px;\n  height: 6px;\n  border-radius: 50%;\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-dot[data-state='running'] {\n  background: var(--dsw-alias-state-success-primary);\n}\n\n.gc-dot[data-state='failed'] {\n  background: var(--dsw-alias-state-error-primary);\n}\n\n/* ── 筛选菜单（频道头右侧） ─────────────────────────────────────────── */\n\n.gc-filter-menu {\n  position: absolute;\n  top: calc(var(--gc-header-h) + 4px);\n  right: 28px;\n  z-index: 20;\n  min-width: 200px;\n  max-height: 320px;\n  overflow-y: auto;\n  padding: 6px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-md);\n  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-2));\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n}\n\n.gc-filter-item {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  width: 100%;\n  min-height: 32px;\n  padding: 4px 8px;\n  border: 0;\n  border-radius: var(--gc-radius-sm);\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font-size: 12px;\n  line-height: 18px;\n  cursor: pointer;\n  text-align: left;\n}\n\n.gc-filter-item:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.gc-filter-item[data-active='true'] {\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-filter-item .gc-filter-item-sub {\n  color: var(--dsw-alias-label-caption);\n  font-size: 11px;\n}\n\n/* ── 提示条（只读 / 筛选 / 断线） ───────────────────────────────────── */\n\n.gc-banners {\n  flex: none;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding-top: 8px;\n}\n\n.gc-banner {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 32px;\n  padding: 6px 12px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.gc-banner[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.gc-banner[data-tone='filter'] {\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.gc-banner .gc-banner-action {\n  margin-left: auto;\n  flex: none;\n  font-size: 12px;\n  color: var(--dsw-alias-state-business-primary);\n}\n\n/* ── 消息流 ───────────────────────────────────────────────────────────── */\n\n.gc-scroll {\n  flex: 1 1 auto;\n  min-height: 0;\n  max-height: 100%;\n  overflow-y: auto;\n  overflow-x: hidden;\n  overscroll-behavior: contain;\n  scrollbar-width: thin;\n  scrollbar-color: var(--dsw-alias-scrollbar-bg-l1) transparent;\n}\n\n.gc-scroll::-webkit-scrollbar {\n  width: 8px;\n}\n\n.gc-scroll::-webkit-scrollbar-thumb {\n  background: var(--dsw-alias-scrollbar-bg-l1);\n  border-radius: 4px;\n}\n\n.gc-scroll::-webkit-scrollbar-thumb:hover {\n  background: var(--dsw-alias-scrollbar-bg-hover-l1);\n}\n\n.gc-feed {\n  position: relative;\n  min-height: 100%;\n  padding: 12px 0 16px;\n}\n\n.gc-feed[aria-busy='true'] {\n  opacity: 0.85;\n}\n\n.gc-feed-top {\n  display: flex;\n  justify-content: center;\n  padding: 4px 0 8px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 时间分隔 */\n.gc-time-divider {\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  padding: 12px 0 8px;\n  font-size: 12px;\n  font-weight: 400;\n  line-height: 18px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 行布局 */\n.gc-row {\n  display: flex;\n  align-items: flex-start;\n  gap: var(--gc-indent-gap);\n  padding: 0 0 var(--gc-row-gap);\n}\n\n.gc-row[data-tight='true'] {\n  padding-bottom: var(--gc-row-gap-tight);\n}\n\n.gc-row[data-self='true'] {\n  justify-content: flex-end;\n}\n\n.gc-row-main {\n  min-width: 0;\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  align-items: flex-start;\n}\n\n.gc-row[data-self='true'] .gc-row-main {\n  align-items: flex-end;\n}\n\n/* 头像 */\n.gc-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  font-size: 12px;\n  font-weight: 500;\n  line-height: 1;\n  background: var(--dsw-alias-state-business-tertiary);\n  color: var(--dsw-alias-label-primary);\n  user-select: none;\n  overflow: hidden;\n}\n\n.gc-avatar[data-kind='lead'] {\n  background: var(--dsw-alias-state-business-primary);\n  color: var(--dsw-alias-button-primary-fill);\n}\n\n.gc-avatar[data-kind='user'] {\n  background: var(--dsw-alias-label-dimmed);\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-avatar[data-size='24'] {\n  width: 24px;\n  height: 24px;\n  border-radius: 6px;\n  font-size: 11px;\n}\n\n.gc-avatar[data-size='40'] {\n  width: 40px;\n  height: 40px;\n  border-radius: 10px;\n  font-size: 14px;\n}\n\n/* SenderLine */\n.gc-sender {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 20px;\n  margin-bottom: 4px;\n  max-width: 100%;\n}\n\n.gc-sender-name {\n  font-size: 14px;\n  font-weight: 500;\n  line-height: 20px;\n  color: var(--dsw-alias-label-secondary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  max-width: 320px;\n}\n\n.gc-sender[data-card='true'] .gc-sender-name {\n  font-weight: 600;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-sender-sub {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-sender-role {\n  flex: none;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-sender-status {\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-sender-time {\n  margin-left: auto;\n  padding-left: 8px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n/* 气泡 */\n.gc-bubble-wrap {\n  position: relative;\n  display: flex;\n  flex-direction: column;\n  align-items: flex-start;\n  max-width: min(var(--gc-bubble-max), 100%);\n}\n\n.gc-row[data-self='true'] .gc-bubble-wrap {\n  align-items: flex-end;\n}\n\n/* 发送中：说明行在气泡**外左侧**（UX §7 统一口径，无 spinner） */\n.gc-bubble-wrap[data-sending='true'] {\n  flex-direction: row;\n  align-items: center;\n  justify-content: flex-end;\n  gap: 8px;\n}\n\n.gc-bubble-wrap[data-sending='true'] .gc-caption {\n  margin-top: 0;\n  flex: none;\n  white-space: nowrap;\n}\n\n.gc-bubble {\n  max-width: 100%;\n  border-radius: var(--gc-bubble-radius);\n  padding: var(--gc-bubble-padding);\n  background: var(--dsw-alias-bg-layer-2);\n  color: var(--dsw-alias-label-primary);\n  font-size: var(--gc-font);\n  line-height: var(--gc-line);\n  overflow-wrap: anywhere;\n  word-break: break-word;\n}\n\n.gc-bubble[data-self='true'] {\n  border-radius: var(--gc-user-bubble-radius);\n  padding: var(--gc-user-bubble-padding);\n  background: var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-3));\n}\n\n.gc-bubble[data-state='sending'] {\n  opacity: 0.6;\n}\n\n.gc-bubble[data-state='failed'] {\n  border: 1px solid var(--dsw-alias-state-error-primary);\n}\n\n.gc-bubble p {\n  margin: 0;\n}\n\n.gc-bubble p + p {\n  margin-top: 8px;\n}\n\n.gc-bubble code {\n  font-family: var(--gc-code-font);\n  font-size: 12.5px;\n  padding: 1px 4px;\n  border-radius: var(--gc-radius-xs);\n  background: var(--dsw-alias-markdown-inline-code);\n}\n\n.gc-bubble pre {\n  margin: 8px 0;\n  padding: 10px 12px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-markdown-code-block);\n  overflow-x: auto;\n}\n\n.gc-bubble pre code {\n  background: none;\n  padding: 0;\n}\n\n.gc-bubble a {\n  color: var(--dsw-alias-link, var(--dsw-alias-state-business-primary));\n}\n\n.gc-bubble .gc-mention {\n  color: var(--dsw-alias-state-business-primary);\n  white-space: nowrap;\n}\n\n.gc-bubble .gc-mention[role='button'],\n.gc-bubble .gc-mention[data-clickable='true'] {\n  cursor: pointer;\n}\n\n.gc-bubble .gc-mention[data-clickable='true']:hover {\n  text-decoration: underline;\n}\n\n/* 折叠 */\n.gc-foldable {\n  position: relative;\n  max-height: var(--gc-fold-max);\n  overflow: hidden;\n}\n\n.gc-foldable[data-expanded='true'] {\n  max-height: none;\n  overflow: visible;\n}\n\n.gc-foldable[data-expanded='false']::after {\n  content: '';\n  position: absolute;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  height: var(--gc-fold-mask);\n  pointer-events: none;\n  background: linear-gradient(to bottom, transparent, var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-2)));\n}\n\n.gc-bubble[data-self='true'] .gc-foldable[data-expanded='false']::after {\n  background: linear-gradient(to bottom, transparent, var(--dsw-specific-bubble, var(--dsw-alias-bg-layer-3)));\n}\n\n.gc-fold-meta {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-fold-toggle {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-fold-toggle:hover {\n  text-decoration: underline;\n}\n\n/* 气泡下说明 */\n.gc-caption {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  flex-wrap: wrap;\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-row[data-self='true'] .gc-caption {\n  justify-content: flex-end;\n}\n\n.gc-caption[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.gc-caption .gc-caption-action {\n  font-size: 11px;\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-caption-sep {\n  color: var(--dsw-alias-label-caption);\n}\n\n/* 工具调用折叠行 / 文件行 */\n.gc-tool-line {\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-file-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 8px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n  flex-wrap: wrap;\n}\n\n.gc-file-row .gc-file-name {\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-file-row .gc-file-path {\n  font-size: 11px;\n  color: var(--dsw-alias-label-caption);\n  font-family: var(--gc-code-font);\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* 行内操作（hover / focus 才出现） */\n.gc-row-actions {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-top: 2px;\n  opacity: 0;\n  transition: opacity 150ms ease-out;\n}\n\n.gc-row:hover .gc-row-actions,\n.gc-row:focus-within .gc-row-actions {\n  opacity: 1;\n}\n\n@media (hover: none) {\n  .gc-row-actions {\n    opacity: 1;\n  }\n}\n\n.gc-row-action {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  cursor: pointer;\n}\n\n.gc-row-action:hover {\n  color: var(--dsw-alias-label-secondary);\n}\n\n/* ── 系统提示 / 欢迎提示 ──────────────────────────────────────────────── */\n\n.gc-system-note {\n  display: flex;\n  justify-content: center;\n  padding: 2px 0 12px;\n  font-size: 11.5px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-tertiary);\n  text-align: center;\n}\n\n.gc-welcome-note {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  gap: 2px;\n  padding: 2px 0 12px;\n  font-size: 11.5px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-tertiary);\n  text-align: center;\n}\n\n.gc-welcome-note .gc-welcome-time {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* ── 卡片（M8 入群消息 / M9 任务卡） ─────────────────────────────────── */\n\n.gc-card-row {\n  display: flex;\n  align-items: flex-start;\n  gap: var(--gc-indent-gap);\n  padding: 0 0 var(--gc-row-gap);\n}\n\n.gc-card-row .gc-row-main {\n  min-width: 0;\n  flex: 1 1 auto;\n}\n\n.gc-card {\n  width: 100%;\n  max-width: 520px;\n  padding: 16px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-md);\n  background: var(--dsw-alias-bg-layer-1);\n}\n\n.gc-card[data-compact='true'] {\n  padding: 12px 16px;\n}\n\n.gc-card-title {\n  margin: 0 0 6px;\n  font-size: 13px;\n  font-weight: 500;\n  line-height: 19px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-card-desc {\n  margin: 0 0 8px;\n  font-size: 12px;\n  line-height: 19px;\n  color: var(--dsw-alias-label-secondary);\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-card-desc[data-empty='true'] {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-card-fields {\n  display: flex;\n  flex-direction: column;\n  gap: 0;\n  margin: 2px 0 0;\n}\n\n.gc-field-row {\n  display: flex;\n  align-items: flex-start;\n  gap: 0;\n  min-height: 22px;\n  font-size: 12px;\n  line-height: 22px;\n}\n\n.gc-field-label {\n  flex: none;\n  width: 68px;\n  font-size: 11px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-field-value {\n  min-width: 0;\n  flex: 1 1 auto;\n  font-size: 12px;\n  line-height: 22px;\n  color: var(--dsw-alias-label-secondary);\n  overflow-wrap: anywhere;\n}\n\n.gc-field-value[data-mono='true'] {\n  font-family: var(--gc-code-font);\n  font-size: 11px;\n}\n\n.gc-card-task-block {\n  margin-top: 10px;\n}\n\n.gc-card-task-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-bottom: 2px;\n}\n\n.gc-card-task-label {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-card-task-body {\n  margin: 0;\n  font-size: 11px;\n  line-height: 17px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n\n.gc-card-task-body[data-clamped='true'] {\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-card-actions {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n  margin-top: 12px;\n}\n\n.gc-card-action {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  font-size: 12px;\n  line-height: 18px;\n  font-weight: 500;\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-card-action[data-tone='secondary'] {\n  font-weight: 400;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-card-action[data-state='disabled'],\n.gc-card-action:disabled {\n  color: var(--dsw-alias-label-dimmed);\n  cursor: default;\n}\n\n.gc-card-action:hover:not(:disabled) {\n  text-decoration: underline;\n}\n\n/* 任务卡 */\n.gc-task-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  margin-bottom: 8px;\n}\n\n.gc-task-action {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-task-id {\n  margin-left: auto;\n  font-family: var(--gc-code-font);\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n}\n\n.gc-pill {\n  display: inline-flex;\n  align-items: center;\n  height: 20px;\n  padding: 0 8px;\n  border-radius: 999px;\n  font-size: 11px;\n  line-height: 20px;\n  white-space: nowrap;\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-pill[data-status='in_progress'] {\n  background: var(--dsw-alias-state-business-tertiary);\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-pill[data-status='completed'] {\n  background: var(--dsw-alias-state-success-tertiary);\n  color: var(--dsw-alias-state-success-primary);\n}\n\n.gc-pill[data-status='deleted'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-task-title {\n  margin: 0 0 4px;\n  font-size: 14px;\n  font-weight: 600;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-task-desc {\n  margin: 0 0 6px;\n  font-size: 11.5px;\n  line-height: 17px;\n  color: var(--dsw-alias-label-tertiary);\n  white-space: pre-wrap;\n  overflow-wrap: anywhere;\n}\n\n.gc-task-desc[data-clamped='true'] {\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-task-fields {\n  display: flex;\n  flex-direction: column;\n}\n\n.gc-task-field {\n  display: flex;\n  align-items: flex-start;\n  gap: 0;\n  min-height: 20px;\n  font-size: 11.5px;\n  line-height: 20px;\n}\n\n.gc-task-field-label {\n  flex: none;\n  width: 68px;\n  font-size: 11px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-task-field-value {\n  min-width: 0;\n  flex: 1 1 auto;\n  color: var(--dsw-alias-label-secondary);\n  overflow-wrap: anywhere;\n}\n\n.gc-task-actions {\n  display: flex;\n  align-items: center;\n  gap: 16px;\n  margin-top: 10px;\n}\n\n/* ── 空态 / 骨架 / 错误态 ─────────────────────────────────────────────── */\n\n.gc-center-state {\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  padding: 64px 24px;\n  text-align: center;\n}\n\n.gc-empty-icon {\n  width: 48px;\n  height: 48px;\n  border-radius: 50%;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-tertiary);\n  font-size: 20px;\n  line-height: 1;\n  margin-bottom: 4px;\n}\n\n.gc-empty-title {\n  font-size: 14px;\n  font-weight: 600;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-empty-desc {\n  max-width: 460px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-empty-action {\n  margin-top: 4px;\n  appearance: none;\n  border: 0;\n  padding: 4px 10px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 11px;\n  line-height: 16px;\n  cursor: pointer;\n}\n\n.gc-skeleton {\n  display: flex;\n  align-items: flex-start;\n  gap: 8px;\n  padding: 8px 0;\n}\n\n.gc-skeleton-body {\n  flex: 1 1 auto;\n  display: flex;\n  flex-direction: column;\n  gap: 6px;\n  padding-top: 2px;\n}\n\n.gc-skeleton-avatar {\n  flex: none;\n  width: var(--gc-avatar);\n  height: var(--gc-avatar);\n  border-radius: var(--gc-avatar-radius);\n  background: var(--dsw-alias-bg-skeleton);\n}\n\n.gc-skeleton-bar {\n  height: 10px;\n  border-radius: 4px;\n  background: var(--dsw-alias-bg-skeleton);\n}\n\n@keyframes gc-skeleton-pulse {\n  0% { opacity: 0.65; }\n  50% { opacity: 1; }\n  100% { opacity: 0.65; }\n}\n\n.gc-skeleton-avatar,\n.gc-skeleton-bar {\n  animation: gc-skeleton-pulse 1.4s ease-in-out infinite;\n}\n\n.gc-error-card {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  justify-content: center;\n  flex-wrap: wrap;\n  padding: 10px 12px;\n  margin: 32px 0;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-layer-1);\n  color: var(--dsw-alias-label-secondary);\n  font-size: 12px;\n  line-height: 18px;\n}\n\n.gc-error-card[data-tone='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n/* ── 未读浮标 ─────────────────────────────────────────────────────────── */\n\n.gc-unread-pill {\n  position: absolute;\n  right: 28px;\n  bottom: 116px;\n  z-index: 15;\n  display: inline-flex;\n  align-items: center;\n  gap: 6px;\n  height: 28px;\n  padding: 0 12px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 16px;\n  background: var(--dsw-alias-bg-layer-2);\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n  color: var(--dsw-alias-state-business-primary);\n  font-size: 12px;\n  line-height: 18px;\n  cursor: pointer;\n  animation: gc-pill-in 180ms ease-out;\n}\n\n.gc-unread-pill .gc-dot {\n  background: var(--dsw-alias-state-business-primary);\n}\n\n@keyframes gc-pill-in {\n  from { opacity: 0; transform: translateY(4px); }\n  to { opacity: 1; transform: none; }\n}\n\n/* ── 输入区 ───────────────────────────────────────────────────────────── */\n\n.gc-composer-area {\n  flex: 0 0 auto;\n  padding: 8px 0 16px;\n}\n\n.gc-composer {\n  position: relative;\n  min-height: 96px;\n  width: calc(var(--gc-content-w) + 32px);\n  max-width: calc(100% - (var(--gc-col-pad) * 2));\n  margin: 0 auto;\n  padding: 12px 16px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-panel);\n  background: var(--dsw-specific-input-major, var(--dsw-alias-bg-layer-1));\n  transition: border-color 150ms ease-out;\n}\n\n.gc-composer[data-focused='true'] {\n  border-color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-composer[data-readonly='true'] {\n  opacity: 0.4;\n  pointer-events: none;\n}\n\n.gc-target-row {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 20px;\n  margin-bottom: 6px;\n  flex-wrap: wrap;\n}\n\n.gc-target-label {\n  flex: none;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-chip {\n  display: inline-flex;\n  align-items: center;\n  gap: 4px;\n  height: 20px;\n  padding: 0 8px;\n  border: 0;\n  border-radius: 6px;\n  background: var(--dsw-alias-bg-layer-3);\n  color: var(--dsw-alias-label-primary);\n  font-size: 11px;\n  line-height: 20px;\n  white-space: nowrap;\n  cursor: default;\n}\n\n.gc-chip[data-tone='mention'] {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 18%, transparent);\n  color: var(--dsw-alias-state-business-primary);\n  cursor: pointer;\n}\n\n.gc-chip[data-tone='mention']:hover {\n  background: color-mix(in srgb, var(--dsw-alias-state-business-primary) 26%, transparent);\n}\n\n.gc-target-hint {\n  min-width: 0;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-input-row {\n  display: flex;\n  align-items: flex-end;\n  gap: 12px;\n}\n\n.gc-textarea {\n  flex: 1 1 auto;\n  min-height: 32px;\n  max-height: 336px;\n  padding: 4px 0;\n  border: 0;\n  outline: none;\n  resize: none;\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 14px;\n  line-height: 22px;\n  overflow-y: auto;\n}\n\n.gc-textarea::placeholder {\n  color: var(--dsw-alias-label-tertiary);\n}\n\n.gc-send-btn {\n  flex: none;\n  width: 34px;\n  height: 34px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border: 0;\n  border-radius: 50%;\n  padding: 0;\n  background: var(--dsw-alias-state-business-primary);\n  color: var(--dsw-alias-bg-base);\n  cursor: pointer;\n  transition: opacity 150ms ease-out;\n}\n\n.gc-send-btn:disabled {\n  opacity: 0.4;\n  cursor: default;\n}\n\n/* @ 补全浮层 */\n.gc-mention-popup {\n  position: absolute;\n  left: 16px;\n  bottom: calc(100% + 8px);\n  z-index: 30;\n  width: 380px;\n  max-width: calc(100% - 32px);\n  max-height: 340px;\n  display: flex;\n  flex-direction: column;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 14px;\n  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-2));\n  box-shadow: var(--dsw-shadow-lv2, 0 12px 28px rgba(0, 0, 0, 0.35));\n  overflow: hidden;\n}\n\n.gc-mention-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 8px 12px 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-mention-head .gc-spacer {\n  flex: 1;\n}\n\n.gc-mention-list {\n  margin: 0;\n  padding: 4px;\n  list-style: none;\n  overflow-y: auto;\n  scrollbar-width: thin;\n}\n\n.gc-mention-option {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  min-height: 46px;\n  padding: 6px 8px;\n  border-radius: var(--gc-radius-sm);\n  cursor: pointer;\n  position: relative;\n}\n\n.gc-mention-option[aria-selected='true'] {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n\n.gc-mention-option[aria-selected='true']::before {\n  content: '';\n  position: absolute;\n  left: 0;\n  top: 6px;\n  bottom: 6px;\n  width: 2px;\n  border-radius: 1px;\n  background: var(--dsw-alias-state-business-primary);\n}\n\n.gc-mention-option-main {\n  min-width: 0;\n  display: flex;\n  flex-direction: column;\n}\n\n.gc-mention-option-name {\n  font-size: 13px;\n  font-weight: 500;\n  line-height: 18px;\n  color: var(--dsw-alias-label-primary);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-mention-option-sub {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.gc-mention-empty {\n  padding: 12px;\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-mention-foot {\n  padding: 6px 12px 8px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n/* ── Toast ────────────────────────────────────────────────────────────── */\n\n.gc-toast {\n  position: absolute;\n  left: 50%;\n  bottom: 24px;\n  transform: translateX(-50%);\n  z-index: 40;\n  max-width: 80%;\n  padding: 8px 14px;\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-toast-bg);\n  color: var(--dsw-alias-toast-label);\n  font-size: 12px;\n  line-height: 18px;\n  box-shadow: var(--dsw-shadow-lv2, 0 8px 24px rgba(0, 0, 0, 0.32));\n}\n\n/* ── 响应式（容器查询） ───────────────────────────────────────────────── */\n\n@container (max-width: 1079px) {\n  .gc-shell {\n    --gc-content-w: 856px;\n  }\n}\n\n@container (max-width: 899px) {\n  .gc-shell {\n    --gc-content-w: 720px;\n    --gc-col-pad: 24px;\n    --gc-bubble-max: 70%;\n  }\n\n  .gc-header {\n    padding: 0 16px;\n    gap: 8px;\n  }\n\n  .gc-header-team,\n  .gc-header-title {\n    display: none;\n  }\n\n  .gc-header-divider {\n    display: none;\n  }\n\n  .gc-banner {\n    min-height: 32px;\n  }\n\n  .gc-composer {\n    min-height: 88px;\n    width: calc(var(--gc-content-w) + 0px);\n    max-width: calc(100% - 32px);\n    padding: 10px 14px;\n  }\n\n  .gc-unread-pill {\n    right: 16px;\n    bottom: 104px;\n  }\n\n  .gc-filter-menu {\n    right: 16px;\n  }\n\n  .gc-row,\n  .gc-card-row {\n    gap: 8px;\n  }\n\n  .gc-sender-name {\n    max-width: 180px;\n  }\n\n  .gc-mention-popup {\n    left: 8px;\n  }\n}\n\n@container (max-width: 620px) {\n  .gc-shell {\n    --gc-content-w: 100%;\n    --gc-col-pad: 16px;\n  }\n\n  .gc-header {\n    height: 52px;\n    min-height: 52px;\n    padding: 0 12px;\n  }\n\n  .gc-composer {\n    max-width: calc(100% - 24px);\n  }\n\n  .gc-card {\n    padding: 12px;\n  }\n\n  .gc-field-label,\n  .gc-task-field-label {\n    width: 56px;\n  }\n}\n\n/* ── 动效降级 ─────────────────────────────────────────────────────────── */\n\n@media (prefers-reduced-motion: reduce) {\n  .gc-root *,\n  .gc-root *::before,\n  .gc-root *::after {\n    animation: none !important;\n    transition: none !important;\n  }\n}\n\n\n/* ════════════════════════════════════════════════════════════════════════\n * v1.7（Figma v4.1 / 架构 §6.12–§6.18）\n * ════════════════════════════════════════════════════════════════════════ */\n\n/* ── 隐藏宿主 composer（仅群聊视图激活期，body 标记由 entry/view 维护） ── */\nbody.gc-view-group-chat [data-conversation-region='composer'],\nbody.gc-view-group-chat [data-composer-seat] {\n  display: none !important;\n}\n\n/* ── Markdown 受控渲染（§6.12，禁止 innerHTML） ─────────────────────── */\n.gc-md {\n  font-size: var(--gc-font);\n  line-height: var(--gc-line);\n  color: var(--dsw-alias-label-primary);\n  overflow-wrap: anywhere;\n  word-break: break-word;\n}\n\n.gc-md p.gc-md-p {\n  margin: 0;\n}\n\n.gc-md p.gc-md-p + p.gc-md-p {\n  margin-top: 8px;\n}\n\n.gc-md strong.gc-md-strong {\n  font-weight: 600;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-md em.gc-md-em {\n  font-style: italic;\n}\n\n.gc-md code.gc-md-code {\n  font-family: var(--gc-code-font);\n  font-size: 13px;\n  color: var(--dsw-alias-state-business-primary);\n  background: none;\n  padding: 0 2px;\n  border-radius: var(--gc-radius-xs);\n}\n\n.gc-md pre.gc-md-pre {\n  position: relative;\n  margin: 8px 0;\n  padding: 10px 12px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-base);\n  overflow-x: auto;\n  scrollbar-width: thin;\n}\n\n.gc-md pre.gc-md-pre code {\n  font-family: var(--gc-code-font);\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-primary);\n  background: none;\n  padding: 0;\n  white-space: pre;\n}\n\n.gc-md pre.gc-md-pre[data-lang]::before {\n  content: attr(data-lang);\n  position: absolute;\n  top: 4px;\n  right: 8px;\n  font-size: 10.5px;\n  line-height: 14px;\n  color: var(--dsw-alias-label-caption);\n  font-family: var(--gc-code-font);\n  pointer-events: none;\n}\n\n.gc-md ul.gc-md-list,\n.gc-md ol.gc-md-list {\n  margin: 6px 0;\n  padding-left: 20px;\n}\n\n.gc-md li.gc-md-li {\n  line-height: 22px;\n}\n\n.gc-md a.gc-md-link {\n  color: var(--dsw-alias-state-business-primary);\n  text-decoration: none;\n}\n\n.gc-md a.gc-md-link:hover {\n  text-decoration: underline;\n}\n\n.gc-md[data-md='plain'] {\n  white-space: pre-wrap;\n}\n\n.gc-md[data-md-truncated='true']::after {\n  content: '…';\n  color: var(--dsw-alias-label-caption);\n}\n\n/* inline @ chip（v1.7：彩底白字） */\n.gc-bubble .gc-mention,\n.gc-md .gc-mention {\n  color: var(--dsw-alias-button-primary-fill);\n  background: var(--dsw-alias-state-business-primary);\n  border-radius: var(--gc-radius-xs);\n  padding: 0 4px;\n}\n\n.gc-bubble .gc-mention[data-clickable='true']:hover {\n  background: var(--dsw-alias-state-business-tertiary);\n}\n\n/* ── 消息操作图标（§6.16：图标 + aria-label，无长文字） ─────────────── */\n.gc-row-actions {\n  gap: 4px;\n}\n\n.gc-icon-action {\n  appearance: none;\n  border: 0;\n  background: none;\n  padding: 0;\n  width: 24px;\n  height: 24px;\n  display: inline-flex;\n  align-items: center;\n  justify-content: center;\n  border-radius: var(--gc-radius-xs);\n  color: var(--dsw-alias-label-caption);\n  cursor: pointer;\n}\n\n.gc-icon-action:hover {\n  background: var(--dsw-alias-interactive-bg-hover);\n  color: var(--dsw-alias-label-primary);\n}\n\n/* ── 输入器 v1.7：chips 在输入框下方、hint 唯一提示 ─────────────────── */\n.gc-composer {\n  display: flex;\n  flex-direction: column;\n}\n\n.gc-input-row {\n  order: 1;\n}\n\n.gc-target-row {\n  order: 2;\n  margin: 8px 0 0;\n  gap: 6px;\n}\n\n.gc-composer-hint {\n  order: 3;\n  margin-top: 4px;\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-chip[data-tone='target'] {\n  background: var(--dsw-alias-state-business-primary);\n  color: var(--dsw-alias-button-primary-fill);\n}\n\n.gc-chip[data-tone='mention'] {\n  background: var(--dsw-alias-state-business-tertiary);\n  color: var(--dsw-alias-button-primary-fill);\n}\n\n.gc-chip[data-tone='mention']:hover {\n  filter: brightness(1.12);\n}\n\n.gc-chip .gc-chip-x {\n  font-size: 10px;\n  opacity: 0.75;\n  margin-left: 2px;\n}\n\n/* 补全浮层：实底不透明（禁止 alpha / 毛玻璃） */\n.gc-mention-popup {\n  background: var(--dsw-specific-menu, var(--dsw-alias-bg-layer-2));\n  backdrop-filter: none;\n  -webkit-backdrop-filter: none;\n  opacity: 1;\n}\n\n.gc-mention-option-sub {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n  white-space: normal;\n  overflow: hidden;\n  display: -webkit-box;\n  -webkit-line-clamp: 1;\n  -webkit-box-orient: vertical;\n}\n\n/* ── 频道头成员条（§6.15.1，24px 头像、working/waiting、+N） ────────── */\n.gc-member-strip {\n  display: flex;\n  align-items: center;\n  gap: 4px;\n  row-gap: 4px;\n  margin-left: 8px;\n  min-width: 0;\n  flex: 1 1 auto;\n  /* M1：换行优先（行高 26+4），头部自适应；仍超宽才横向滚动 */\n  flex-wrap: wrap;\n  max-height: 56px;\n  overflow-y: hidden;\n  overflow-x: auto;\n  scrollbar-width: none;\n  -webkit-mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, 1) 16px, rgba(0, 0, 0, 1) calc(100% - 16px), transparent 100%);\n  mask-image: linear-gradient(to right, transparent 0, rgba(0, 0, 0, 1) 16px, rgba(0, 0, 0, 1) calc(100% - 16px), transparent 100%);\n}\n\n.gc-member-strip .gc-avatar {\n  width: 26px;\n  height: 26px;\n  border-radius: 7px;\n  font-size: 11px;\n}\n\n.gc-member-strip::-webkit-scrollbar {\n  display: none;\n}\n\n.gc-member-strip-item {\n  position: relative;\n  flex: none;\n  appearance: none;\n  border: 0;\n  padding: 0;\n  background: none;\n  cursor: pointer;\n  border-radius: 6px;\n  line-height: 0;\n}\n\n.gc-member-strip-item:focus-visible {\n  outline: 2px solid var(--dsw-alias-state-business-primary);\n  outline-offset: 2px;\n}\n\n.gc-member-status-dot {\n  position: absolute;\n  right: -1px;\n  bottom: -1px;\n  width: 7px;\n  height: 7px;\n  border-radius: 50%;\n  border: 1px solid var(--dsw-alias-bg-base);\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-member-status-dot[data-state='working'] {\n  background: var(--dsw-alias-state-success-primary);\n}\n\n\n/* ── 轮次轨迹侧栏（§6.15.2，右侧 380px 抽屉） ───────────────────────── */\n.gc-trajectory-overlay {\n  position: absolute;\n  inset: 0;\n  z-index: 50;\n  background: rgba(0, 0, 0, 0.35);\n}\n\n.gc-trajectory-panel {\n  position: absolute;\n  top: 0;\n  right: 0;\n  bottom: 0;\n  z-index: 51;\n  width: 380px;\n  max-width: 100%;\n  display: flex;\n  flex-direction: column;\n  background: var(--dsw-alias-bg-layer-1);\n  border-left: 1px solid var(--dsw-alias-border-l2);\n  box-shadow: var(--dsw-shadow-lv2, 0 12px 28px rgba(0, 0, 0, 0.35));\n}\n\n.gc-trajectory-head {\n  flex: none;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  padding: 12px 14px;\n  border-bottom: 1px solid var(--dsw-alias-border-l1);\n}\n\n.gc-trajectory-title {\n  font-size: 14px;\n  font-weight: 600;\n  line-height: 20px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-trajectory-agent {\n  font-size: 12px;\n  line-height: 18px;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-trajectory-meta {\n  font-size: 11px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-trajectory-list {\n  flex: 1 1 auto;\n  min-height: 0;\n  overflow-y: auto;\n  padding: 8px 12px 16px;\n  scrollbar-width: thin;\n}\n\n.gc-trajectory-turn {\n  padding: 10px 12px;\n  margin-bottom: 8px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: var(--gc-radius-sm);\n  background: var(--dsw-alias-bg-layer-2);\n}\n\n.gc-trajectory-turn-head {\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  font-size: 10.5px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-trajectory-turn-status {\n  margin-left: auto;\n  font-size: 10.5px;\n}\n\n.gc-trajectory-turn-status[data-status='running'] {\n  color: var(--dsw-alias-state-business-primary);\n}\n\n.gc-trajectory-turn-status[data-status='error'] {\n  color: var(--dsw-alias-state-error-primary);\n}\n\n.gc-trajectory-turn-summary {\n  margin-top: 4px;\n  font-size: 11.5px;\n  line-height: 16px;\n  color: var(--dsw-alias-label-secondary);\n  display: -webkit-box;\n  -webkit-line-clamp: 2;\n  -webkit-box-orient: vertical;\n  overflow: hidden;\n}\n\n.gc-trajectory-turn-tools {\n  margin-top: 4px;\n  font-size: 10.5px;\n  line-height: 14px;\n  color: var(--dsw-alias-label-caption);\n}\n\n.gc-trajectory-foot {\n  flex: none;\n  padding: 8px 12px 12px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  text-align: center;\n}\n\n/* M1：成员条头像响应式 26/24/22，768 全显 */\n@container (max-width: 1079px) {\n  .gc-member-strip .gc-avatar {\n    width: 24px;\n    height: 24px;\n    border-radius: 6px;\n  }\n}\n\n@container (max-width: 899px) {\n  .gc-member-strip {\n    margin-left: 4px;\n    gap: 3px;\n  }\n\n  .gc-member-strip .gc-avatar {\n    width: 22px;\n    height: 22px;\n    border-radius: 6px;\n    font-size: 10px;\n  }\n}\n\n@container (max-width: 767px) {\n  .gc-trajectory-panel {\n    width: 100%;\n    border-left: 0;\n  }\n}\n\n/* ── 任务卡 v5（§6.18：左状态条 + 任务图标 + 负责人头像） ────────────── */\n.gc-card[data-card='task'] {\n  position: relative;\n  padding-left: 19px;\n}\n\n.gc-card[data-card='task']::before {\n  content: '';\n  position: absolute;\n  left: 0;\n  top: 12px;\n  bottom: 12px;\n  width: 3px;\n  border-radius: 2px;\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-card[data-card='task'][data-card-accent='pending']::before {\n  background: var(--dsw-alias-label-dimmed);\n}\n\n.gc-card[data-card='task'][data-card-accent='in_progress']::before {\n  background: var(--dsw-alias-state-business-primary);\n}\n\n.gc-card[data-card='task'][data-card-accent='completed']::before {\n  background: var(--dsw-alias-state-success-primary);\n}\n\n.gc-card[data-card='task'][data-card-accent='deleted']::before {\n  background: var(--dsw-alias-label-caption);\n}\n\n.gc-task-head {\n  gap: 6px;\n}\n\n.gc-task-icon {\n  flex: none;\n  color: var(--dsw-alias-label-secondary);\n  display: inline-flex;\n}\n\n.gc-task-action {\n  font-size: 13px;\n  font-weight: 500;\n  line-height: 18px;\n  color: var(--dsw-alias-label-primary);\n}\n\n.gc-task-owner-row {\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  min-height: 22px;\n  font-size: 11.5px;\n  line-height: 20px;\n  color: var(--dsw-alias-label-secondary);\n}\n\n.gc-task-owner-avatar {\n  flex: none;\n}\n\n.gc-task-owner-label {\n  font-size: 11px;\n  color: var(--dsw-alias-label-caption);\n}\n\n\n/* M9：负责人空回退用中性占位（不显示「?」文本） */\n.gc-avatar-placeholder {\n  background: var(--dsw-alias-interactive-bg-hover);\n  border: 1px dashed var(--dsw-alias-border-l2);\n  color: transparent;\n}\n\n/* M3：不安全链接降级为纯文本 */\n.gc-md-link-plain {\n  color: var(--dsw-alias-label-primary);\n}\n";
 
 /* ── src/adapters/client-session-source.js ─────────────────────────────────────────── */
 __def("src/adapters/client-session-source.js", function (__exports, __req) {
@@ -387,6 +391,53 @@ class ClientSessionSource {
   /** UI 便捷：最近一次计算的成员目录 */
   getMembers() {
     return this.members;
+  }
+
+  /**
+   * UI 便捷（只读）：某会话已 retain 的事件窗口内**原始事件**（F3 轨迹真实轮次用）。
+   * 与 feed 同一份窗口，不新增 retain；已关闭/未知会话返回 []，不抛错。
+   * @param {string} [sessionId] 默认频道根会话
+   * @returns {any[]}
+   */
+  getEvents(sessionId = this.channelId) {
+    const sid = String(sessionId ?? this.channelId ?? '');
+    if (!sid) return [];
+    try {
+      const stored = this.store.get(sid);
+      if (stored && Array.isArray(stored.events)) return stored.events.slice();
+      const win = this._windowOf(sid);
+      return normalizeEntries(win.entries).events;
+    } catch {
+      return [];
+    }
+  }
+
+  /**
+   * getEvents 的别名（frontend 探测 `getEvents/getMemberEvents` 任一即可）
+   * @param {string} [sessionId]
+   * @returns {any[]}
+   */
+  getMemberEvents(sessionId = this.channelId) {
+    return this.getEvents(sessionId);
+  }
+
+  /**
+   * UI 便捷（只读）：窗口元信息 + 原始事件（轨迹侧栏可据此缓存/分页）
+   * @param {string} [sessionId]
+   * @returns {{sessionId: string, events: any[], entryCount: number, revision: number, hasMore: boolean}}
+   */
+  getWindow(sessionId = this.channelId) {
+    const sid = String(sessionId ?? this.channelId ?? '');
+    if (!sid) return { sessionId: '', events: [], entryCount: 0, revision: 0, hasMore: false };
+    const stored = this.store.get(sid);
+    const win = this._windowOf(sid);
+    return {
+      sessionId: sid,
+      events: this.getEvents(sid),
+      entryCount: win.entries.length,
+      revision: Number(stored?.revision ?? win.revision ?? 0),
+      hasMore: win.hasMore === true,
+    };
   }
 
   // ── 内部 ─────────────────────────────────────────────────────
@@ -1041,6 +1092,8 @@ const LIMITS = Object.freeze({
   maxMembers: 64,
   /** 后代深度上限（lead=0） */
   maxDepth: 3,
+  /** 作用域回溯：parentSession 链最大跳数（F27/§4.8.2） */
+  maxParentHops: 4,
   /** 每会话预取事件上限（防单个话多成员挤出他人，§4.5） */
   perSessionPrefetch: 400,
   /** 首屏消息条数 */
@@ -1071,8 +1124,16 @@ const LIMITS = Object.freeze({
   readonlyIdleMs: 90000,
   /** 弱键配对时间窗（ms，§4.3.3 ③） */
   weakKeyTimeWindowMs: 5000,
-  /** 同发刷新后丢 batchId 时的前缀归并时间窗（ms，§4.4） */
+  /** 同发刷新后丢 batchId 时的前缀归并时间窗（ms，§4.4；M6 收紧到 5s） */
   fanoutTimeWindowMs: 5 * 60 * 1000,
+  /** 无 batchId 时仅允许「同批副本」归并的时间窗（M6：两次同文群发不应误合并） */
+  fanoutSignatureWindowMs: 5000,
+  /** localBatches TTL（§5.3.1） */
+  localBatchTtlMs: 5 * 60 * 1000,
+  /** 无 rpcId 时 localBatches 弱匹配时间窗（H1：±2min） */
+  localBatchFallbackWindowMs: 2 * 60 * 1000,
+  /** 折叠软换行估算：每行字符数（M1；CJK 近似，窄屏可 UI 传更小值） */
+  foldCharsPerLine: 40,
   /** 折叠：行数阈值（§6.6） */
   foldMaxLines: 8,
   /** 折叠：字符阈值（§6.6） */
@@ -1239,6 +1300,7 @@ const CONTEXT_SOURCE_KINDS = Object.freeze([
   'tool-jobs',
   'skill-invocation',
   'user-approval',
+  'subagent-settled',
   'system-prompt',
   'goal',
   'schedule',
@@ -1539,7 +1601,8 @@ function aggregateDeliveryState(deliveries) {
  */
 function mergeFanout(messages, opts = {}) {
   const leadSessionId = String(opts.leadSessionId ?? '');
-  const windowMs = opts.weakWindowMs ?? LIMITS.fanoutTimeWindowMs;
+  // M6：无 clientBatchId 的「前缀签名」只允许同一批次的近似同时副本（默认 5s），避免两次同文群发被合并
+  const signatureWindowMs = opts.signatureWindowMs ?? LIMITS.fanoutSignatureWindowMs;
   const list = Array.isArray(messages) ? messages : [];
 
   /** @type {Array<{kind: 'echo'|'copy', msg: ChannelMessage, index: number, batchId?: string}>} */
@@ -1548,7 +1611,9 @@ function mergeFanout(messages, opts = {}) {
     const m = list[i];
     if (!m || m.kind !== 'user') continue;
     const isEcho = m.meta?.localEcho === true || String(m.id).startsWith('local:');
-    const isCopy = m.meta?.fanout === true;
+    // F30/§5.3.1：权威消息若经 localBatches 拿到 clientBatchId，也要与 echo 归并（替换本地气泡）
+    const hasBatchId = typeof m.clientBatchId === 'string' && m.clientBatchId !== '';
+    const isCopy = m.meta?.fanout === true || (!isEcho && hasBatchId);
     if (!isEcho && !isCopy) continue;
     const batchId = typeof m.clientBatchId === 'string' ? m.clientBatchId : typeof m.meta?.clientBatchId === 'string' ? m.meta.clientBatchId : undefined;
     candidates.push({ kind: isEcho ? 'echo' : 'copy', msg: m, index: i, batchId });
@@ -1559,7 +1624,7 @@ function mergeFanout(messages, opts = {}) {
   for (const c of candidates) {
     const batchId =
       c.batchId ??
-      `sig:${(c.msg.targets ?? []).join(',')}|${normalizeText(c.msg.text)}|${Math.floor(Number(c.msg.time ?? 0) / windowMs)}`;
+      `sig:${(c.msg.targets ?? []).join(',')}|${normalizeText(c.msg.text)}|${Math.floor(Number(c.msg.time ?? 0) / signatureWindowMs)}`;
     if (!groups.has(batchId)) groups.set(batchId, { echoes: [], copies: [] });
     const g = groups.get(batchId);
     if (c.kind === 'echo') g.echoes.push(c.msg);
@@ -1574,6 +1639,19 @@ function mergeFanout(messages, opts = {}) {
 
   for (const [batchId, g] of groups) {
     if (g.copies.length === 0 && g.echoes.length === 0) continue;
+    if (batchId.startsWith('sig:')) {
+      // M6：签名组必须跨 ≥2 个会话（同一批 fan-out 副本），否则不合并；同时不允许同一会话重复副本。
+      // 单副本仍按「临时气泡」规范化（lead 副本未到时不闪断），只是不做跨副本合并。
+      const counts = new Map();
+      for (const m of g.copies) counts.set(m.sessionId, (counts.get(m.sessionId) ?? 0) + 1);
+      const onePerSession = [...counts.values()].every((n) => n === 1);
+      const leadCopies = leadSessionId ? g.copies.filter((m) => m.sessionId === leadSessionId).length : 1;
+      // R-M6：同一批副本必须「每会话 ≤1 份 + 恰 1 份 lead 副本」才归并；否则保留临时气泡，等 lead 到达后再合并
+      if (counts.size < 2 || !onePerSession || leadCopies !== 1) {
+        for (const c of g.copies) normalizeSingleCopy(c, leadSessionId, batchId);
+        continue;
+      }
+    }
     if (g.copies.length <= 1 && g.echoes.length === 0) {
       const only = g.copies[0];
       if (only) normalizeSingleCopy(only, leadSessionId, batchId);
@@ -1732,10 +1810,141 @@ function filterBanner(selectedName, visible) {
 
 Object.assign(__exports, { "matchesFilter": matchesFilter, "filterMessages": filterMessages, "filterBanner": filterBanner });
 });
+/* ── src/core/fold.js ─────────────────────────────────────────── */
+__def("src/core/fold.js", function (__exports, __req) {
+// @ts-check
+/**
+ * 群聊数据内核 · 50 行折叠测量（B1 / F29 / 架构 §6.17）
+ *
+ * 零依赖、无 DOM：按 **渲染后行数** 近似（段落换行 / 列表项 / 代码块内容行），
+ * 供 UI 决定是否挂「展开全部（共 N 行）」。
+ * 真实高度由 UI 用 useLayoutEffect 测量；本模块给出与 CSS 行高一致的近似口径：
+ *   lineCount = Math.ceil(contentHeight / 22)（含代码块行，近似）。
+ *
+ * 不折叠（system 提示/欢迎/同发说明/卡片）由**调用方**决定，不在此处判断。
+ */
+
+const { LIMITS } = __req("src/core/constants.js");
+const { parseMarkdown } = __req("src/core/markdown.js");
+
+/** 默认折叠阈值（渲染行数） */
+const FOLD_MAX_LINES = 50;
+/** 正文行高（px），与架构 §6.17 的 50×22=1100 一致 */
+const FOLD_LINE_HEIGHT = 22;
+/**
+ * 软换行估算：每行字符数（M1）。内核无 DOM，用字符数近似宽度：
+ *  - CJK 与拉丁统一按 1 字符计，默认 40 字符/行；
+ *  - UI 已知实际宽度/字号时可传更精确的 `charsPerLine`。
+ */
+const FOLD_CHARS_PER_LINE = LIMITS.foldCharsPerLine;
+
+/**
+ * 行内节点字符长度（strong/em/link 递归取 children；code/text 取 value）
+ * @param {any} node
+ * @returns {number}
+ */
+function inlineLength(node) {
+  if (!node) return 0;
+  if (node.type === 'text' || node.type === 'code') return String(node.value ?? '').length;
+  if (node.type === 'strong' || node.type === 'em' || node.type === 'link') {
+    return (Array.isArray(node.children) ? node.children : []).reduce((sum, child) => sum + inlineLength(child), 0);
+  }
+  return 0;
+}
+
+/**
+ * AST → 渲染行数（近似，M1：长段落按软换行计入）
+ * @param {{type: string, [k: string]: any}|null|undefined} ast
+ * @param {{charsPerLine?: number}} [options]
+ * @returns {number}
+ */
+function renderedLineCount(ast, options = {}) {
+  if (!ast || typeof ast !== 'object') return 0;
+  const charsPerLine =
+    Number.isFinite(options.charsPerLine) && options.charsPerLine > 0
+      ? Math.max(1, Math.floor(options.charsPerLine))
+      : FOLD_CHARS_PER_LINE;
+  if (ast.type === 'document') {
+    return (Array.isArray(ast.children) ? ast.children : []).reduce(
+      (sum, child) => sum + renderedLineCount(child, { charsPerLine }),
+      0,
+    );
+  }
+  if (ast.type === 'paragraph') {
+    // 先按显式 break 分视觉行，再对每行做软换行估算
+    /** @type {number[]} */
+    const lengths = [0];
+    for (const node of Array.isArray(ast.children) ? ast.children : []) {
+      if (node && node.type === 'break') lengths.push(0);
+      else lengths[lengths.length - 1] += inlineLength(node);
+    }
+    return lengths.reduce((sum, len) => sum + Math.max(1, Math.ceil(len / charsPerLine)), 0);
+  }
+  if (ast.type === 'code_block') {
+    const value = String(ast.value ?? '');
+    return value === '' ? 1 : value.split('\n').length;
+  }
+  if (ast.type === 'list') {
+    const items = Array.isArray(ast.items) ? ast.items : [];
+    if (items.length === 0) return 0;
+    return items.reduce((sum, item) => sum + Math.max(1, renderedLineCount(item, { charsPerLine })), 0);
+  }
+  if (ast.type === 'list_item') {
+    const children = Array.isArray(ast.children) ? ast.children : [];
+    const n = children.reduce((sum, child) => sum + renderedLineCount(child, { charsPerLine }), 0);
+    return Math.max(1, n);
+  }
+  // 未知节点按 1 行
+  return 1;
+}
+
+/**
+ * 测量渲染行数（string → 解析 Markdown 再计；AST 直接计）
+ * @param {string|{type: string, [k: string]: any}} input
+ * @param {{charsPerLine?: number}} [options]
+ * @returns {number}
+ */
+function measureLines(input, options = {}) {
+  if (typeof input === 'string') {
+    if (input === '') return 0;
+    return renderedLineCount(parseMarkdown(input), options);
+  }
+  return renderedLineCount(input, options);
+}
+
+/**
+ * 折叠判定（默认 50 行）
+ * @param {string|{type: string, [k: string]: any}} input
+ * @param {{maxLines?: number, charsPerLine?: number}} [options]
+ * @returns {{lineCount: number, folded: boolean, hiddenLines: number, canExpand: boolean, maxLines: number, lineHeight: number, maxHeight: number, charsPerLine: number}}
+ */
+function foldInfo(input, options = {}) {
+  const maxLines = Number.isFinite(options.maxLines) && options.maxLines > 0 ? Math.floor(options.maxLines) : FOLD_MAX_LINES;
+  const charsPerLine =
+    Number.isFinite(options.charsPerLine) && options.charsPerLine > 0 ? Math.floor(options.charsPerLine) : FOLD_CHARS_PER_LINE;
+  const lineCount = measureLines(input, { charsPerLine });
+  const folded = lineCount > maxLines;
+  return {
+    lineCount,
+    folded,
+    hiddenLines: folded ? lineCount - maxLines : 0,
+    canExpand: folded,
+    maxLines,
+    lineHeight: FOLD_LINE_HEIGHT,
+    maxHeight: maxLines * FOLD_LINE_HEIGHT,
+    charsPerLine,
+  };
+}
+
+Object.assign(__exports, { "FOLD_MAX_LINES": FOLD_MAX_LINES, "FOLD_LINE_HEIGHT": FOLD_LINE_HEIGHT, "FOLD_CHARS_PER_LINE": FOLD_CHARS_PER_LINE, "renderedLineCount": renderedLineCount, "measureLines": measureLines, "foldInfo": foldInfo });
+});
 /* ── src/core/folding.js ─────────────────────────────────────────── */
 __def("src/core/folding.js", function (__exports, __req) {
 // @ts-check
 /**
+ * @deprecated v1.7 起 UI 统一使用 50 行口径 `src/core/fold.js`（F29/§6.17）。
+ * 本文件（8 行/400 字字符阈值）仅保留给历史内部引用，**不再从 core/index 公开导出**。
+ *
  * 群聊数据内核 · 长文本折叠判定（§6.6 / UX D6）
  *
  * 规则：`> 400 字符` 或 `> 8 行`（先到者）→ 默认折叠。
@@ -1812,7 +2021,7 @@ __def("src/core/index.js", function (__exports, __req) {
  *          `buildFanoutPrefix`（T2 冻结名，string）、`buildFanoutPrefixParts`（string[]）、`fanoutSignature`
  * 7) 提及/目标：`computeMentionQuery`、`parseMentions`、`resolveTargets`、`filterMentionCandidates`、
  *               `resolveTargetSessionIds`、`isAddressable`
- * 8) 筛选：`matchesFilter`、`filterMessages`、`filterBanner`；折叠：`foldInfo`、`shouldFold`、`countLines`、`approximateChars`
+ * 8) 筛选：`matchesFilter`、`filterMessages`、`filterBanner`；折叠（v1.7 唯一口径）：`foldInfo`、`measureLines`
  * 9) 成员目录：`deriveRoster`、`deriveSnapshot`、`deriveReadonly`、`memberById`、`memberByName`、`displayNameOf`
  * 10) 常量：`LIMITS`、`limits`、`SESSION_RANK`、`KIND_RANK`、`TASK_ACTION_LABELS`、`TASK_STATUS_LABELS`、
  *           `TASK_ACTION_LABEL_KEYS`、`TASK_STATUS_LABEL_KEYS`、`WELCOME_TEXT_TEMPLATE`、`MEMBER_TEXT`、`TOOL_NAMES`、`EVENT_TYPES`
@@ -1828,17 +2037,341 @@ __def("src/core/index.js", function (__exports, __req) {
 const { CONTEXT_SOURCE_KINDS, DEBUG_FLAG_KEY, DELIVERY_STATES, EVENT_TYPES, KIND_RANK, KIND_RANK_DEFAULT, LIMITS, MEMBER_PHASE_TO_STATUS, MEMBER_TEXT, MESSAGE_KINDS, PROTOCOL_VERSION, SESSION_RANK, SOURCE_KIND, SUBAGENT_TOOL_CONTEXT, TASK_ACTION_LABELS, TASK_ACTION_LABEL_KEYS, TASK_ACTIONS, TASK_STATUS_LABELS, TASK_STATUS_LABEL_KEYS, TASK_STATUSES, TOOL_NAMES, TOOL_SUMMARY_ID_PREFIX, WELCOME_TEXT_TEMPLATE, isContextSourceKind, limits } = __req("src/core/constants.js");
 const { PARSE_EXPLAIN, PARSE_HEAD, buildExplain, buildHead, buildParts, buildText, buildFanoutPrefix, buildFanoutPrefixParts, dedupeTargets, fanoutSignature, hasProtocolPrefix, parseParts, parseText, protocolSnapshot, stripProtocol } = __req("src/core/protocol.js");
 const { checkTargetCount, computeMentionQuery, filterMentionCandidates, parseMentions, resolveTargetSessionIds, resolveTargets } = __req("src/core/mentions.js");
-const { deriveReadonly, deriveRoster, deriveSnapshot, displayNameOf, isAddressable, memberById, memberByName, normalizeMemberStatus } = __req("src/core/roster.js");
+const { deriveReadonly, deriveRoster, deriveSnapshot, displayNameOf, isAddressable, memberById, memberByName, normalizeMemberStatus, resolveLeadSession, resolveLeadSessionId } = __req("src/core/roster.js");
+const { ALLOWED_LINK_SCHEMES, escapeHtml, isSafeUrl, markdownToPlainText, parseInline, parseMarkdown } = __req("src/core/markdown.js");
+const { FOLD_LINE_HEIGHT, FOLD_MAX_LINES, foldInfo, measureLines, renderedLineCount } = __req("src/core/fold.js");
+const { aggregateTurns, summarizeTurn, turnStatusFromReason } = __req("src/core/turns.js");
 const { buildDirectory, collectSession, diffAction, emitSessionMessages, excerptPrompt, extractFiles, normalize, normalizeChannel, normalizeEntries, parseJsonSafe, prefixSenderName, senderOf, settlementClosingText, stripTeamPrefix, textBlocks, unwrapEntry } = __req("src/core/normalize.js");
 const { dedupeMessages, hashText, normalizeText, pairNotificationCopies, preferMessage, weakKeyOf } = __req("src/core/dedupe.js");
 const { aggregateDeliveryState, mergeFanout } = __req("src/core/fanout.js");
 const { compareMessages, compareOrderKey, cloneCursor, encodeSeq, insertInOrder, kindRank, makeCursor, mergeTimeline, orderKey, refreshCursorKeys, sessionRankOf, sliceByOrder, sortMessages, sortTimeline, advanceOffset } = __req("src/core/timeline.js");
 const { buildPage, capInMemory, computeHasMore, cursorAfterOpen, firstScreen, pageOlder, selectPrefetch } = __req("src/core/paginate.js");
 const { filterBanner, filterMessages, matchesFilter } = __req("src/core/filter.js");
-const { approximateChars, countLines, foldInfo, shouldFold } = __req("src/core/folding.js");
 
 
-Object.assign(__exports, { "LIMITS": LIMITS, "limits": limits, "SESSION_RANK": SESSION_RANK, "KIND_RANK": KIND_RANK, "KIND_RANK_DEFAULT": KIND_RANK_DEFAULT, "MESSAGE_KINDS": MESSAGE_KINDS, "DELIVERY_STATES": DELIVERY_STATES, "MEMBER_PHASE_TO_STATUS": MEMBER_PHASE_TO_STATUS, "TASK_ACTIONS": TASK_ACTIONS, "TASK_STATUSES": TASK_STATUSES, "TASK_ACTION_LABELS": TASK_ACTION_LABELS, "TASK_STATUS_LABELS": TASK_STATUS_LABELS, "TASK_ACTION_LABEL_KEYS": TASK_ACTION_LABEL_KEYS, "TASK_STATUS_LABEL_KEYS": TASK_STATUS_LABEL_KEYS, "WELCOME_TEXT_TEMPLATE": WELCOME_TEXT_TEMPLATE, "MEMBER_TEXT": MEMBER_TEXT, "SUBAGENT_TOOL_CONTEXT": SUBAGENT_TOOL_CONTEXT, "SOURCE_KIND": SOURCE_KIND, "TOOL_NAMES": TOOL_NAMES, "EVENT_TYPES": EVENT_TYPES, "TOOL_SUMMARY_ID_PREFIX": TOOL_SUMMARY_ID_PREFIX, "DEBUG_FLAG_KEY": DEBUG_FLAG_KEY, "PROTOCOL_VERSION": PROTOCOL_VERSION, "CONTEXT_SOURCE_KINDS": CONTEXT_SOURCE_KINDS, "isContextSourceKind": isContextSourceKind, "PARSE_HEAD": PARSE_HEAD, "PARSE_EXPLAIN": PARSE_EXPLAIN, "buildHead": buildHead, "buildExplain": buildExplain, "buildParts": buildParts, "buildText": buildText, "buildFanoutPrefix": buildFanoutPrefix, "buildFanoutPrefixParts": buildFanoutPrefixParts, "parseParts": parseParts, "parseText": parseText, "stripProtocol": stripProtocol, "hasProtocolPrefix": hasProtocolPrefix, "protocolSnapshot": protocolSnapshot, "dedupeTargets": dedupeTargets, "fanoutSignature": fanoutSignature, "computeMentionQuery": computeMentionQuery, "parseMentions": parseMentions, "resolveTargets": resolveTargets, "resolveTargetSessionIds": resolveTargetSessionIds, "filterMentionCandidates": filterMentionCandidates, "checkTargetCount": checkTargetCount, "deriveRoster": deriveRoster, "deriveSnapshot": deriveSnapshot, "deriveReadonly": deriveReadonly, "displayNameOf": displayNameOf, "memberById": memberById, "memberByName": memberByName, "isAddressable": isAddressable, "normalizeMemberStatus": normalizeMemberStatus, "normalize": normalize, "normalizeChannel": normalizeChannel, "normalizeEntries": normalizeEntries, "collectSession": collectSession, "buildDirectory": buildDirectory, "emitSessionMessages": emitSessionMessages, "senderOf": senderOf, "textBlocks": textBlocks, "parseJsonSafe": parseJsonSafe, "extractFiles": extractFiles, "unwrapEntry": unwrapEntry, "prefixSenderName": prefixSenderName, "stripTeamPrefix": stripTeamPrefix, "settlementClosingText": settlementClosingText, "excerptPrompt": excerptPrompt, "diffAction": diffAction, "dedupeMessages": dedupeMessages, "preferMessage": preferMessage, "normalizeText": normalizeText, "hashText": hashText, "weakKeyOf": weakKeyOf, "pairNotificationCopies": pairNotificationCopies, "mergeFanout": mergeFanout, "aggregateDeliveryState": aggregateDeliveryState, "compareMessages": compareMessages, "sortTimeline": sortTimeline, "sortMessages": sortMessages, "kindRank": kindRank, "sessionRankOf": sessionRankOf, "orderKey": orderKey, "compareOrderKey": compareOrderKey, "cloneCursor": cloneCursor, "encodeSeq": encodeSeq, "makeCursor": makeCursor, "sliceByOrder": sliceByOrder, "mergeTimeline": mergeTimeline, "insertInOrder": insertInOrder, "advanceOffset": advanceOffset, "refreshCursorKeys": refreshCursorKeys, "firstScreen": firstScreen, "pageOlder": pageOlder, "capInMemory": capInMemory, "selectPrefetch": selectPrefetch, "computeHasMore": computeHasMore, "cursorAfterOpen": cursorAfterOpen, "buildPage": buildPage, "matchesFilter": matchesFilter, "filterMessages": filterMessages, "filterBanner": filterBanner, "foldInfo": foldInfo, "shouldFold": shouldFold, "countLines": countLines, "approximateChars": approximateChars });
+Object.assign(__exports, { "LIMITS": LIMITS, "limits": limits, "SESSION_RANK": SESSION_RANK, "KIND_RANK": KIND_RANK, "KIND_RANK_DEFAULT": KIND_RANK_DEFAULT, "MESSAGE_KINDS": MESSAGE_KINDS, "DELIVERY_STATES": DELIVERY_STATES, "MEMBER_PHASE_TO_STATUS": MEMBER_PHASE_TO_STATUS, "TASK_ACTIONS": TASK_ACTIONS, "TASK_STATUSES": TASK_STATUSES, "TASK_ACTION_LABELS": TASK_ACTION_LABELS, "TASK_STATUS_LABELS": TASK_STATUS_LABELS, "TASK_ACTION_LABEL_KEYS": TASK_ACTION_LABEL_KEYS, "TASK_STATUS_LABEL_KEYS": TASK_STATUS_LABEL_KEYS, "WELCOME_TEXT_TEMPLATE": WELCOME_TEXT_TEMPLATE, "MEMBER_TEXT": MEMBER_TEXT, "SUBAGENT_TOOL_CONTEXT": SUBAGENT_TOOL_CONTEXT, "SOURCE_KIND": SOURCE_KIND, "TOOL_NAMES": TOOL_NAMES, "EVENT_TYPES": EVENT_TYPES, "TOOL_SUMMARY_ID_PREFIX": TOOL_SUMMARY_ID_PREFIX, "DEBUG_FLAG_KEY": DEBUG_FLAG_KEY, "PROTOCOL_VERSION": PROTOCOL_VERSION, "CONTEXT_SOURCE_KINDS": CONTEXT_SOURCE_KINDS, "isContextSourceKind": isContextSourceKind, "PARSE_HEAD": PARSE_HEAD, "PARSE_EXPLAIN": PARSE_EXPLAIN, "buildHead": buildHead, "buildExplain": buildExplain, "buildParts": buildParts, "buildText": buildText, "buildFanoutPrefix": buildFanoutPrefix, "buildFanoutPrefixParts": buildFanoutPrefixParts, "parseParts": parseParts, "parseText": parseText, "stripProtocol": stripProtocol, "hasProtocolPrefix": hasProtocolPrefix, "protocolSnapshot": protocolSnapshot, "dedupeTargets": dedupeTargets, "fanoutSignature": fanoutSignature, "computeMentionQuery": computeMentionQuery, "parseMentions": parseMentions, "resolveTargets": resolveTargets, "resolveTargetSessionIds": resolveTargetSessionIds, "filterMentionCandidates": filterMentionCandidates, "checkTargetCount": checkTargetCount, "deriveRoster": deriveRoster, "deriveSnapshot": deriveSnapshot, "deriveReadonly": deriveReadonly, "displayNameOf": displayNameOf, "memberById": memberById, "memberByName": memberByName, "isAddressable": isAddressable, "normalizeMemberStatus": normalizeMemberStatus, "normalize": normalize, "normalizeChannel": normalizeChannel, "normalizeEntries": normalizeEntries, "collectSession": collectSession, "buildDirectory": buildDirectory, "emitSessionMessages": emitSessionMessages, "senderOf": senderOf, "textBlocks": textBlocks, "parseJsonSafe": parseJsonSafe, "extractFiles": extractFiles, "unwrapEntry": unwrapEntry, "prefixSenderName": prefixSenderName, "stripTeamPrefix": stripTeamPrefix, "settlementClosingText": settlementClosingText, "excerptPrompt": excerptPrompt, "diffAction": diffAction, "dedupeMessages": dedupeMessages, "preferMessage": preferMessage, "normalizeText": normalizeText, "hashText": hashText, "weakKeyOf": weakKeyOf, "pairNotificationCopies": pairNotificationCopies, "mergeFanout": mergeFanout, "aggregateDeliveryState": aggregateDeliveryState, "compareMessages": compareMessages, "sortTimeline": sortTimeline, "sortMessages": sortMessages, "kindRank": kindRank, "sessionRankOf": sessionRankOf, "orderKey": orderKey, "compareOrderKey": compareOrderKey, "cloneCursor": cloneCursor, "encodeSeq": encodeSeq, "makeCursor": makeCursor, "sliceByOrder": sliceByOrder, "mergeTimeline": mergeTimeline, "insertInOrder": insertInOrder, "advanceOffset": advanceOffset, "refreshCursorKeys": refreshCursorKeys, "firstScreen": firstScreen, "pageOlder": pageOlder, "capInMemory": capInMemory, "selectPrefetch": selectPrefetch, "computeHasMore": computeHasMore, "cursorAfterOpen": cursorAfterOpen, "buildPage": buildPage, "matchesFilter": matchesFilter, "filterMessages": filterMessages, "filterBanner": filterBanner, "foldInfo": foldInfo, "measureLines": measureLines, "renderedLineCount": renderedLineCount, "FOLD_MAX_LINES": FOLD_MAX_LINES, "FOLD_LINE_HEIGHT": FOLD_LINE_HEIGHT, "parseMarkdown": parseMarkdown, "parseInline": parseInline, "escapeHtml": escapeHtml, "isSafeUrl": isSafeUrl, "markdownToPlainText": markdownToPlainText, "ALLOWED_LINK_SCHEMES": ALLOWED_LINK_SCHEMES, "aggregateTurns": aggregateTurns, "summarizeTurn": summarizeTurn, "turnStatusFromReason": turnStatusFromReason, "resolveLeadSession": resolveLeadSession, "resolveLeadSessionId": resolveLeadSessionId });
+});
+/* ── src/core/markdown.js ─────────────────────────────────────────── */
+__def("src/core/markdown.js", function (__exports, __req) {
+// @ts-check
+/**
+ * 群聊数据内核 · 安全 Markdown 子集解析（B1 / F22 / 架构 §6.12）
+ *
+ * 纯函数、零依赖、**无 DOM / Node API / innerHTML**。
+ * 支持：段落/换行、粗体 `**x**`、斜体 `*x*`、行内代码 `` `x` ``、围栏代码块 ```lang、
+ *       无序/有序列表、链接 `[t](url)`（仅 http/https/mailto）。
+ * 不支持：原始 HTML、图片、表格、引用、任务列表、脚注 → **降级为纯文本**（内容不丢、不报错）。
+ * 解析异常时整段退回纯文本 `plain:true`。
+ *
+ * AST：
+ *  document { children: MdBlock[] }
+ *  inline: text{value} | strong{children} | em{children} | code{value} | link{url,children} | break
+ *  block : paragraph{children} | code_block{lang,value} | list{ordered,start?,items} | list_item{children}
+ */
+
+const { LIMITS } = __req("src/core/constants.js");
+
+/** 允许的链接 scheme（小写、含冒号） */
+const ALLOWED_LINK_SCHEMES = Object.freeze(['http:', 'https:', 'mailto:']);
+
+/** Markdown 渲染文本硬上限（与 textRender 一致；超出截断并标 truncated） */
+const MD_MAX_CHARS = LIMITS.textRender;
+
+/**
+ * HTML 实体转义（前端渲染 text 节点时用 textContent 即可；此函数用于纯文本降级/安全输出）
+ * @param {string} text
+ * @returns {string}
+ */
+function escapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * 链接是否安全（仅白名单 scheme；拒绝控制字符/空白）
+ * @param {string} url
+ * @returns {boolean}
+ */
+function isSafeUrl(url) {
+  const raw = String(url ?? '').trim();
+  if (!raw || /[\u0000-\u001f\u007f\s]/.test(raw)) return false;
+  const m = /^([a-zA-Z][a-zA-Z0-9+.-]*:)/.exec(raw);
+  if (!m) return false;
+  return ALLOWED_LINK_SCHEMES.includes(m[1].toLowerCase());
+}
+
+/**
+ * @typedef {{type: string, [k: string]: any}} MdNode
+ */
+
+/**
+ * 解析 Markdown 文本为 AST
+ * @param {string} text
+ * @param {{maxChars?: number}} [options]
+ * @returns {{type: 'document', children: MdNode[], plain: boolean, truncated: boolean}}
+ */
+function parseMarkdown(text, options = {}) {
+  const maxChars = Number.isFinite(options.maxChars) ? Number(options.maxChars) : MD_MAX_CHARS;
+  let source = String(text ?? '').replace(/\r\n?/g, '\n');
+  let truncated = false;
+  if (source.length > maxChars) {
+    source = source.slice(0, maxChars);
+    truncated = true;
+  }
+  try {
+    const children = parseBlocks(source.split('\n'));
+    return { type: 'document', children, plain: false, truncated };
+  } catch {
+    // 解析异常：整段纯文本（内容不丢）
+    const children = source
+      ? [{ type: 'paragraph', children: source.split('\n').flatMap((line, i) => (i === 0 ? [{ type: 'text', value: line }] : [{ type: 'break' }, { type: 'text', value: line }])) }]
+      : [];
+    return { type: 'document', children, plain: true, truncated };
+  }
+}
+
+const FENCE_RE = /^```([A-Za-z0-9_+.-]*)\s*$/;
+const UL_RE = /^(\s*)([-*+])\s+(.*)$/;
+const OL_RE = /^(\s*)(\d+)[.)]\s+(.*)$/;
+const BLOCKQUOTE_RE = /^\s*>/;
+const TABLE_RE = /^\s*\|/;
+const HEADING_RE = /^\s{0,3}#{1,6}\s+/;
+const HR_RE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
+
+/**
+ * @param {string[]} lines
+ * @returns {MdNode[]}
+ */
+function parseBlocks(lines) {
+  /** @type {MdNode[]} */
+  const blocks = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // 围栏代码块
+    const fence = FENCE_RE.exec(line);
+    if (fence) {
+      const lang = fence[1] || '';
+      const body = [];
+      i += 1;
+      while (i < lines.length && !/^```\s*$/.test(lines[i])) {
+        body.push(lines[i]);
+        i += 1;
+      }
+      if (i < lines.length) i += 1; // 跳过结束围栏（未闭合则吞到结尾）
+      blocks.push({ type: 'code_block', lang, value: body.join('\n') });
+      continue;
+    }
+
+    // 空行
+    if (line.trim() === '') {
+      i += 1;
+      continue;
+    }
+
+    // 引用/表格/标题/分隔线：不支持 → 纯文本段落（内容不丢）
+    if (BLOCKQUOTE_RE.test(line) || TABLE_RE.test(line) || HEADING_RE.test(line) || HR_RE.test(line)) {
+      blocks.push(paragraphFromLines([line]));
+      i += 1;
+      continue;
+    }
+
+    // 列表（同类型连续行；任务列表 `- [ ]` 降级为普通文本项）
+    const ul = UL_RE.exec(line);
+    const ol = OL_RE.exec(line);
+    if (ul || ol) {
+      const ordered = Boolean(ol);
+      const start = ol ? Number(ol[2]) : 1;
+      /** @type {MdNode[]} */
+      const items = [];
+      while (i < lines.length) {
+        const cur = lines[i];
+        const mu = UL_RE.exec(cur);
+        const mo = OL_RE.exec(cur);
+        if (ordered ? !mo : !mu) break;
+        const content = String((ordered ? mo[3] : mu[3]) ?? '');
+        items.push({ type: 'list_item', children: [paragraphFromLines([content])] });
+        i += 1;
+      }
+      blocks.push({ type: 'list', ordered, start, items });
+      continue;
+    }
+
+    // 段落：连续非空、非块起始行，直到空行/围栏/列表
+    /** @type {string[]} */
+    const para = [];
+    while (i < lines.length) {
+      const cur = lines[i];
+      if (cur.trim() === '') break;
+      if (FENCE_RE.test(cur)) break;
+      if (UL_RE.test(cur) || OL_RE.test(cur)) break;
+      para.push(cur);
+      i += 1;
+    }
+    if (para.length > 0) blocks.push(paragraphFromLines(para));
+  }
+  return blocks;
+}
+
+/**
+ * @param {string[]} lines
+ * @returns {MdNode}
+ */
+function paragraphFromLines(lines) {
+  /** @type {MdNode[]} */
+  const children = [];
+  lines.forEach((line, idx) => {
+    if (idx > 0) children.push({ type: 'break' });
+    children.push(...parseInline(line));
+  });
+  return { type: 'paragraph', children };
+}
+
+/**
+ * 行内解析：代码 → 粗体 → 斜体 → 链接；未知/不配对保留为 text
+ * @param {string} line
+ * @returns {MdNode[]}
+ */
+function parseInline(line) {
+  /** @type {MdNode[]} */
+  const out = [];
+  const s = String(line ?? '');
+  let i = 0;
+  let buf = '';
+  const flush = () => {
+    if (buf) {
+      out.push({ type: 'text', value: buf });
+      buf = '';
+    }
+  };
+  while (i < s.length) {
+    const ch = s[i];
+
+    // 行内代码 `...`
+    if (ch === '`') {
+      const end = s.indexOf('`', i + 1);
+      if (end > i) {
+        flush();
+        out.push({ type: 'code', value: s.slice(i + 1, end) });
+        i = end + 1;
+        continue;
+      }
+      buf += ch;
+      i += 1;
+      continue;
+    }
+
+    // 粗体 **...**
+    if (ch === '*' && s[i + 1] === '*') {
+      const end = s.indexOf('**', i + 2);
+      if (end > i + 1) {
+        flush();
+        out.push({ type: 'strong', children: parseInline(s.slice(i + 2, end)) });
+        i = end + 2;
+        continue;
+      }
+      buf += '**';
+      i += 2;
+      continue;
+    }
+
+    // 斜体 *...*
+    if (ch === '*') {
+      const end = s.indexOf('*', i + 1);
+      if (end > i + 1 && !s.slice(i + 1, end).includes('\n')) {
+        flush();
+        out.push({ type: 'em', children: parseInline(s.slice(i + 1, end)) });
+        i = end + 1;
+        continue;
+      }
+      buf += ch;
+      i += 1;
+      continue;
+    }
+
+    // 链接 [text](url)
+    if (ch === '[') {
+      const close = s.indexOf(']', i + 1);
+      if (close > i && s[close + 1] === '(') {
+        const endParen = s.indexOf(')', close + 2);
+        if (endParen > close + 1) {
+          const label = s.slice(i + 1, close);
+          const url = s.slice(close + 2, endParen).trim();
+          if (isSafeUrl(url)) {
+            flush();
+            out.push({ type: 'link', url, children: parseInline(label) });
+            i = endParen + 1;
+            continue;
+          }
+          // 非白名单 scheme：整段按纯文本（内容不丢）
+          buf += s.slice(i, endParen + 1);
+          i = endParen + 1;
+          continue;
+        }
+      }
+      buf += ch;
+      i += 1;
+      continue;
+    }
+
+    buf += ch;
+    i += 1;
+  }
+  flush();
+  return out;
+}
+
+/**
+ * AST/字符串 → 纯文本（保留换行；用于降级、摘要、搜索）
+ * @param {string|{type: string, [k: string]: any}} input
+ * @returns {string}
+ */
+function markdownToPlainText(input) {
+  if (typeof input === 'string') {
+    const ast = parseMarkdown(input);
+    return astToPlainText(ast).trim();
+  }
+  return astToPlainText(input).trim();
+}
+
+/**
+ * @param {any} node
+ * @returns {string}
+ */
+function astToPlainText(node) {
+  if (!node) return '';
+  if (Array.isArray(node)) return node.map(astToPlainText).join('');
+  switch (node.type) {
+    case 'document':
+      return (node.children ?? []).map(astToPlainText).join('\n\n');
+    case 'paragraph':
+      return (node.children ?? []).map(astToPlainText).join('');
+    case 'text':
+    case 'code':
+      return String(node.value ?? '');
+    case 'strong':
+    case 'em':
+    case 'link':
+      return (node.children ?? []).map(astToPlainText).join('');
+    case 'break':
+      return '\n';
+    case 'code_block':
+      return String(node.value ?? '');
+    case 'list':
+      return (node.items ?? []).map(astToPlainText).join('\n');
+    case 'list_item':
+      return (node.children ?? []).map(astToPlainText).join('\n');
+    default:
+      return node.value !== undefined ? String(node.value) : '';
+  }
+}
+
+Object.assign(__exports, { "ALLOWED_LINK_SCHEMES": ALLOWED_LINK_SCHEMES, "escapeHtml": escapeHtml, "isSafeUrl": isSafeUrl, "parseMarkdown": parseMarkdown, "parseInline": parseInline, "markdownToPlainText": markdownToPlainText });
 });
 /* ── src/core/mentions.js ─────────────────────────────────────────── */
 __def("src/core/mentions.js", function (__exports, __req) {
@@ -2318,6 +2851,7 @@ __def("src/core/model.js", function (__exports, __req) {
  * @property {number} unknownEvents
  * @property {number} ignoredSubagentPrompts
  * @property {number} ignoredSystemContext
+ * @property {number} ignoredNotices
  * @property {number} duplicatesRemoved
  * @property {number} fanoutMerged
  * @property {number} memberCards
@@ -2466,7 +3000,7 @@ const { parseParts } = __req("src/core/protocol.js");
 const { deriveRoster } = __req("src/core/roster.js");
 const { normalizeMemberStatus } = __req("src/core/roster.js");
 const { capInMemory } = __req("src/core/paginate.js");
-const { dedupeMessages } = __req("src/core/dedupe.js");
+const { dedupeMessages, hashText, normalizeText } = __req("src/core/dedupe.js");
 const { mergeFanout } = __req("src/core/fanout.js");
 const { sortTimeline } = __req("src/core/timeline.js");
 
@@ -2604,6 +3138,7 @@ function textBlocks(content) {
  * @property {number} forkedTurnsDropped
  * @property {number} ignoredSubagentPrompts
  * @property {number} ignoredSystemContext
+ * @property {number} ignoredNotices
  * @property {number} eventsSeen
  */
 
@@ -2647,6 +3182,7 @@ function collectSession(session) {
     forkedTurnsDropped: 0,
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
+    ignoredNotices: 0,
     eventsSeen: 0,
   };
 
@@ -3187,19 +3723,61 @@ function senderOf(dir, sessionId, fallback = {}) {
  * @param {string[]} targets
  * @returns {string|undefined}
  */
-function lookupBatchId(ctx, rpcId, sessionId, targets) {
-  const batches = ctx.localBatches;
-  if (!batches || typeof batches !== 'object') return undefined;
+function getLocalBatches(source) {
+  const batches = source && typeof source === 'object' ? source.localBatches : undefined;
+  return batches && typeof batches === 'object' && !Array.isArray(batches) ? batches : {};
+}
+
+/**
+ * 由 ctx.localBatches 反查 clientBatchId（H1 修复）
+ *
+ * - **有 rpcId**：只认 `requestIds` 精确匹配（禁止 sessionIds 兜底，避免把旧批次 TTL 内的无关消息误归并）；
+ * - **无 rpcId**：必须同时满足 ① text hash 匹配 ② targets 集合完全一致 ③ 时间窗（默认 ±2min）；
+ * - `closed:true` 的终态批次：仅允许 rpcId 精确匹配（晚到权威消息仍可替换 echo），不允许弱匹配。
+ *
+ * @param {NormalizeContext} ctx
+ * @param {string|undefined} rpcId
+ * @param {string} sessionId
+ * @param {string[]} targets 目标名（不含 @）
+ * @param {{text?: string, time?: number, windowMs?: number}} [extra]
+ * @returns {string|undefined}
+ */
+function lookupBatchId(ctx, rpcId, sessionId, targets, extra = {}) {
+  const batches = getLocalBatches(ctx);
+  const list = Array.isArray(targets) ? targets.map((t) => String(t).replace(/^@/, '')) : [];
+  const windowMs = Number.isFinite(extra.windowMs) ? Number(extra.windowMs) : LIMITS.localBatchFallbackWindowMs;
+  const text = typeof extra.text === 'string' ? extra.text : '';
+  const time = Number(extra.time);
+  const textHash = text ? hashText(normalizeText(text)) : '';
+  const extraChannelId = typeof extra.channelId === 'string' ? extra.channelId : '';
   for (const [key, batch] of Object.entries(batches)) {
     if (!batch) continue;
     const batchId = batch.clientBatchId ?? key;
     const requestIds = batch.requestIds ?? {};
-    if (rpcId && Object.values(requestIds).includes(rpcId)) return batchId;
-    if (!rpcId && Array.isArray(batch.targets) && targets.length > 1) {
-      const same = batch.targets.length === targets.length && batch.targets.every((t) => targets.includes(t.replace(/^@/, '')));
-      if (same) return batchId;
+    if (rpcId) {
+      // H1：有 rpcId 只认精确 requestId（终态批次也允许，保证晚到权威消息替换 echo）
+      if (Object.values(requestIds).includes(rpcId)) return batchId;
+      continue;
     }
-    if (batch.sessionIds && Array.isArray(batch.sessionIds) && batch.sessionIds.includes(sessionId)) return batchId;
+    if (batch.closed === true) continue; // 无 rpcId 的弱匹配不用于终态批次
+    if (!textHash || !Number.isFinite(time)) continue;
+    if (list.length === 0) continue;
+    // R-WEAK：弱匹配必须同频道/同会话域，防止跨频道（历史/回放）误归并
+    if (extraChannelId && typeof batch.channelId === 'string' && batch.channelId && batch.channelId !== extraChannelId) continue;
+    if (Array.isArray(batch.sessionIds) && batch.sessionIds.length > 0 && sessionId && !batch.sessionIds.includes(sessionId)) continue;
+    if (!Array.isArray(batch.targets) || batch.targets.length !== list.length) continue;
+    const sameTargets = batch.targets.every((t) => list.includes(String(t).replace(/^@/, '')));
+    if (!sameTargets) continue;
+    const batchHash =
+      typeof batch.textHash === 'string'
+        ? batch.textHash
+        : typeof batch.text === 'string'
+          ? hashText(normalizeText(batch.text))
+          : '';
+    if (!batchHash || batchHash !== textHash) continue;
+    const batchAt = Number(batch.at ?? batch.createdAt ?? batch.sentAt ?? batch.time);
+    if (!Number.isFinite(batchAt) || Math.abs(time - batchAt) > windowMs) continue;
+    return batchId;
   }
   return undefined;
 }
@@ -3242,6 +3820,13 @@ function emitSessionMessages(scan, dir, ctx) {
       continue;
     }
 
+    // 通用兜底：宿主通知类注入（`form:'notice'` 且带 senderSessionId）不是用户发言，直接丢弃；
+    // 真正用户消息（kind=user/空、无 notice form）不受影响。
+    if (String(source.form ?? '') === 'notice' && String(source.senderSessionId ?? source.senderId ?? '')) {
+      scan.ignoredNotices += 1;
+      continue;
+    }
+
     if (kind === SOURCE_KIND.user || kind === '') {
       const isChild = sid !== leadSessionId;
       if (!rpcId && isChild) {
@@ -3261,7 +3846,11 @@ function emitSessionMessages(scan, dir, ctx) {
         continue;
       }
       const targets = proto.ok ? proto.targets : [];
-      const batchId = lookupBatchId(ctx, rpcId, sid, targets);
+      const batchId = lookupBatchId(ctx, rpcId, sid, targets, {
+      text: proto.ok ? proto.text : fullText,
+      time: um.time,
+      channelId: leadSessionId,
+    });
       const msg = makeMessage({
         id: `u:${sid}:${String(data.id ?? um.seq)}`,
         kind: 'user',
@@ -3318,27 +3907,6 @@ function emitSessionMessages(scan, dir, ctx) {
       if (fullText !== body) msg.rawText = fullText;
       messages.push(msg);
       if (data.id) byDataId.set(String(data.id), msg);
-      continue;
-    }
-
-    if (kind === SOURCE_KIND.subagentSettled) {
-      const closingText = settlementClosingText(parts);
-      messages.push(makeMessage({
-        id: `s:${sid}:${um.seq}`,
-        kind: 'system',
-        sessionId: sid,
-        sender: senderOf(dir, String(source.senderSessionId ?? ''), { name: 'subagent', kind: 'subagent' }),
-        time: um.time,
-        seq: um.seq,
-        text: parts.join('\n'),
-        systemReason: 'subagent-settled',
-        meta: {
-          copy: 'settlement',
-          summary: String(source.summary ?? ''),
-          senderSessionId: String(source.senderSessionId ?? ''),
-          closingText,
-        },
-      }));
       continue;
     }
 
@@ -3680,6 +4248,7 @@ function normalizeChannel(sessions, ctx) {
     unknownEvents: 0,
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
+    ignoredNotices: 0,
     duplicatesRemoved: 0,
     fanoutMerged: 0,
     memberCards: 0,
@@ -3710,6 +4279,7 @@ function normalizeChannel(sessions, ctx) {
   for (const scan of scans) {
     diagnostics.ignoredSubagentPrompts += scan.ignoredSubagentPrompts;
     diagnostics.ignoredSystemContext += scan.ignoredSystemContext;
+    diagnostics.ignoredNotices += scan.ignoredNotices;
   }
 
   /** @type {ChannelMessage[]} */
@@ -4133,7 +4703,7 @@ function normalize(events, ctx) {
   return result.messages;
 }
 
-Object.assign(__exports, { "unwrapEntry": unwrapEntry, "normalizeEntries": normalizeEntries, "parseJsonSafe": parseJsonSafe, "textBlocks": textBlocks, "collectSession": collectSession, "extractFiles": extractFiles, "buildDirectory": buildDirectory, "senderOf": senderOf, "lookupBatchId": lookupBatchId, "emitSessionMessages": emitSessionMessages, "prefixSenderName": prefixSenderName, "stripTeamPrefix": stripTeamPrefix, "settlementClosingText": settlementClosingText, "normalizeChannel": normalizeChannel, "diffAction": diffAction, "excerptPrompt": excerptPrompt, "normalize": normalize });
+Object.assign(__exports, { "unwrapEntry": unwrapEntry, "normalizeEntries": normalizeEntries, "parseJsonSafe": parseJsonSafe, "textBlocks": textBlocks, "collectSession": collectSession, "extractFiles": extractFiles, "buildDirectory": buildDirectory, "senderOf": senderOf, "getLocalBatches": getLocalBatches, "lookupBatchId": lookupBatchId, "emitSessionMessages": emitSessionMessages, "prefixSenderName": prefixSenderName, "stripTeamPrefix": stripTeamPrefix, "settlementClosingText": settlementClosingText, "normalizeChannel": normalizeChannel, "diffAction": diffAction, "excerptPrompt": excerptPrompt, "normalize": normalize });
 });
 /* ── src/core/paginate.js ─────────────────────────────────────────── */
 __def("src/core/paginate.js", function (__exports, __req) {
@@ -4928,7 +5498,98 @@ function shortenLabel(label) {
   return s.length > 24 ? `${s.slice(0, 24)}…` : s;
 }
 
-Object.assign(__exports, { "normalizeMemberStatus": normalizeMemberStatus, "isAddressable": isAddressable, "deriveRoster": deriveRoster, "displayNameOf": displayNameOf, "memberById": memberById, "memberByName": memberByName, "deriveSnapshot": deriveSnapshot, "deriveReadonly": deriveReadonly });
+/**
+ * 作用域回溯：任意 member session → lead sessionId（F27 / §4.8.2）
+ *
+ * - 沿 `parentSession` 链最多 `maxHops`（默认 4）跳；
+ * - `seen` 防环；无 parent / parent===自身 / 回溯失败 → 回退 `startId`（不抛错）；
+ * - `sessionsOrLookup` 支持：函数 `(id)=>{parentSessionId,parentSession}` / Map / 数组 /
+ *   `{[id]: summary}` / `sessions.list.byId` 形状。
+ *
+ * @param {string} startId
+ * @param {any} sessionsOrLookup
+ * @param {{maxHops?: number}} [options]
+ * @returns {{leadSessionId: string, hops: number, degraded: boolean, cycle: boolean}}
+ */
+function resolveLeadSession(startId, sessionsOrLookup, options = {}) {
+  const start = String(startId ?? '');
+  const maxHops = Number.isInteger(options.maxHops) && options.maxHops >= 0 ? options.maxHops : LIMITS.maxParentHops;
+  const parentOf = makeParentLookup(sessionsOrLookup);
+  const seen = new Set();
+  let id = start;
+  let hops = 0;
+  let degraded = false;
+  let cycle = false;
+  for (let hop = 0; hop <= maxHops; hop += 1) {
+    if (!id) return { leadSessionId: start, hops, degraded: true, cycle };
+    if (seen.has(id)) {
+      cycle = true;
+      degraded = true;
+      break;
+    }
+    seen.add(id);
+    const parent = parentOf(id);
+    if (!parent || parent === id) break;
+    if (hop === maxHops) {
+      // 已到最大跳数仍有 parent → 视为无法完整回到根，回退当前 id 并标 degraded
+      degraded = true;
+      break;
+    }
+    id = parent;
+    hops += 1;
+  }
+  return { leadSessionId: id || start, hops, degraded, cycle };
+}
+
+/**
+ * 便捷版：只返回 leadSessionId（F27 接线用）
+ * @param {string} startId
+ * @param {any} sessionsOrLookup
+ * @param {{maxHops?: number}} [options]
+ * @returns {string}
+ */
+function resolveLeadSessionId(startId, sessionsOrLookup, options = {}) {
+  return resolveLeadSession(startId, sessionsOrLookup, options).leadSessionId;
+}
+
+/**
+ * @param {any} input
+ * @returns {(id: string) => string|undefined}
+ */
+function makeParentLookup(input) {
+  if (typeof input === 'function') {
+    return (id) => parentOfValue(input(id));
+  }
+  /** @type {Map<string, any>|null} */
+  let map = null;
+  if (input instanceof Map) map = input;
+  else if (Array.isArray(input)) map = new Map(input.map((item) => [String(item?.id ?? item?.sessionId ?? ''), item]));
+  else if (input && typeof input === 'object') {
+    const source = input.byId && typeof input.byId === 'object' ? input.byId : input;
+    map = new Map(Object.entries(source));
+  }
+  if (!map) return () => undefined;
+  return (id) => parentOfValue(map.get(id));
+}
+
+/**
+ * @param {any} value
+ * @returns {string|undefined}
+ */
+function parentOfValue(value) {
+  if (!value) return undefined;
+  if (typeof value === 'string') return value || undefined;
+  if (typeof value !== 'object') return undefined;
+  const parent =
+    value.parentSessionId ??
+    value.parentSession ??
+    value.subagent?.address?.parentSessionId ??
+    value.parent ??
+    value.parentId;
+  return parent ? String(parent) : undefined;
+}
+
+Object.assign(__exports, { "normalizeMemberStatus": normalizeMemberStatus, "isAddressable": isAddressable, "deriveRoster": deriveRoster, "displayNameOf": displayNameOf, "memberById": memberById, "memberByName": memberByName, "deriveSnapshot": deriveSnapshot, "deriveReadonly": deriveReadonly, "resolveLeadSession": resolveLeadSession, "resolveLeadSessionId": resolveLeadSessionId });
 });
 /* ── src/core/timeline.js ─────────────────────────────────────────── */
 __def("src/core/timeline.js", function (__exports, __req) {
@@ -5199,6 +5860,224 @@ function cloneCursor(cursor, channelId) {
 }
 
 Object.assign(__exports, { "kindRank": kindRank, "sessionRankOf": sessionRankOf, "compareMessages": compareMessages, "sortTimeline": sortTimeline, "sortMessages": sortMessages, "orderKey": orderKey, "encodeSeq": encodeSeq, "compareOrderKey": compareOrderKey, "makeCursor": makeCursor, "sliceByOrder": sliceByOrder, "mergeTimeline": mergeTimeline, "insertInOrder": insertInOrder, "advanceOffset": advanceOffset, "refreshCursorKeys": refreshCursorKeys, "cloneCursor": cloneCursor });
+});
+/* ── src/core/turns.js ─────────────────────────────────────────── */
+__def("src/core/turns.js", function (__exports, __req) {
+// @ts-check
+/**
+ * 群聊数据内核 · 轮次聚合（B2 / F26 / 架构 §6.15.2）
+ *
+ * 输入：某个成员会话的**原始事件窗口**（与 feed 同一份，不新增 Host / 不额外 retain）。
+ * 以 `turn/start` – `turn/end` 为一个 turn；最新的在前。
+ *  - turnIndex：数据里的 turn 序号（缺失时按出现顺序自增）
+ *  - stepCount：区间内最大 step
+ *  - toolCount：区间内全部 `tool/call` 数（含失败/中断调用）
+ *  - summary：区间内最后一个非空 assistant/message 的 text 块（≤120 字 / ≤2 行）
+ *  - status：`turn/end.reason.kind` 映射（completed→done、aborted/interrupted→aborted、
+ *            error→error、max-tokens→truncated、无 end→running、其它→unknown）
+ *  - forked turn 丢弃（与 feed 一致）；seeded 继承前缀可按 `cutoffSeq` 跳过。
+ *
+ * 零依赖、无 DOM / Node。
+ */
+
+/**
+ * @typedef {Object} Turn
+ * @property {number} index
+ * @property {number} turnId
+ * @property {number} startedAt
+ * @property {number|null} endedAt
+ * @property {'done'|'aborted'|'error'|'truncated'|'running'|'unknown'} status
+ * @property {string} summary
+ * @property {number} stepCount
+ * @property {number} toolCount
+ * @property {boolean} [inferred] 窗口缺少 turn/start 时按 assistant/tool 分段推断（M2）
+ */
+
+/**
+ * @param {any} entry 原始事件或 S1 信封
+ * @returns {any|null} 事件对象；transient/无效返回 null
+ */
+function unwrapEvent(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  if (entry.type === 'event' && entry.event && typeof entry.event === 'object') return entry.event;
+  if (entry.type === 'transient') return null;
+  if (typeof entry.type === 'string' && (typeof entry.seq === 'number' || entry.data !== undefined)) return entry;
+  return null;
+}
+
+/**
+ * @param {any} content
+ * @returns {string}
+ */
+function lastTextOf(content) {
+  if (!Array.isArray(content)) return '';
+  /** @type {string[]} */
+  const texts = [];
+  for (const block of content) {
+    if (block && block.type === 'text' && typeof block.text === 'string' && block.text.trim() !== '') texts.push(block.text);
+  }
+  return texts.length > 0 ? texts[texts.length - 1] : '';
+}
+
+/**
+ * turn/end.reason.kind → 轨迹状态
+ * @param {string} reasonKind
+ * @returns {'done'|'aborted'|'error'|'truncated'|'unknown'}
+ */
+function turnStatusFromReason(reasonKind) {
+  const kind = String(reasonKind ?? '').toLowerCase();
+  if (kind === 'completed') return 'done';
+  if (kind === 'aborted' || kind === 'interrupted' || kind === 'cancelled' || kind === 'canceled') return 'aborted';
+  if (kind === 'error' || kind === 'failed') return 'error';
+  if (kind === 'max-tokens' || kind === 'max_tokens' || kind === 'truncated') return 'truncated';
+  return 'unknown';
+}
+
+/**
+ * 轮次摘要：末段文本 → ≤maxLines 行、≤maxChars 字（超出加 …）
+ * @param {string} text
+ * @param {{maxChars?: number, maxLines?: number}} [options]
+ * @returns {string}
+ */
+function summarizeTurn(text, options = {}) {
+  const maxChars = Number.isFinite(options.maxChars) ? Number(options.maxChars) : 120;
+  const maxLines = Number.isFinite(options.maxLines) ? Number(options.maxLines) : 2;
+  const raw = String(text ?? '').replace(/\r\n?/g, '\n').trim();
+  if (!raw) return '';
+  const lines = raw.split('\n').map((line) => line.trim()).filter((line) => line !== '');
+  let summary = lines.slice(0, Math.max(1, maxLines)).join('\n');
+  if (lines.length > maxLines) summary += '…';
+  if (summary.length > maxChars) summary = `${summary.slice(0, maxChars - 1)}…`;
+  return summary;
+}
+
+/**
+ * 聚合轮次（最新在前）
+ * @param {any[]} events 原始事件 / S1 信封数组
+ * @param {{cutoffSeq?: number, maxChars?: number, maxLines?: number}} [options]
+ * @returns {Turn[]}
+ */
+function aggregateTurns(events, options = {}) {
+  const list = Array.isArray(events) ? events : [];
+  const raw = [];
+  for (const entry of list) {
+    const event = unwrapEvent(entry);
+    if (!event || typeof event.type !== 'string') continue;
+    raw.push(event);
+  }
+  // seeded/fork cutoff：显式传入优先，否则取 session/end-seed 的最大 seq
+  let cutoff = Number.isFinite(options.cutoffSeq) ? Number(options.cutoffSeq) : -1;
+  if (!Number.isFinite(options.cutoffSeq)) {
+    for (const e of raw) {
+      if (e.type === 'session/end-seed' && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
+    }
+  }
+
+  /** @type {Map<number, {turnId:number, startedAt:number, endedAt:number|null, status:string, finalText:string, stepCount:number, toolCount:number, dropped:boolean}>} */
+  const records = new Map();
+  let order = 0;
+  let currentTurn = null;
+  let sawAnyTurnish = false;
+  /** @type {Set<number>} */
+  const explicitTurns = new Set();
+
+  const ensure = (turnId, time) => {
+    const id = Number.isFinite(turnId) ? Number(turnId) : order + 1;
+    let rec = records.get(id);
+    if (!rec) {
+      rec = {
+        turnId: id,
+        startedAt: Number.isFinite(time) ? Number(time) : 0,
+        endedAt: null,
+        status: 'running',
+        finalText: '',
+        stepCount: 0,
+        toolCount: 0,
+        dropped: false,
+      };
+      records.set(id, rec);
+    }
+    if (Number.isFinite(time) && (!rec.startedAt || Number(time) < rec.startedAt)) rec.startedAt = Number(time);
+    return rec;
+  };
+
+  for (const event of raw) {
+    if (cutoff >= 0 && typeof event.seq === 'number' && event.seq <= cutoff) continue;
+    if (event.type === 'session/end-seed') continue;
+    const data = event.data ?? {};
+    const time = Number(event.time ?? 0);
+    if (event.type === 'turn/start') {
+      sawAnyTurnish = true;
+      order += 1;
+      explicitTurns.add(Number.isFinite(data.turn) ? Number(data.turn) : order);
+      currentTurn = Number.isFinite(data.turn) ? Number(data.turn) : order;
+      ensure(currentTurn, time);
+      continue;
+    }
+    if (event.type === 'turn/end') {
+      const turnId = Number.isFinite(data.turn) ? Number(data.turn) : currentTurn ?? order;
+      const rec = ensure(turnId, time);
+      const reason = data.reason?.kind ?? 'unknown';
+      rec.endedAt = time;
+      rec.status = turnStatusFromReason(reason);
+      if (String(reason).toLowerCase() === 'forked') rec.dropped = true;
+      if (currentTurn === turnId) currentTurn = null;
+      continue;
+    }
+    if (event.type === 'assistant/message') {
+      sawAnyTurnish = true;
+      const turnId = Number.isFinite(data.turn) ? Number(data.turn) : currentTurn ?? order;
+      if (!Number.isFinite(data.turn) && currentTurn === null) order += 1;
+      const rec = ensure(turnId, time);
+      const text = lastTextOf(data.message?.content);
+      if (text.trim() !== '') rec.finalText = text;
+      if (Number.isFinite(data.step)) rec.stepCount = Math.max(rec.stepCount, Number(data.step));
+      continue;
+    }
+    if (event.type === 'tool/call') {
+      sawAnyTurnish = true;
+      const turnId = Number.isFinite(data.turn) ? Number(data.turn) : currentTurn ?? order;
+      const rec = ensure(turnId, time);
+      rec.toolCount += 1;
+      if (Number.isFinite(data.step)) rec.stepCount = Math.max(rec.stepCount, Number(data.step));
+      continue;
+    }
+  }
+
+  if (records.size === 0) {
+    /** @type {any} */
+    const empty = [];
+    empty.emptyReason = sawAnyTurnish ? 'no-usable-turn-events' : 'no-turn-events';
+    return empty;
+  }
+
+  /** @type {Turn[]} */
+  const turns = [];
+  let index = 0;
+  for (const rec of records.values()) {
+    if (rec.dropped) continue;
+    index += 1;
+    turns.push({
+      index,
+      turnId: rec.turnId,
+      startedAt: rec.startedAt,
+      endedAt: rec.endedAt,
+      status: /** @type {any} */ (rec.endedAt === null ? 'running' : rec.status === 'running' ? 'unknown' : rec.status),
+      summary: summarizeTurn(rec.finalText, { maxChars: options.maxChars ?? 120, maxLines: options.maxLines ?? 2 }),
+      stepCount: rec.stepCount,
+      toolCount: rec.toolCount,
+      inferred: !explicitTurns.has(rec.turnId),
+    });
+  }
+  // 最新在前
+  turns.sort((a, b) => b.index - a.index);
+  /** @type {any} */
+  const result = turns;
+  result.inferred = turns.some((t) => t.inferred === true);
+  return result;
+}
+
+Object.assign(__exports, { "turnStatusFromReason": turnStatusFromReason, "summarizeTurn": summarizeTurn, "aggregateTurns": aggregateTurns });
 });
 /* ── src/send/delivery.js ─────────────────────────────────────────── */
 __def("src/send/delivery.js", function (__exports, __req) {
@@ -6128,6 +7007,7 @@ __def("src/send/send-batch.js", function (__exports, __req) {
 
 const { LIMITS } = __req("src/core/constants.js");
 const { buildParts } = __req("src/core/protocol.js");
+const { hashText, normalizeText } = __req("src/core/dedupe.js");
 const { normalizeSendTargets, targetNamesOf } = __req("src/send/targets.js");
 const { orderByLeadFirst, resolveMode, checkTargetAvailability } = __req("src/send/mode.js");
 const { classifyError, failureInfo, failedDelivery, failedDeliveryWithDiagnostics, describeError, sentDelivery } = __req("src/send/errors.js");
@@ -6173,6 +7053,8 @@ const { createRateLimiter, defaultSingleFlight, withTimeout } = __req("src/send/
  * @property {(echo: ChannelMessage) => void} [onEcho]
  * @property {(batch: {clientBatchId: string, channelId: string, attempt?: number, targets: Array<{name: string, sessionId: string, kind?: string}>, targetNames: string[], requestIds: Record<string, string>, sessionIds: string[]}) => void} [onBatch]  F-07：prompt 前回调，UI 用它维护 localBatches
  * @property {boolean} [suppressEcho]
+ * @property {Record<string, any>} [localBatches]  M4：与 adapter ctx.localBatches 同一对象引用（UI 在 onBatch 写入）
+ * @property {(error: any) => void} [onBatchError]  M4：onBatch 回调异常可观测钩子
  */
 
 /**
@@ -6426,6 +7308,8 @@ async function sendChannelBatch(request) {
       detail,
     }));
     logSendError(error, failTargets[0], requestIdOf(failTargets[0]) ?? '');
+    // M4/H1：外层异常也属于终态（failed），关闭 localBatches 条目（弱匹配不再使用，rpcId 仍可替换 echo）
+    markLocalBatchClosed(deps, batchId, 'failed', now);
     return {
       status: 'failed',
       deliveries,
@@ -6518,15 +7402,16 @@ async function sendChannelBatch(request) {
     }
     knownRequestIds = requestIds;
 
+    const mode = resolveMode(targets[0], { mode: request?.mode });
+    knownMode = mode;
+
     /** @type {SendDeliveryItem[]} */
     const deliveries = [];
     /** @type {string[]} */
     const warnings = [];
-    const mode = resolveMode(targets[0], { mode: request?.mode });
-    knownMode = mode;
 
     // F-07：prompt 前把本批 id/requestIds/targets 交给 UI（维护 localBatches，权威消息才能替换本地 echo）。
-    // retry 复用同一 clientBatchId/requestIds，因此回调用同一批次信息（targets 为本次实发子集）。
+    // H1/M4：payload 含 text/textHash/at，供无 rpcId 的严格弱匹配；回调异常需可观测（warnings + onBatchError）。
     if (typeof deps.onBatch === 'function') {
       try {
         deps.onBatch({
@@ -6537,9 +7422,18 @@ async function sendChannelBatch(request) {
           targetNames,
           requestIds: { ...requestIds },
           sessionIds: targets.map((t) => t.sessionId || (t.name === 'lead' ? channelId : '')).filter(Boolean),
+          text: body,
+          textHash: hashText(normalizeText(body)),
+          at: now(),
         });
       } catch (error) {
-        // 回调失败不得影响发送
+        // 回调失败不得影响发送；但必须可观测
+        warnings.push('onBatch-callback-failed');
+        try {
+          if (typeof deps.onBatchError === 'function') deps.onBatchError(error);
+        } catch {
+          /* ignore */
+        }
         try {
           if (typeof console !== 'undefined' && typeof console.warn === 'function') {
             console.warn('[group-chat send] onBatch callback failed', error);
@@ -6648,6 +7542,8 @@ async function sendChannelBatch(request) {
       updatedAt: now(),
     });
 
+    markLocalBatchClosed(deps, batchId, status, now);
+
     return {
       status,
       deliveries,
@@ -6686,6 +7582,23 @@ async function sendChannelBatch(request) {
       }
     }
   }
+}
+
+/**
+ * M4：批次终态后关闭 localBatches 条目（仍保留到 TTL，rpcId 精确匹配可继续，弱匹配不再使用）
+ * @param {SendDeps} deps
+ * @param {string} batchId
+ * @param {string} status
+ * @param {() => number} now
+ */
+function markLocalBatchClosed(deps, batchId, status, now) {
+  const batches = deps?.localBatches;
+  if (!batches || typeof batches !== 'object') return;
+  const entry = batches[batchId];
+  if (!entry || typeof entry !== 'object') return;
+  entry.closed = true;
+  entry.status = status;
+  entry.closedAt = typeof now === 'function' ? now() : Date.now();
 }
 
 /**
@@ -7272,6 +8185,70 @@ function gcCopyFallback(value) {
   }
 }
 
+/* ── 单一输入器（F24/§6.13）：body 标记 + 宿主 composer 隐藏 + 2×rAF 自检 ── */
+
+const GC_BODY_CLASS = 'gc-view-group-chat'
+const GC_HOST_COMPOSER_SELECTORS = ['[data-conversation-region="composer"]', '[data-composer-seat]']
+
+/** 视图激活期给 body 加标记（幂等；卸载时 remove，防止切走后宿主输入器仍被隐藏）。 */
+function gcEnterGroupChatBody() {
+  try {
+    if (typeof document === 'undefined' || !document.body) return function () {}
+    document.body.classList.add(GC_BODY_CLASS)
+    return function gcLeaveGroupChatBody() {
+      try {
+        document.body.classList.remove(GC_BODY_CLASS)
+      } catch {}
+    }
+  } catch {
+    return function () {}
+  }
+}
+
+function gcHostComposerVisible() {
+  try {
+    if (typeof document === 'undefined') return false
+    for (let i = 0; i < GC_HOST_COMPOSER_SELECTORS.length; i += 1) {
+      const nodes = document.querySelectorAll(GC_HOST_COMPOSER_SELECTORS[i])
+      for (let j = 0; j < nodes.length; j += 1) {
+        const node = nodes[j]
+        const style = typeof getComputedStyle === 'function' ? getComputedStyle(node) : null
+        if ((!style || style.display !== 'none') && (node.offsetHeight || 0) > 0) return true
+      }
+    }
+  } catch {}
+  return false
+}
+
+/**
+ * 2×rAF 自检宿主 composer 是否真的被隐藏：仍可见 → 降级（移除 body 标记，恢复宿主输入器）
+ * 并返回 degraded=true；调用方据此显示一次性提示 composer.hostFallback。
+ * 绝不因隐藏失败而禁用/清空插件输入器。
+ */
+function gcVerifyHostComposerHidden() {
+  return new Promise(function (resolve) {
+    const check = function () {
+      const visible = gcHostComposerVisible()
+      if (visible) {
+        try {
+          if (typeof document !== 'undefined' && document.body) document.body.classList.remove(GC_BODY_CLASS)
+        } catch {}
+        gcWarn('host composer could not be hidden; compatibility mode enabled')
+        resolve({ degraded: true, visible: true })
+        return
+      }
+      resolve({ degraded: false, visible: false })
+    }
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(check)
+      })
+      return
+    }
+    check()
+  })
+}
+
 function gcIsPreviewRequested() {
   try {
     if (typeof location === 'undefined') return false
@@ -7522,6 +8499,10 @@ function gcRememberBatch(record) {
     requestIds: gcNormalizeRequestIds(input, targets),
     targets: targets.filter(Boolean),
     sessionIds: sessionIds.filter(Boolean),
+    // H1 弱匹配（无 rpcId）需要 text（或 textHash）+ targets 集合 + 时间窗
+    ...(gcStr(input.text) ? { text: gcStr(input.text) } : null),
+    ...(gcStr(input.textHash) ? { textHash: gcStr(input.textHash) } : null),
+    ...(input.closed === true ? { closed: true } : null),
     at: at
   }
   gcPruneLocalBatches(at)
@@ -7544,6 +8525,14 @@ function gcLookupLocalBatchByRpc(rpcId) {
 
 function gcLocalBatchIds() {
   return Object.keys(gcLocalBatches)
+}
+
+/** 批次终态（成功/失败后）：H1 只允许 rpcId 精确匹配，关闭弱匹配窗口。 */
+function gcCloseBatch(clientBatchId) {
+  const id = gcStr(clientBatchId)
+  if (!id) return
+  const record = gcLocalBatches[id]
+  if (record) record.closed = true
 }
 
 /* ── 排序与合并 ───────────────────────────────────────────────────────── */
@@ -7655,16 +8644,17 @@ function gcMergeMessages(existing, incoming, channel, limits) {
   for (let i = 0; i < next.length; i += 1) {
     let item = next[i]
     if (!item || !item.id) continue
-    // 权威消息可能只带 meta.rpcId（core 未注册 localBatches 时）→ 用本地批次表兜底反查
+    // H1（F30/SC47）：权威消息带 clientBatchId（或 meta.rpcId 经本地批次表反查）时，
+    // 必须在这里删除 local:<batchId> —— 这是唯一能看到本地 echo 的层（core 只处理真实事件）。
     const rpcId = gcStr(item.meta && (item.meta.rpcId || item.meta.requestId || item.meta.rpcID))
     const batchId =
       gcStr(item.clientBatchId) || gcStr(item.meta && item.meta.clientBatchId) || gcLookupLocalBatchByRpc(rpcId)
-    if (batchId) {
+    if (batchId && gcStr(item.kind) === 'user') {
       if (localsByBatch.has(batchId)) {
         byId.delete(localsByBatch.get(batchId))
         localsByBatch.delete(batchId)
       }
-      if (!item.clientBatchId && gcStr(item.kind) === 'user') item = Object.assign({}, item, { clientBatchId: batchId })
+      if (!item.clientBatchId) item = Object.assign({}, item, { clientBatchId: batchId })
     }
     const old = byId.get(item.id)
     byId.set(item.id, old ? Object.assign({}, old, item) : item)
@@ -7725,6 +8715,44 @@ function gcBuildFeed(messages, nowTs) {
     prev = message
   }
   return items
+}
+
+/* ── 成员状态条（F26/§6.15.1：working/waiting、最多 5+N） ─────────────── */
+
+const GC_MEMBER_STRIP_MAX = Infinity // Lead 裁决：成员条全部显示（禁止 +N）
+
+/** running→working（绿），其余→waiting（灰）；未知按 waiting。 */
+function gcMemberWorkStatus(member) {
+  if (!member) return 'waiting'
+  return member.status === 'running' || member.status === 'provisioning' ? 'working' : 'waiting'
+}
+
+/** 成员条展示数据：lead → working teammate → waiting teammate → subagent，最多 5 个。 */
+function gcMemberStripData(channel) {
+  const members = gcAllMembers(channel)
+  const rank = function (member) {
+    if (member.kind === 'lead') return 0
+    if (member.kind === 'teammate') return gcMemberWorkStatus(member) === 'working' ? 1 : 2
+    return 3
+  }
+  const sorted = members.slice().sort(function (a, b) {
+    return rank(a) - rank(b)
+  })
+  const visible = sorted.slice(0, sorted.length)
+  return {
+    visible: visible,
+    overflow: 0
+  }
+}
+
+/** 频道头状态：{n} 名成员 · {m} 工作中 · {k} 等待 */
+function gcMembersStatusModel(channel) {
+  const members = gcAllMembers(channel)
+  let working = 0
+  for (let i = 0; i < members.length; i += 1) {
+    if (gcMemberWorkStatus(members[i]) === 'working') working += 1
+  }
+  return { total: members.length, working: working, waiting: Math.max(0, members.length - working) }
 }
 
 /* ── 成员索引与筛选（D-B） ────────────────────────────────────────────── */
@@ -7831,18 +8859,50 @@ function gcIsContextNoise(message) {
   return false
 }
 
-/* ── 折叠判定（D6） ───────────────────────────────────────────────────── */
+/** subagent-settled 副本（父会话通知）不渲染（F5/§4.3③）。 */
+function gcIsSettledNotice(message) {
+  if (!message) return false
+  const meta = message.meta || {}
+  return (
+    message.systemReason === 'subagent-settled' ||
+    meta.event === 'subagent-settled' ||
+    meta.sourceKind === 'subagent-settled'
+  )
+}
 
+/* ── 折叠判定（v1.7：50 行） ─────────────────────────────────────────── */
+
+/**
+ * v1.7（F29/§6.17）：默认展示前 50 行（50×22=1100px），超过才折叠。
+ * 优先用 core/fold 的 foldInfo（渲染行数近似；代码块按 value 行数折算），
+ * 缺失时本地按换行数近似（口径注明）。
+ */
 function gcFoldDecision(text, limits) {
   const value = gcStr(text)
-  const foldLines = (limits && limits.foldLines) || GC_LOCAL_LIMITS.foldLines
-  const foldChars = (limits && limits.foldChars) || GC_LOCAL_LIMITS.foldChars
-  const chars = countCodePoints(value)
+  const fold = gcCore('fold')
+  if (fold && typeof fold.foldInfo === 'function') {
+    try {
+      const info = fold.foldInfo(value)
+      const lineCount = typeof info.lineCount === 'number' ? info.lineCount : 0
+      return {
+        foldable: !!info.folded,
+        chars: countCodePoints(value),
+        lines: lineCount,
+        hidden: typeof info.hiddenLines === 'number' ? info.hiddenLines : Math.max(0, lineCount - 50),
+        maxLines: typeof info.maxLines === 'number' ? info.maxLines : 50
+      }
+    } catch (error) {
+      gcWarn('core foldInfo failed, using local:', gcShortError(error))
+    }
+  }
+  const maxLines = 50
   const lines = value === '' ? 0 : value.split('\n').length
   return {
-    foldable: lines > foldLines || chars > foldChars,
-    chars: chars,
-    lines: lines
+    foldable: lines > maxLines,
+    chars: countCodePoints(value),
+    lines: lines,
+    hidden: Math.max(0, lines - maxLines),
+    maxLines: maxLines
   }
 }
 
@@ -8014,7 +9074,10 @@ function gcMentionQuery(text, caret) {
   const core = gcCore('mentions')
   if (core && typeof core.computeMentionQuery === 'function') {
     try {
-      return core.computeMentionQuery(text, caret)
+      const result = core.computeMentionQuery(text, caret)
+      // core 返回 {active,start,end,query}；未触发时 active=false/start=-1
+      if (!result || result.active === false || (typeof result.start === 'number' && result.start < 0)) return null
+      return { start: result.start, end: result.end, query: gcStr(result.query) }
     } catch (error) {
       gcWarn('core computeMentionQuery failed:', gcShortError(error))
     }
@@ -8317,7 +9380,11 @@ function gcInitialState(overrides) {
       composerFocused: false,
       mention: null,
       mentionIndex: 0,
-      droppedMentions: []
+      droppedMentions: [],
+      // v1.7
+      trajectory: null,
+      trajectoryTurns: [],
+      composerFallback: false
     },
     overrides || null
   )
@@ -8597,6 +9664,45 @@ function GcIconAt(props) {
   )
 }
 
+function GcIconCopy(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('rect', { x: 5.5, y: 2.5, width: 8, height: 9, rx: 1.6, stroke: 'currentColor', strokeWidth: 1.2 }),
+    h('path', { d: 'M10.5 13.5v.4a1.1 1.1 0 0 1-1.1 1.1H3.1A1.1 1.1 0 0 1 2 13.9V6.1A1.1 1.1 0 0 1 3.1 5h.4', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round' })
+  )
+}
+
+function GcIconExternal(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('path', { d: 'M6.5 3.5H3.9A1.4 1.4 0 0 0 2.5 4.9v7.2a1.4 1.4 0 0 0 1.4 1.4h7.2a1.4 1.4 0 0 0 1.4-1.4V9.5', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round' }),
+    h('path', { d: 'M9.5 2.5h4v4M13.2 2.8 7.6 8.4', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+}
+
+function GcIconTasks(props) {
+  const size = (props && props.size) || 16
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('rect', { x: 2.5, y: 2.5, width: 11, height: 11, rx: 2, stroke: 'currentColor', strokeWidth: 1.2 }),
+    h('path', { d: 'M5 8.2l2 2 4-4', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+}
+
+function GcIconClose(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('path', { d: 'M3.5 3.5l9 9M12.5 3.5l-9 9', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round' })
+  )
+}
+
 /* ── 头像 / 状态点 / pill ─────────────────────────────────────────────── */
 
 function gcAvatarLetter(name) {
@@ -8717,6 +9823,179 @@ function GcRichText(props) {
     nodes.push(h('p', { key: 'p' + i }, children))
   }
   return h(Fragment, null, nodes)
+}
+
+/* ── Markdown 受控渲染（F22 / §6.12；禁止 innerHTML） ─────────────────── */
+
+function gcSplitMentions(value, mentionSet, onMention) {
+  const text = gcStr(value)
+  if (!text) return []
+  const re = /(@[0-9A-Za-z_\u4e00-\u9fa5.\-]+)/g
+  const out = []
+  let last = 0
+  let match = re.exec(text)
+  let key = 0
+  while (match) {
+    if (match.index > last) out.push(text.slice(last, match.index))
+    const token = match[0]
+    const name = token.slice(1)
+    if (!mentionSet || mentionSet.has(name)) {
+      out.push(
+        h(
+          'span',
+          {
+            key: 'm' + key,
+            className: 'gc-mention',
+            'data-mention': name,
+            'data-clickable': onMention ? 'true' : 'false',
+            role: onMention ? 'button' : undefined,
+            tabIndex: onMention ? 0 : undefined,
+            onClick: onMention
+              ? function (event) {
+                  event.stopPropagation()
+                  onMention(name)
+                }
+              : undefined
+          },
+          token
+        )
+      )
+    } else out.push(token)
+    last = match.index + token.length
+    key += 1
+    match = re.exec(text)
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
+function gcMarkdownMod() {
+  return gcCore('markdown')
+}
+
+/** 链接安全（防御纵深）：core 已过滤一次，渲染端再校验 scheme。 */
+function gcIsSafeLinkUrl(url) {
+  const value = gcStr(url).trim()
+  if (!value) return false
+  const mod = gcMarkdownMod()
+  if (mod && typeof mod.isSafeUrl === 'function') {
+    try {
+      return !!mod.isSafeUrl(value)
+    } catch {}
+  }
+  return /^(https?:|mailto:)/i.test(value)
+}
+
+function gcRenderMdInline(children, options) {
+  const list = gcAsArray(children)
+  const out = []
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i]
+    if (!node) continue
+    if (node.type === 'text') {
+      const parts = gcSplitMentions(node.value, options.mentionSet, options.onMention)
+      for (let j = 0; j < parts.length; j += 1) {
+        if (typeof parts[j] === 'string') out.push(parts[j])
+        else out.push(h(Fragment, { key: 'm' + i + '-' + j }, parts[j]))
+      }
+    } else if (node.type === 'strong') {
+      out.push(h('strong', { key: 's' + i, className: 'gc-md-strong' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'em') {
+      out.push(h('em', { key: 'e' + i, className: 'gc-md-em' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'code') {
+      out.push(h('code', { key: 'c' + i, className: 'gc-md-code' }, gcStr(node.value)))
+    } else if (node.type === 'link') {
+      const url = gcStr(node.url)
+      if (!gcIsSafeLinkUrl(url)) {
+        // 渲染端二次校验失败 → 纯文本（不产生 <a>）
+        out.push(h('span', { key: 'l' + i, className: 'gc-md-link-plain' }, gcRenderMdInline(node.children, options)))
+      } else {
+        out.push(
+          h(
+            'a',
+            {
+              key: 'l' + i,
+              className: 'gc-md-link',
+              href: url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              'data-md-link': 'true'
+            },
+            gcRenderMdInline(node.children, options)
+          )
+        )
+      }
+    } else if (node.type === 'break') {
+      out.push(h('br', { key: 'b' + i }))
+    } else if (typeof node.value === 'string') {
+      out.push(node.value)
+    }
+  }
+  return out
+}
+
+function gcRenderMdBlocks(blocks, options) {
+  const list = gcAsArray(blocks)
+  const out = []
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i]
+    if (!node) continue
+    if (node.type === 'paragraph') {
+      out.push(h('p', { key: 'p' + i, className: 'gc-md-p' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'code_block') {
+      out.push(
+        h(
+          'pre',
+          { key: 'pre' + i, className: 'gc-md-pre', 'data-lang': gcStr(node.lang) || undefined },
+          h('code', null, gcStr(node.value))
+        )
+      )
+    } else if (node.type === 'list') {
+      const items = gcAsArray(node.items).map(function (item, itemIndex) {
+        return h('li', { key: 'li' + i + '-' + itemIndex, className: 'gc-md-li' }, gcRenderMdBlocks(item.children, options))
+      })
+      out.push(
+        h(
+          node.ordered ? 'ol' : 'ul',
+          { key: 'list' + i, className: 'gc-md-list', start: node.ordered && node.start ? node.start : undefined },
+          items
+        )
+      )
+    } else if (typeof node.value === 'string') {
+      out.push(h('p', { key: 'raw' + i, className: 'gc-md-p' }, node.value))
+    }
+  }
+  return out
+}
+
+/**
+ * 气泡正文渲染：core/markdown 的受控 AST → React 节点（无 innerHTML）。
+ * 模块缺失/解析异常 → `data-md="plain"` 的纯文本（保留换行）。
+ */
+function GcMarkdown(props) {
+  const text = gcStr(props.text)
+  const options = { mentionSet: props.mentionSet, onMention: props.onMention }
+  const mod = gcMarkdownMod()
+  if (mod && typeof mod.parseMarkdown === 'function') {
+    try {
+      const ast = mod.parseMarkdown(text)
+      if (!ast || ast.plain === true) {
+        return h('div', { className: 'gc-md', 'data-md': 'plain' }, gcSplitMentions(text, options.mentionSet, options.onMention))
+      }
+      return h(
+        'div',
+        {
+          className: 'gc-md',
+          'data-md': 'rich',
+          'data-md-truncated': ast.truncated ? 'true' : undefined
+        },
+        gcRenderMdBlocks(ast.children, options)
+      )
+    } catch (error) {
+      gcWarn('markdown render failed, plain fallback:', gcShortError(error))
+    }
+  }
+  return h('div', { className: 'gc-md', 'data-md': 'plain' }, gcSplitMentions(text, options.mentionSet, options.onMention))
 }
 
 /* ── SenderLine ───────────────────────────────────────────────────────── */
@@ -8847,51 +10126,50 @@ function GcFoldMeta(props) {
   const t = props.t
   const decision = props.decision
   const expanded = !!props.expanded
+  const maxLines = decision.maxLines || 50
+  const lineCount = decision.lines || 0
   return h(
     'div',
     { className: 'gc-fold-meta' },
-    h('span', null, t('msg.foldMeta', {
-      n: decision.chars,
-      state: expanded
-        ? t('msg.foldStateExpanded', { lines: decision.lines })
-        : t('msg.foldStateFolded', { lines: Math.min(decision.lines, 8) })
-    })),
+    !expanded ? h('span', null, t('msg.foldMetaLines', { n: maxLines })) : null,
     h(
       'button',
       {
         type: 'button',
         className: 'gc-fold-toggle',
         'data-testid': 'group-chat-fold-toggle',
+        'data-line-count': String(lineCount),
         'aria-expanded': expanded ? 'true' : 'false',
         onClick: function (event) {
           event.preventDefault()
           if (props.onToggle) props.onToggle()
         }
       },
-      expanded ? t('msg.collapse') : t('msg.expandAll', { n: decision.chars })
+      expanded ? t('msg.collapse') : t('msg.expandLines', { n: lineCount })
     )
   )
 }
 
 function GcRowActions(props) {
   const t = props.t
-  const actions = []
-  actions.push(
+  const actions = [
     h(
       'button',
       {
         key: 'copy',
         type: 'button',
-        className: 'gc-row-action',
-        'data-action': 'copy',
+        className: 'gc-icon-action',
+        'data-action': 'copy-message',
+        'aria-label': t('msg.action.copy'),
+        title: t('msg.action.copy'),
         onClick: function (event) {
           event.preventDefault()
           if (props.onCopy) props.onCopy()
         }
       },
-      t('msg.copy')
+      h(GcIconCopy, { size: 14 })
     )
-  )
+  ]
   if (props.onOpen) {
     actions.push(
       h(
@@ -8899,14 +10177,16 @@ function GcRowActions(props) {
         {
           key: 'open',
           type: 'button',
-          className: 'gc-row-action',
+          className: 'gc-icon-action',
           'data-action': 'open-session',
+          'aria-label': t('msg.action.openSession'),
+          title: t('msg.action.openSession'),
           onClick: function (event) {
             event.preventDefault()
             props.onOpen()
           }
         },
-        t('msg.openSession')
+        h(GcIconExternal, { size: 14 })
       )
     )
   }
@@ -9227,7 +10507,7 @@ function GcTaskCardMessage(props) {
   const payload = message.taskCard || {}
   const task = payload.task || {}
   const actor = payload.actor || message.sender || {}
-  const actorName = gcStr(actor.name) || 'lead'
+  const actorName = gcStr(actor.name) || t('task.actorSystem')
   const actorKind = actor.kind === 'lead' || actor.kind === 'teammate' || actor.kind === 'subagent' ? actor.kind : 'lead'
   const actionLabel = gcTaskActionLabel(payload, t)
   const statusLabel = gcTaskStatusLabel(payload, t)
@@ -9235,30 +10515,54 @@ function GcTaskCardMessage(props) {
   const expanded = !!props.expanded
   const compact = !!payload.compact
   const description = gcStr(task.description)
-  const ownerText = gcTaskOwnerText(task, payload, t)
-  const blockedByText = gcTaskBlockedByText(task, t)
+  const ownerName = gcStr(task.ownerName) || gcStr(task.ownerId)
+  const ownerText = ownerName || t('task.ownerUnassigned')
+  const blockedBy = gcAsArray(task.blockedBy)
+  const blockedText = blockedBy.length > 0 ? t('task.blockedByList', { list: gcJoinNames(blockedBy) }) : t('task.noBlockedBy')
   const timeText = gcMessageTimeText(payload.time || message.time)
   const taskId = gcStr(task.id) || gcStr(payload.id)
 
   const fields = []
   fields.push(
-    h(GcTaskFieldRow, { key: 'owner', field: 'owner', label: t('task.owner'), value: ownerText })
+    h(
+      'div',
+      { key: 'owner', className: 'gc-task-owner-row', 'data-field': 'owner' },
+      h('span', { key: 'label', className: 'gc-task-owner-label' }, t('task.owner')),
+      h(
+        'span',
+        { key: 'avatar', className: 'gc-task-owner-avatar', 'data-task-owner-avatar': 'true' },
+        ownerName
+          ? h(GcAvatar, { name: ownerName, kind: actorKind === 'lead' ? 'teammate' : actorKind, size: 20 })
+          : h('span', {
+              className: 'gc-avatar gc-avatar-placeholder',
+              'data-kind': 'teammate',
+              'data-size': '20',
+              'aria-hidden': 'true'
+            })
+      ),
+      h('span', { key: 'name' }, ownerText)
+    )
   )
-  if (blockedByText) {
-    fields.push(h(GcTaskFieldRow, { key: 'blocked', field: 'blocked-by', label: t('task.blockedBy'), value: blockedByText }))
-  }
-  if (gcStr(payload.action) === 'complete') {
+  fields.push(
+    h(
+      'div',
+      { key: 'blocked', className: 'gc-task-field', 'data-field': 'blocked-by' },
+      h('span', { className: 'gc-task-field-label' }, t('task.blockedBy')),
+      h('span', { className: 'gc-task-field-value' }, blockedText)
+    )
+  )
+  if (status === 'completed') {
     fields.push(
-      h(GcTaskFieldRow, {
-        key: 'completion',
-        field: 'completion-time',
-        label: t('task.completionTime'),
-        value: timeText
-      })
+      h(
+        'div',
+        { key: 'completion', className: 'gc-task-field', 'data-field': 'completion-time' },
+        h('span', { className: 'gc-task-field-label' }, t('task.completionTime')),
+        h('span', { className: 'gc-task-field-value' }, timeText)
+      )
     )
   }
 
-  const showDescription = description !== '' && (gcStr(payload.action) === 'create' || !compact)
+  const showDescription = description !== ''
   const descNode = showDescription
     ? h(
         'p',
@@ -9272,35 +10576,21 @@ function GcTaskCardMessage(props) {
       )
     : null
 
-  const copyAction = h(
-    'button',
-    {
-      key: 'copy',
-      type: 'button',
-      className: 'gc-card-action',
-      'data-action': 'copy-task-id',
-      onClick: function (event) {
-        event.preventDefault()
-        if (props.onCopyId) props.onCopyId(taskId)
-      }
-    },
-    t('task.copyId')
-  )
-
   const bodyChildren = [
     h(
       'div',
       { key: 'head', className: 'gc-task-head' },
+      h('span', { key: 'icon', className: 'gc-task-icon', 'aria-hidden': 'true' }, h(GcIconTasks, { size: 16 })),
       h('span', { className: 'gc-task-action' }, actionLabel),
       h(GcPill, { status: status, label: statusLabel }),
-      h('span', { className: 'gc-task-id' }, taskId)
+      h('span', { key: 'id', className: 'gc-task-id' }, taskId)
     ),
     h('h3', { key: 'title', className: 'gc-task-title', title: gcStr(task.subject) }, gcStr(task.subject)),
     descNode,
     fields.length > 0 ? h('div', { key: 'fields', className: 'gc-task-fields' }, fields) : null
   ]
 
-  const actionNodes = [copyAction]
+  const actionNodes = []
   if (gcStr(payload.action) === 'create' && countCodePoints(description) > 100) {
     actionNodes.push(
       h(
@@ -9318,10 +10608,22 @@ function GcTaskCardMessage(props) {
             if (props.onAction) props.onAction('expand-task')
           }
         },
-        expanded ? t('msg.collapse') : t('msg.expandAll', { n: countCodePoints(description) })
+        expanded ? t('msg.collapse') : t('msg.expandLines', { n: countCodePoints(description) })
       )
     )
   }
+  actionNodes.push(
+    h(GcRowActions, {
+      key: 'icon-actions',
+      t: t,
+      onCopy: function () {
+        if (props.onCopyMessage) props.onCopyMessage(message)
+      },
+      onOpen: function () {
+        if (props.onOpenSession) props.onOpenSession(message)
+      }
+    })
+  )
   bodyChildren.push(h('div', { key: 'actions', className: 'gc-task-actions' }, actionNodes))
 
   const rowAttrs = {
@@ -9329,14 +10631,15 @@ function GcTaskCardMessage(props) {
     'data-kind': 'task_card',
     'data-message-id': message.id,
     'data-card': 'task',
+    'data-card-accent': status,
     'data-sender': actorName,
     'data-task-id': taskId,
     'data-task-revision': String(task.revision === undefined ? '' : task.revision),
     'data-task-action': gcStr(payload.action),
     'data-task-status': status,
-    'data-task-owner': gcStr(task.ownerName) || gcStr(task.ownerId),
+    'data-task-owner': ownerName,
     'data-task-actor': actorName,
-    'data-task-blocked-by': gcAsArray(task.blockedBy).join(','),
+    'data-task-blocked-by': blockedBy.join(','),
     'data-replay': payload.replay ? 'true' : 'false',
     role: 'article',
     'aria-label': t('a11y.taskCard', { action: actionLabel, id: taskId })
@@ -9344,7 +10647,7 @@ function GcTaskCardMessage(props) {
 
   const card = h(
     'div',
-    { className: 'gc-card', 'data-card': 'task', 'data-compact': compact ? 'true' : 'false' },
+    { className: 'gc-card', 'data-card': 'task', 'data-card-accent': status, 'data-compact': compact ? 'true' : 'false' },
     bodyChildren
   )
 
@@ -9352,6 +10655,11 @@ function GcTaskCardMessage(props) {
     return h(
       'div',
       rowAttrs,
+      h(
+        'span',
+        { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
+        h(GcAvatar, { name: actorName, kind: actorKind, size: 24 })
+      ),
       h(
         'div',
         { className: 'gc-row-main' },
@@ -9369,7 +10677,11 @@ function GcTaskCardMessage(props) {
   return h(
     'div',
     rowAttrs,
-    h(GcAvatar, { name: actorName, kind: actorKind, size: 32 }),
+    h(
+      'span',
+      { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
+      h(GcAvatar, { name: actorName, kind: actorKind, size: 32 })
+    ),
     h(
       'div',
       { className: 'gc-row-main' },
@@ -9510,7 +10822,7 @@ function gcRenderBubbleContent(props) {
   }
 
   children.push(
-    h(GcRichText, {
+    h(GcMarkdown, {
       key: 'text',
       text: message.text,
       mentionSet: gcMentionSetFor(props.channel),
@@ -9563,7 +10875,6 @@ function GcMessageRow(props) {
   const foldedMap = (props.state && props.state.folded) || {}
   const expanded = foldedMap[message.id] ? true : !foldDecision.foldable
   const captionModel = gcCaptionModel(message, t)
-  const toolCount = typeof message.toolCallCount === 'number' ? message.toolCallCount : 0
 
   const bubble = h(
     GcBubble,
@@ -9623,28 +10934,6 @@ function GcMessageRow(props) {
     )
   )
 
-  if (toolCount > 0) {
-    mainChildren.push(
-      h(
-        'div',
-        { key: 'tools', className: 'gc-tool-line', 'data-field': 'tool-calls' },
-        h(
-          'button',
-          {
-            type: 'button',
-            className: 'gc-link',
-            'data-action': 'open-trajectory',
-            onClick: function (event) {
-              event.preventDefault()
-              if (props.onOpenTrajectory) props.onOpenTrajectory(message)
-            }
-          },
-          t('msg.toolCalls', { n: toolCount })
-        )
-      )
-    )
-  }
-
   mainChildren.push(
     h(GcRowActions, {
       key: 'actions',
@@ -9693,7 +10982,7 @@ function gcWelcomeText(message, t) {
 
 function GcFeedItem(props) {
   const message = props.message
-  if (gcIsContextNoise(message)) return null
+  if (gcIsContextNoise(message) || gcIsSettledNotice(message)) return null
   if (message.kind === 'system') {
     const isWelcome =
       message.systemReason === 'member-welcome' || (message.meta && message.meta.systemVariant === 'welcome')
@@ -9718,9 +11007,8 @@ function GcFeedItem(props) {
       onAction: function (action) {
         if (props.onCardAction) props.onCardAction(message, action)
       },
-      onCopyId: function (id) {
-        if (props.onCopyTaskId) props.onCopyTaskId(id)
-      }
+      onCopyMessage: props.onCopyMessage,
+      onOpenSession: props.onOpenSession
     })
   }
   return h(GcMessageRow, props)
@@ -9875,14 +11163,16 @@ function GcChannelHeader(props) {
 
   const statusChildren = []
   if (!singleAgent) {
-    statusChildren.push(h(GcStatusDot, { key: 'dot', state: gcRunningCount(channel) > 0 ? 'running' : 'inactive' }))
+    const statusModel = gcMembersStatusModel(channel)
+    statusChildren.push(h(GcStatusDot, { key: 'dot', state: statusModel.working > 0 ? 'running' : 'inactive' }))
     statusChildren.push(
       h(
         'span',
         { key: 'text' },
-        t('channel.membersRunning', {
-          n: gcMemberCount(channel),
-          m: gcRunningCount(channel)
+        t('channel.membersStatus', {
+          n: statusModel.total,
+          m: statusModel.working,
+          k: statusModel.waiting
         })
       )
     )
@@ -9919,6 +11209,46 @@ function GcChannelHeader(props) {
   if (teamName) {
     titleRow.push(h('span', { key: 'divider', className: 'gc-header-divider' }))
     titleRow.push(h('span', { key: 'team', className: 'gc-header-team', title: teamName }, teamName))
+  }
+
+  if (!singleAgent && props.onOpenTrajectory) {
+    const strip = gcMemberStripData(channel)
+    if (strip.visible.length > 0) {
+      const stripNodes = strip.visible.map(function (member) {
+        const state = gcMemberWorkStatus(member)
+        return h(
+          'button',
+          {
+            key: 'member-' + (member.sessionId || member.name),
+            type: 'button',
+            className: 'gc-member-strip-item',
+            'data-testid': 'group-chat-member-strip-item',
+            'data-member-id': gcStr(member.sessionId),
+            'data-member-state': state,
+            'data-action': 'open-trajectory',
+            title: member.name,
+            'aria-label': member.name + ' · ' + t('member.status.' + state),
+            onClick: function (event) {
+              event.preventDefault()
+              props.onOpenTrajectory(member)
+            }
+          },
+          h(GcAvatar, { name: member.name, kind: member.kind, size: 24 }),
+          h('span', { className: 'gc-member-status-dot', 'data-state': state, 'aria-hidden': 'true' })
+        )
+      })
+      titleRow.push(
+        h(
+          'div',
+          {
+            key: 'member-strip',
+            className: 'gc-member-strip',
+            'data-testid': 'group-chat-member-strip'
+          },
+          stripNodes
+        )
+      )
+    }
   }
 
   const mainChildren = [h('div', { key: 'row1', className: 'gc-header-row' }, titleRow)]
@@ -10129,6 +11459,159 @@ function GcBanners(props) {
   return h('div', { className: 'gc-banners' }, h('div', { className: 'gc-col' }, nodes))
 }
 
+/* ── src/client/parts/65-trajectory.part.js ─────────────────────────────────────────── */
+/* ──────────────────────────────────────────────────────────────────────────
+ * 65-trajectory.part.js — 轮次轨迹侧栏（F26 / §6.15.2）
+ *
+ * 右侧 380px 抽屉（窄屏全屏），只读；数据来自该成员会话事件窗口经 core/turns
+ * 聚合（缺失时按该成员 agent_output 降级），不修改消息流、不新增订阅。
+ * DOM 契约：agent-trajectory-panel / agent-trajectory-overlay /
+ * data-action=close-trajectory / agent-trajectory-turn[data-turn-index][data-turn-status] /
+ * agent-trajectory-load-older。
+ * ────────────────────────────────────────────────────────────────────────── */
+
+const GC_TRAJECTORY_STATUS_KEY = {
+  done: 'trajectory.status.done',
+  aborted: 'trajectory.status.aborted',
+  error: 'trajectory.status.error',
+  truncated: 'trajectory.status.truncated',
+  running: 'trajectory.status.running',
+  unknown: 'trajectory.status.unknown'
+}
+
+function gcTrajectoryStatusText(status, t) {
+  const key = GC_TRAJECTORY_STATUS_KEY[status] || 'trajectory.status.unknown'
+  return t(key)
+}
+
+function gcTrajectoryTime(turn) {
+  const ts = typeof turn.startedAt === 'number' ? turn.startedAt : turn.time
+  if (typeof ts !== 'number') return ''
+  return gcMessageTimeText(ts)
+}
+
+function GcTrajectoryTurn(props) {
+  const turn = props.turn || {}
+  const t = props.t
+  const status = gcStr(turn.status) || 'unknown'
+  const summary = gcStr(turn.summary)
+  const toolCount = typeof turn.toolCount === 'number' ? turn.toolCount : 0
+  return h(
+    'div',
+    {
+      className: 'gc-trajectory-turn',
+      'data-testid': 'agent-trajectory-turn',
+      'data-turn-index': String(turn.index === undefined ? '' : turn.index),
+      'data-turn-status': status
+    },
+    h(
+      'div',
+      { className: 'gc-trajectory-turn-head' },
+      h('span', null, gcTrajectoryTime(turn)),
+      h('span', null, '#' + String(turn.index === undefined ? '' : turn.index)),
+      h('span', { className: 'gc-trajectory-turn-status', 'data-status': status }, gcTrajectoryStatusText(status, t))
+    ),
+    h(
+      'div',
+      { className: 'gc-trajectory-turn-summary' },
+      summary || t('trajectory.noOutput')
+    ),
+    toolCount > 0 ? h('div', { className: 'gc-trajectory-turn-tools' }, t('trajectory.toolCount', { n: toolCount })) : null
+  )
+}
+
+function GcTrajectoryPanel(props) {
+  const t = props.t
+  const member = props.member || {}
+  const turns = gcAsArray(props.turns)
+  const overlay = h('div', {
+    key: 'overlay',
+    className: 'gc-trajectory-overlay',
+    'data-testid': 'agent-trajectory-overlay',
+    onClick: function (event) {
+      event.preventDefault()
+      if (props.onClose) props.onClose()
+    }
+  })
+  const body = h(
+    'aside',
+    {
+      className: 'gc-trajectory-panel',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-label': t('trajectory.title'),
+      'data-testid': 'agent-trajectory-panel',
+      'data-member-id': gcStr(member.sessionId)
+    },
+    h(
+      'div',
+      { className: 'gc-trajectory-head' },
+      h(GcAvatar, { name: member.name, kind: member.kind, size: 32 }),
+      h(
+        'div',
+        { style: { display: 'flex', flexDirection: 'column', minWidth: 0 } },
+        h('span', { className: 'gc-trajectory-title' }, t('trajectory.title')),
+        h('span', { className: 'gc-trajectory-agent' }, gcStr(member.name)),
+        h(
+          'span',
+          { className: 'gc-trajectory-meta' },
+          [
+            t('member.status.' + gcMemberWorkStatus(member)),
+            gcStr(member.model)
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        )
+      ),
+      h('span', { className: 'gc-spacer' }),
+      h(
+        'button',
+        {
+          type: 'button',
+          className: 'gc-icon-btn',
+          'data-action': 'close-trajectory',
+          'aria-label': t('trajectory.close'),
+          title: t('trajectory.close'),
+          onClick: function (event) {
+            event.preventDefault()
+            if (props.onClose) props.onClose()
+          }
+        },
+        h(GcIconClose, { size: 14 })
+      )
+    ),
+    h(
+      'div',
+      { className: 'gc-trajectory-list' },
+      turns.length === 0
+        ? h('div', { className: 'gc-empty-desc', style: { padding: '24px 8px', textAlign: 'center' } }, t('trajectory.empty'))
+        : turns.map(function (turn, index) {
+            return h(GcTrajectoryTurn, { key: 'turn-' + (turn.index ?? index), turn: turn, t: t })
+          })
+    ),
+    props.hasOlder
+      ? h(
+          'div',
+          { className: 'gc-trajectory-foot' },
+          h(
+            'button',
+            {
+              type: 'button',
+              className: 'gc-link',
+              'data-testid': 'agent-trajectory-load-older',
+              onClick: function (event) {
+                event.preventDefault()
+                if (props.onLoadOlder) props.onLoadOlder()
+              }
+            },
+            t('trajectory.loadOlder')
+          )
+        )
+      : null
+  )
+  return h(Fragment, null, overlay, body)
+}
+
 /* ── src/client/parts/70-composer.part.js ─────────────────────────────────────────── */
 /* ──────────────────────────────────────────────────────────────────────────
  * 70-composer.part.js — 输入区（目标行 / 文本输入 / @ 补全 / 发送键）
@@ -10155,14 +11638,7 @@ function GcMentionPopup(props) {
   } else {
     for (let i = 0; i < options.length; i += 1) {
       const member = options[i]
-      const kindText =
-        member.kind === 'subagent' ? t('mention.sub.subagent') : member.kind === 'lead' ? t('mention.sub.lead') : t('mention.sub.teammate')
-      const statusText = gcStatusText(member.status || 'unknown', t)
-      const addressableNote = member.kind === 'teammate' && (member.status === 'inactive' || member.status === 'done') ? t('mention.sub.addressable') : ''
-      const subParts = []
-      if (member.parentName) subParts.push(t('member.subagentOf', { parent: member.parentName }))
-      subParts.push(kindText)
-      if (statusText) subParts.push(statusText)
+      const description = gcStr(member.description) || t('member.noDesc')
       nodes.push(
         h(
           'li',
@@ -10172,6 +11648,7 @@ function GcMentionPopup(props) {
             className: 'gc-mention-option',
             role: 'option',
             'data-mention': member.name,
+            'data-member-id': gcStr(member.sessionId),
             'aria-selected': i === active ? 'true' : 'false',
             onClick: function (event) {
               event.preventDefault()
@@ -10186,7 +11663,7 @@ function GcMentionPopup(props) {
             'span',
             { className: 'gc-mention-option-main' },
             h('span', { className: 'gc-mention-option-name' }, member.name),
-            h('span', { className: 'gc-mention-option-sub' }, subParts.filter(Boolean).join(' · ') + addressableNote)
+            h('span', { className: 'gc-mention-option-sub' }, description)
           )
         )
       )
@@ -10220,13 +11697,19 @@ function GcTargetRow(props) {
   const channel = props.channel
   const names = gcTargetChipNames(draft, channel, props.sessionId)
   const mentions = gcAsArray(draft.mentions)
-  const children = [h('span', { key: 'label', className: 'gc-target-label' }, t('composer.targetLabel'))]
+  const children = []
 
+  // 默认 @Lead（business 实底白字）
   children.push(
     h(
       'span',
-      { key: 'lead', className: 'gc-chip', 'data-tone': 'lead' },
-      t('composer.leadChip')
+      {
+        key: 'lead',
+        className: 'gc-chip',
+        'data-tone': 'target',
+        'data-target': 'lead'
+      },
+      '@' + t('composer.leadChip')
     )
   )
 
@@ -10240,25 +11723,20 @@ function GcTargetRow(props) {
           type: 'button',
           className: 'gc-chip',
           'data-tone': 'mention',
+          'data-target': name,
           'data-mention': name,
           title: t('composer.removeMention', { name: name }),
+          'aria-label': t('composer.removeMention', { name: name }),
           onClick: function (event) {
             event.preventDefault()
             if (props.onRemoveMention) props.onRemoveMention(name)
           }
         },
-        '@' + name
+        '@' + name,
+        h('span', { className: 'gc-chip-x', 'aria-hidden': 'true' }, '×')
       )
     )
   }
-
-  children.push(
-    h(
-      'span',
-      { key: 'hint', className: 'gc-target-hint' },
-      names.length > 1 ? t('composer.multi', { n: names.length }) : t('composer.toLeadHint')
-    )
-  )
 
   return h(
     'div',
@@ -10267,7 +11745,14 @@ function GcTargetRow(props) {
       'data-testid': 'group-chat-target-row',
       'data-targets': names.join(',')
     },
-    children
+    h(
+      'div',
+      {
+        className: 'gc-target-chips',
+        'data-testid': 'group-chat-target-chips'
+      },
+      children
+    )
   )
 }
 
@@ -10353,13 +11838,6 @@ function GcComposer(props) {
         'aria-disabled': readonly ? 'true' : undefined
       },
       popup,
-      h(GcTargetRow, {
-        t: t,
-        draft: draft,
-        channel: props.channel,
-        sessionId: props.sessionId,
-        onRemoveMention: props.onRemoveMention
-      }),
       h(
         'div',
         { className: 'gc-input-row' },
@@ -10409,7 +11887,15 @@ function GcComposer(props) {
           },
           h(GcIconSend, { size: 16 })
         )
-      )
+      ),
+      h(GcTargetRow, {
+        t: t,
+        draft: draft,
+        channel: props.channel,
+        sessionId: props.sessionId,
+        onRemoveMention: props.onRemoveMention
+      }),
+      h('div', { className: 'gc-composer-hint', 'data-testid': 'group-chat-composer-hint' }, t('composer.hint'))
     )
   )
 }
@@ -10826,6 +12312,15 @@ function gcPreviewTaskCard(time, variant) {
   })
 }
 
+/** 折叠回归填充（>50 行，用于 P3 与折叠测试；不改变视觉语言） */
+const GC_PREVIEW_FOLD_FILLER =
+  '\n' +
+  Array.from({ length: 46 })
+    .map(function (_, i) {
+      return '· 折叠回归占位第 ' + (i + 1) + ' 行：验证默认只展示前 50 行 + 56px 渐隐遮罩 + 「展开全部（共 N 行）」。'
+    })
+    .join('\n')
+
 function gcPreviewAgentMessage(time, options) {
   return Object.assign(
     {
@@ -10931,7 +12426,8 @@ function gcPreviewMessages(now, options) {
       kind: 'delivery',
       sessionId: 'preview-backend',
       sender: { sessionId: 'preview-backend', name: 'backend', kind: 'teammate' },
-      text: '发送通路实现在 host 侧完成，重试幂等。',
+      text:
+        '**发送通路**已完成，关键点：\n\n- `sendChannelBatch` 负责 fan-out 与重试\n- 前缀 canonical：`[群聊 · 同发] 收件人：@lead、@ux`\n- 参考 [ADR](https://example.com/docs/adr/group-chat-send.md)\n\n```js\nconst result = await sendChannelBatch(request)\nconsole.log(result.status)\n```',
       files: [
         { name: 'group-chat-send.md', path: 'docs/adr/group-chat-send.md' },
         { name: 'send-batch.js', path: 'src/send/send-batch.js' }
@@ -10944,7 +12440,7 @@ function gcPreviewMessages(now, options) {
       kind: 'agent_output',
       sessionId: 'preview-scout',
       sender: { sessionId: 'preview-scout', name: 'scout', kind: 'teammate' },
-      text: GC_PREVIEW_LONG_TEXT,
+      text: GC_PREVIEW_LONG_TEXT + GC_PREVIEW_FOLD_FILLER,
       toolCallCount: 27
     }),
     {
@@ -11155,6 +12651,116 @@ function gcFitHostLayout(rootEl) {
   }
 }
 
+/**
+ * 会话父链查询（lead 回溯用）：优先 `sessions.list.byId`（F27/§4.8.2 口径），
+ * 回退 `binding(sessionId).session.getSnapshot()`；读不到返回 undefined，不抛错。
+ */
+function gcLookupSessionParents(ctx) {
+  let listState = null
+  try {
+    if (ctx && ctx.sessions && ctx.sessions.list && typeof ctx.sessions.list.getSnapshot === 'function') {
+      listState = ctx.sessions.list.getSnapshot()
+    }
+  } catch {
+    listState = null
+  }
+  return function lookup(sessionId) {
+    try {
+      const byId = (listState && (listState.byId || listState.sessions)) || null
+      const entry = byId && sessionId ? byId[sessionId] : null
+      if (entry) {
+        return {
+          id: sessionId,
+          parentSessionId:
+            entry.parentSessionId ||
+            (entry.subagent && entry.subagent.address && entry.subagent.address.parentSessionId) ||
+            '',
+          parentSession: entry.parentSession
+        }
+      }
+      if (!ctx || !ctx.sessions || typeof ctx.sessions.binding !== 'function') return undefined
+      const binding = ctx.sessions.binding(sessionId)
+      const snapshot =
+        binding && binding.session && typeof binding.session.getSnapshot === 'function'
+          ? binding.session.getSnapshot()
+          : null
+      if (!snapshot) return undefined
+      return {
+        id: sessionId,
+        parentSessionId:
+          snapshot.parentSessionId ||
+          (snapshot.subagent && snapshot.subagent.address && snapshot.subagent.address.parentSessionId) ||
+          '',
+        parentSession: snapshot.parentSession
+      }
+    } catch {
+      return undefined
+    }
+  }
+}
+
+/**
+ * F27 作用域修正：任意 member session 打开群聊都解析 lead 频道。
+ * core/roster.resolveLeadSessionId 优先（≤4 跳、防环），缺失时回退适配器 deriveLeadSessionId，再回退自身。
+ */
+function gcResolveLeadSessionId(ctx, sessionId) {
+  const roster = gcCore('roster')
+  if (roster && typeof roster.resolveLeadSessionId === 'function' && sessionId) {
+    try {
+      const resolved = roster.resolveLeadSessionId(sessionId, gcLookupSessionParents(ctx))
+      if (typeof resolved === 'string' && resolved) return resolved
+    } catch (error) {
+      gcWarn('core resolveLeadSessionId failed:', gcShortError(error))
+    }
+  }
+  try {
+    const adapter = gcAdapter('client-session-source')
+    if (adapter && typeof adapter.deriveLeadSessionId === 'function') {
+      return adapter.deriveLeadSessionId(ctx, sessionId) || sessionId
+    }
+  } catch {}
+  return sessionId
+}
+
+/**
+ * 轮次轨迹数据（§6.15.2）：优先 core/turns 聚合该成员事件窗口；
+ * 适配器未暴露事件窗口时，用 feed 内该成员的 agent_output 降级构造。
+ */
+function gcLoadTrajectoryTurns(source, store, sessionId) {
+  const turnsMod = gcCore('turns')
+  let events = null
+  try {
+    if (source && typeof source.getEvents === 'function') events = source.getEvents(sessionId)
+    else if (source && typeof source.getMemberEvents === 'function') events = source.getMemberEvents(sessionId)
+  } catch {}
+  if (events && turnsMod && typeof turnsMod.aggregateTurns === 'function') {
+    try {
+      const turns = turnsMod.aggregateTurns(events)
+      if (Array.isArray(turns)) return turns
+    } catch (error) {
+      gcWarn('core aggregateTurns failed, using fallback:', gcShortError(error))
+    }
+  }
+  const state = store.getSnapshot()
+  const messages = gcAsArray(state.messages).filter(function (message) {
+    return message && message.sessionId === sessionId && message.kind === 'agent_output'
+  })
+  return messages
+    .map(function (message, index) {
+      return {
+        index: index,
+        turnId: index,
+        startedAt: message.time,
+        endedAt: message.time,
+        status: message.isFinal ? 'done' : 'running',
+        summary: gcClip(gcStr(message.text), 120),
+        stepCount: 0,
+        toolCount: typeof message.toolCallCount === 'number' ? message.toolCallCount : 0
+      }
+    })
+    .reverse()
+}
+
 /** Cordis client ctx（entry.apply 注入；卡片跳转 / 发送降级用）。 */
 let gcCtx = null
 
@@ -11189,6 +12795,16 @@ function gcPreviewLongRequested() {
 let gcActiveSource = null
 
 function gcCreateChannelSource(deps) {
+  // 预览模式优先（`?gc-preview=1`）：不依赖真实会话/适配器
+  const preview = gcPreviewVariant()
+  if (gcIsPreviewRequested() || deps.preview) {
+    return gcCreatePreviewSource({
+      readonly: /readonly/.test(preview),
+      truncated: /truncated/.test(preview),
+      members: deps.members,
+      long: gcPreviewLongRequested()
+    })
+  }
   const adapter = gcAdapter('client-session-source')
   if (adapter && typeof adapter.createClientSessionSource === 'function') {
     try {
@@ -11204,15 +12820,6 @@ function gcCreateChannelSource(deps) {
     } catch (error) {
       gcWarn('createChannelSource(client) failed:', gcShortError(error))
     }
-  }
-  const preview = gcPreviewVariant()
-  if (gcIsPreviewRequested() || deps.preview) {
-    return gcCreatePreviewSource({
-      readonly: /readonly/.test(preview),
-      truncated: /truncated/.test(preview),
-      members: deps.members,
-      long: gcPreviewLongRequested()
-    })
   }
   return null
 }
@@ -11293,7 +12900,7 @@ function gcCreateController(options) {
       sessionId: props.sessionId,
       // F-02：agentTeam 投影作为 authority 名册（适配器与事件名册 union；subagent 保留）
       members: options.getMembers ? options.getMembers() : undefined,
-      // F-07：本地发送批次（活对象；core lookupBatchId 用它给权威消息打 clientBatchId）
+      // F5（H1 后）：本地批次活对象交给 core lookupBatchId 反查（UI 不删除 echo）
       localBatches: gcLocalBatches,
       props: props,
       t: gcTranslate
@@ -11579,8 +13186,6 @@ function gcPerformSend(store, channelId, t) {
     meta: { draftMentions: gcAsArray(draft.mentions) }
   }
 
-  // F-07：先注册批次（targets/sessionIds 即可让 core 的无 rpcId 路径命中）；
-  // send-batch 的 deps.onBatch 会带 requestIds 再更新同一条记录。
   gcRememberBatch({
     clientBatchId: clientBatchId,
     channelId: channelId,
@@ -11588,6 +13193,7 @@ function gcPerformSend(store, channelId, t) {
     sessionIds: targets.map(function (target) {
       return target.sessionId
     }),
+    text: text,
     at: now
   })
 
@@ -11608,7 +13214,15 @@ function gcPerformSend(store, channelId, t) {
     targets: targets,
     channelId: channelId,
     clientBatchId: clientBatchId,
-    deps: { ctx: gcCtx, onBatch: gcRememberBatch }
+    deps: {
+      ctx: gcCtx,
+      // R-M4：与 adapter 共享同一份活对象，send-batch 才能在终态把批次标 closed
+      localBatches: gcLocalBatches,
+      // H1 后：onBatch 在 requestIds 生成后/prompt 前回调；带上原始正文用于无 rpcId 弱匹配
+      onBatch: function (batch) {
+        gcRememberBatch(Object.assign({ text: text, channelId: channelId }, batch || {}))
+      }
+    }
   }).then(
     function (result) {
       const deliveries = {}
@@ -11618,22 +13232,9 @@ function gcPerformSend(store, channelId, t) {
         const key = item.sessionId || item.target
         if (key) deliveries[key] = item.ok ? 'sent' : 'failed'
       }
+      gcCloseBatch(clientBatchId)
       const status = result && result.status ? result.status : gcAggregateDeliveries(list)
       const sendDebug = gcSendDebugFromDeliveries(status, list, result && result.diagnostics)
-      // 结果里的 requestIds 可能比 onBatch 更完整（含重试复用的 id），再登记一次
-      if (result && (result.requestIds || result.requestIdsByTarget)) {
-        gcRememberBatch({
-          clientBatchId: clientBatchId,
-          channelId: channelId,
-          targets: result.targets || targets,
-          targetNames: result.targetNames,
-          requestIds: result.requestIds || result.requestIdsByTarget,
-          sessionIds: targets.map(function (target) {
-            return target.sessionId
-          }),
-          at: Date.now()
-        })
-      }
       store.set(function (current) {
         return {
           send: { inFlight: null },
@@ -11653,15 +13254,7 @@ function gcPerformSend(store, channelId, t) {
       })
     },
     function (error) {
-      gcRememberBatch({
-        clientBatchId: clientBatchId,
-        channelId: channelId,
-        targets: targets,
-        sessionIds: targets.map(function (target) {
-          return target.sessionId
-        }),
-        at: Date.now()
-      })
+      gcCloseBatch(clientBatchId)
       store.set(function (current) {
         return {
           send: { inFlight: null },
@@ -11835,18 +13428,21 @@ function GroupChatView(props) {
   const sessionId = props && props.sessionId ? props.sessionId : 'unknown-session'
 
   // 频道根（lead）会话 id：优先用适配器的 deriveLeadSessionId（node 端同一实现）
-  const leadSessionId = React.useMemo(
+  // M7：冷启动时 sessions.list 可能尚未就绪；订阅 byId 快照变化后就绪重算
+  const sessionsById =
+    props && typeof props.useSessions === 'function'
+      ? props.useSessions(function (sessionsState) {
+          return sessionsState && sessionsState.byId ? sessionsState.byId : null
+        })
+      : null
+  const leadScope = React.useMemo(
     function () {
-      try {
-        const adapter = gcAdapter('client-session-source')
-        if (adapter && typeof adapter.deriveLeadSessionId === 'function') {
-          return adapter.deriveLeadSessionId(gcCtx, sessionId) || sessionId
-        }
-      } catch {}
-      return sessionId
+      const resolved = gcResolveLeadSessionId(gcCtx, sessionId)
+      return { leadSessionId: resolved, degraded: resolved === sessionId }
     },
-    [sessionId]
+    [sessionId, sessionsById]
   )
+  const leadSessionId = leadScope.leadSessionId
 
   // 权威名册：useSessions 的 agentTeam 投影（D-03；缺投影时退回事件名册）
   const agentTeam =
@@ -11952,7 +13548,7 @@ function GroupChatView(props) {
         controllerRef.current = null
       }
     },
-    [sessionId]
+    [sessionId, leadSessionId]
   )
 
   /* 新消息：未贴底时累计未读，贴底自动滚到底 */
@@ -11973,6 +13569,90 @@ function GroupChatView(props) {
       })
     },
     [state.messages.length]
+  )
+
+  /* 单一输入器（F24/§6.13）：body 标记隐藏宿主 composer；2×rAF 自检失败降级 */
+  React.useEffect(
+    function () {
+      const leaveBody = gcEnterGroupChatBody()
+      let disposed = false
+      if (typeof gcVerifyHostComposerHidden === 'function') {
+        gcVerifyHostComposerHidden().then(function (result) {
+          if (disposed || !result || !result.degraded) return
+          store.set({ composerFallback: true })
+        })
+      }
+      return function () {
+        disposed = true
+        leaveBody()
+      }
+    },
+    [sessionId]
+  )
+
+  /* M4：宿主若保留非激活 view（不卸载），按可见性恢复/隐藏宿主 composer */
+  React.useEffect(
+    function () {
+      const el = rootRef.current
+      if (!el || typeof IntersectionObserver === 'undefined') return function () {}
+      let observer = null
+      try {
+        observer = new IntersectionObserver(
+          function (entries) {
+            const visible = entries.some(function (entry) {
+              return entry.isIntersecting && entry.intersectionRatio > 0
+            })
+            if (visible) {
+              gcEnterGroupChatBody()
+            } else {
+              try {
+                if (typeof document !== 'undefined' && document.body) {
+                  document.body.classList.remove('gc-view-group-chat')
+                }
+              } catch {}
+            }
+          },
+          { threshold: 0.01 }
+        )
+        observer.observe(el)
+      } catch {
+        observer = null
+      }
+      return function () {
+        if (observer) {
+          try {
+            observer.disconnect()
+          } catch {}
+        }
+      }
+    },
+    [sessionId]
+  )
+
+  /* 轨迹侧栏：Esc 关闭（§6.15.2，关闭后焦点回输入框） */
+  React.useEffect(
+    function () {
+      if (!state.trajectory) return
+      const onKeyDown = function (event) {
+        if (event && event.key === 'Escape') {
+          event.preventDefault()
+          store.set({ trajectory: null, trajectoryTurns: [] })
+          try {
+            const el = currentScroll()
+            if (el && typeof el.focus === 'function') el.focus()
+          } catch {}
+        }
+      }
+      try {
+        if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('keydown', onKeyDown)
+      } catch {}
+      return function () {
+        try {
+          if (typeof document !== 'undefined' && document.removeEventListener) document.removeEventListener('keydown', onKeyDown)
+        } catch {}
+      }
+    },
+    [state.trajectory]
   )
 
   /* 宿主布局约束（F-01）：保证 root 占满 conversation.view 可用高度 */
@@ -12138,6 +13818,34 @@ function GroupChatView(props) {
     onReconnect: function () {
       if (controllerRef.current) controllerRef.current.syncNow()
     },
+    onOpenTrajectory: function (member) {
+      if (!member) return
+      const current = store.getSnapshot()
+      if (current.trajectory && current.trajectory.sessionId === member.sessionId) {
+        store.set({ trajectory: null, trajectoryTurns: [] })
+        return
+      }
+      const source = gcActiveSource
+      store.set({
+        trajectory: {
+          sessionId: member.sessionId,
+          name: member.name,
+          kind: member.kind,
+          status: member.status,
+          model: member.model
+        },
+        trajectoryTurns: gcLoadTrajectoryTurns(source, store, member.sessionId)
+      })
+    },
+    onCloseTrajectory: function () {
+      store.set({ trajectory: null, trajectoryTurns: [] })
+    },
+    onLoadOlderTurns: function () {
+      const state2 = store.getSnapshot()
+      if (!state2.trajectory) return
+      if (controllerRef.current && controllerRef.current.loadOlder) controllerRef.current.loadOlder()
+      store.set({ trajectoryTurns: gcLoadTrajectoryTurns(gcActiveSource, store, state2.trajectory.sessionId) })
+    },
     onOpenChat: function () {
       if (props && typeof props.openView === 'function') props.openView('chat', '')
       store.set({ toast: { text: t('empty.howToTeam'), at: Date.now() } })
@@ -12166,7 +13874,8 @@ function GroupChatView(props) {
       unread: state.unreadCount,
       filterOpen: state.filterOpen,
       onToggleFilter: actions.onToggleFilter,
-      onJumpLatest: handleJumpLatest
+      onJumpLatest: handleJumpLatest,
+      onOpenTrajectory: actions.onOpenTrajectory
     }),
     state.filterOpen
       ? h(GcFilterMenu, {
@@ -12183,6 +13892,21 @@ function GroupChatView(props) {
       onClearFilter: actions.onClearFilter,
       onReconnect: actions.onReconnect
     }),
+    state.composerFallback
+      ? h(
+          'div',
+          { className: 'gc-banners' },
+          h(
+            'div',
+            { className: 'gc-col' },
+            h(
+              'div',
+              { className: 'gc-banner', 'data-testid': 'group-chat-composer-fallback', role: 'status' },
+              t('composer.hostFallback')
+            )
+          )
+        )
+      : null,
     state.filter && visible.length === 0
       ? h('div', { className: 'gc-col' }, h(GcFilterEmpty, { t: t }))
       : null,
@@ -12205,6 +13929,16 @@ function GroupChatView(props) {
       onRetryOpen: actions.onRetryOpen,
       onOpenChat: actions.onOpenChat
     }),
+    state.trajectory
+      ? h(GcTrajectoryPanel, {
+          t: t,
+          member: state.trajectory,
+          turns: state.trajectoryTurns,
+          hasOlder: false,
+          onClose: actions.onCloseTrajectory,
+          onLoadOlder: actions.onLoadOlderTurns
+        })
+      : null,
     h(GcUnreadPill, { t: t, count: state.unreadCount, onJumpLatest: handleJumpLatest }),
     h(GcComposer, {
       t: t,
@@ -12335,6 +14069,13 @@ function apply(ctx) {
     ctx.effect(function () {
       return gcRegisterLocale(ctx)
     }, 'group-chat: dictionaries')
+    ctx.effect(function () {
+      return function () {
+        try {
+          if (typeof document !== 'undefined' && document.body) document.body.classList.remove('gc-view-group-chat')
+        } catch {}
+      }
+    }, 'group-chat: host composer restore')
   } else {
     gcInsertStyle()
     gcRegisterLocale(ctx)
@@ -12405,6 +14146,9 @@ const __internals = {
   GcErrorState: GcErrorState,
   GcTargetRow: GcTargetRow,
   GcRichText: GcRichText,
+  GcMarkdown: GcMarkdown,
+  GcTrajectoryPanel: GcTrajectoryPanel,
+  GcMemberStrip: (typeof GcMemberStrip === 'function' ? GcMemberStrip : undefined),
   // 纯逻辑
   createStore: gcCreateStore,
   initialState: gcInitialState,
@@ -12443,7 +14187,17 @@ const __internals = {
   pruneLocalBatches: gcPruneLocalBatches,
   lookupLocalBatchByRpc: gcLookupLocalBatchByRpc,
   localBatchIds: gcLocalBatchIds,
+  closeBatch: gcCloseBatch,
   buildLabel: GC_BUILD_LABEL,
+  // v1.7 helpers
+  foldDecisionV17: gcFoldDecision,
+  memberStripData: gcMemberStripData,
+  memberWorkStatus: gcMemberWorkStatus,
+  membersStatusModel: gcMembersStatusModel,
+  isSettledNotice: gcIsSettledNotice,
+  isSafeLinkUrl: gcIsSafeLinkUrl,
+  resolveLeadSessionId: gcResolveLeadSessionId,
+  loadTrajectoryTurns: gcLoadTrajectoryTurns,
   setDebugVisible: gcSetDebugVisible,
   debugVisible: gcDebugEnabled,
   normalizeRosterStatus: gcNormalizeRosterStatus,

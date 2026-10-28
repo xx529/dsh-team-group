@@ -150,3 +150,26 @@ test('getMessages/getMembers 便捷方法返回最近一次计算结果', async 
   assert.ok(source.getMembers().some((m) => m.kind === 'lead'));
   source.close();
 });
+
+test('F3：getEvents/getMemberEvents 返回已 retain 窗口的原始事件，可直接 aggregateTurns', async () => {
+  const { aggregateTurns } = await import('../../src/core/turns.js');
+  const { source, lead } = setup('04-assistant-turns');
+  await source.open(lead);
+  const events = source.getEvents(lead);
+  assert.ok(Array.isArray(events) && events.length > 0);
+  assert.ok(events.every((e) => typeof e.type === 'string' && typeof e.seq === 'number'));
+  assert.ok(events.some((e) => e.type === 'turn/start'), '含原始 turn 事件');
+  const turns = aggregateTurns(events);
+  assert.equal(turns.length, 2);
+  assert.deepEqual(turns.map((t) => t.turnId), [2, 1]);
+  // 别名 + 窗口元信息
+  assert.deepEqual(source.getMemberEvents(lead), events);
+  const win = source.getWindow(lead);
+  assert.equal(win.sessionId, lead);
+  assert.equal(win.events.length, events.length);
+  assert.ok(win.entryCount >= events.length);
+  // 未知会话 / 关闭后：安全返回空
+  assert.deepEqual(source.getEvents('missing-session'), []);
+  source.close();
+  assert.deepEqual(source.getEvents(lead), []);
+});

@@ -92,6 +92,10 @@ function gcRememberBatch(record) {
     requestIds: gcNormalizeRequestIds(input, targets),
     targets: targets.filter(Boolean),
     sessionIds: sessionIds.filter(Boolean),
+    // H1 弱匹配（无 rpcId）需要 text（或 textHash）+ targets 集合 + 时间窗
+    ...(gcStr(input.text) ? { text: gcStr(input.text) } : null),
+    ...(gcStr(input.textHash) ? { textHash: gcStr(input.textHash) } : null),
+    ...(input.closed === true ? { closed: true } : null),
     at: at
   }
   gcPruneLocalBatches(at)
@@ -114,6 +118,14 @@ function gcLookupLocalBatchByRpc(rpcId) {
 
 function gcLocalBatchIds() {
   return Object.keys(gcLocalBatches)
+}
+
+/** 批次终态（成功/失败后）：H1 只允许 rpcId 精确匹配，关闭弱匹配窗口。 */
+function gcCloseBatch(clientBatchId) {
+  const id = gcStr(clientBatchId)
+  if (!id) return
+  const record = gcLocalBatches[id]
+  if (record) record.closed = true
 }
 
 /* ── 排序与合并 ───────────────────────────────────────────────────────── */
@@ -225,16 +237,17 @@ function gcMergeMessages(existing, incoming, channel, limits) {
   for (let i = 0; i < next.length; i += 1) {
     let item = next[i]
     if (!item || !item.id) continue
-    // 权威消息可能只带 meta.rpcId（core 未注册 localBatches 时）→ 用本地批次表兜底反查
+    // H1（F30/SC47）：权威消息带 clientBatchId（或 meta.rpcId 经本地批次表反查）时，
+    // 必须在这里删除 local:<batchId> —— 这是唯一能看到本地 echo 的层（core 只处理真实事件）。
     const rpcId = gcStr(item.meta && (item.meta.rpcId || item.meta.requestId || item.meta.rpcID))
     const batchId =
       gcStr(item.clientBatchId) || gcStr(item.meta && item.meta.clientBatchId) || gcLookupLocalBatchByRpc(rpcId)
-    if (batchId) {
+    if (batchId && gcStr(item.kind) === 'user') {
       if (localsByBatch.has(batchId)) {
         byId.delete(localsByBatch.get(batchId))
         localsByBatch.delete(batchId)
       }
-      if (!item.clientBatchId && gcStr(item.kind) === 'user') item = Object.assign({}, item, { clientBatchId: batchId })
+      if (!item.clientBatchId) item = Object.assign({}, item, { clientBatchId: batchId })
     }
     const old = byId.get(item.id)
     byId.set(item.id, old ? Object.assign({}, old, item) : item)
@@ -295,6 +308,44 @@ function gcBuildFeed(messages, nowTs) {
     prev = message
   }
   return items
+}
+
+/* ── 成员状态条（F26/§6.15.1：working/waiting、最多 5+N） ─────────────── */
+
+const GC_MEMBER_STRIP_MAX = Infinity // Lead 裁决：成员条全部显示（禁止 +N）
+
+/** running→working（绿），其余→waiting（灰）；未知按 waiting。 */
+function gcMemberWorkStatus(member) {
+  if (!member) return 'waiting'
+  return member.status === 'running' || member.status === 'provisioning' ? 'working' : 'waiting'
+}
+
+/** 成员条展示数据：lead → working teammate → waiting teammate → subagent，最多 5 个。 */
+function gcMemberStripData(channel) {
+  const members = gcAllMembers(channel)
+  const rank = function (member) {
+    if (member.kind === 'lead') return 0
+    if (member.kind === 'teammate') return gcMemberWorkStatus(member) === 'working' ? 1 : 2
+    return 3
+  }
+  const sorted = members.slice().sort(function (a, b) {
+    return rank(a) - rank(b)
+  })
+  const visible = sorted.slice(0, sorted.length)
+  return {
+    visible: visible,
+    overflow: 0
+  }
+}
+
+/** 频道头状态：{n} 名成员 · {m} 工作中 · {k} 等待 */
+function gcMembersStatusModel(channel) {
+  const members = gcAllMembers(channel)
+  let working = 0
+  for (let i = 0; i < members.length; i += 1) {
+    if (gcMemberWorkStatus(members[i]) === 'working') working += 1
+  }
+  return { total: members.length, working: working, waiting: Math.max(0, members.length - working) }
 }
 
 /* ── 成员索引与筛选（D-B） ────────────────────────────────────────────── */
@@ -401,18 +452,50 @@ function gcIsContextNoise(message) {
   return false
 }
 
-/* ── 折叠判定（D6） ───────────────────────────────────────────────────── */
+/** subagent-settled 副本（父会话通知）不渲染（F5/§4.3③）。 */
+function gcIsSettledNotice(message) {
+  if (!message) return false
+  const meta = message.meta || {}
+  return (
+    message.systemReason === 'subagent-settled' ||
+    meta.event === 'subagent-settled' ||
+    meta.sourceKind === 'subagent-settled'
+  )
+}
 
+/* ── 折叠判定（v1.7：50 行） ─────────────────────────────────────────── */
+
+/**
+ * v1.7（F29/§6.17）：默认展示前 50 行（50×22=1100px），超过才折叠。
+ * 优先用 core/fold 的 foldInfo（渲染行数近似；代码块按 value 行数折算），
+ * 缺失时本地按换行数近似（口径注明）。
+ */
 function gcFoldDecision(text, limits) {
   const value = gcStr(text)
-  const foldLines = (limits && limits.foldLines) || GC_LOCAL_LIMITS.foldLines
-  const foldChars = (limits && limits.foldChars) || GC_LOCAL_LIMITS.foldChars
-  const chars = countCodePoints(value)
+  const fold = gcCore('fold')
+  if (fold && typeof fold.foldInfo === 'function') {
+    try {
+      const info = fold.foldInfo(value)
+      const lineCount = typeof info.lineCount === 'number' ? info.lineCount : 0
+      return {
+        foldable: !!info.folded,
+        chars: countCodePoints(value),
+        lines: lineCount,
+        hidden: typeof info.hiddenLines === 'number' ? info.hiddenLines : Math.max(0, lineCount - 50),
+        maxLines: typeof info.maxLines === 'number' ? info.maxLines : 50
+      }
+    } catch (error) {
+      gcWarn('core foldInfo failed, using local:', gcShortError(error))
+    }
+  }
+  const maxLines = 50
   const lines = value === '' ? 0 : value.split('\n').length
   return {
-    foldable: lines > foldLines || chars > foldChars,
-    chars: chars,
-    lines: lines
+    foldable: lines > maxLines,
+    chars: countCodePoints(value),
+    lines: lines,
+    hidden: Math.max(0, lines - maxLines),
+    maxLines: maxLines
   }
 }
 
@@ -584,7 +667,10 @@ function gcMentionQuery(text, caret) {
   const core = gcCore('mentions')
   if (core && typeof core.computeMentionQuery === 'function') {
     try {
-      return core.computeMentionQuery(text, caret)
+      const result = core.computeMentionQuery(text, caret)
+      // core 返回 {active,start,end,query}；未触发时 active=false/start=-1
+      if (!result || result.active === false || (typeof result.start === 'number' && result.start < 0)) return null
+      return { start: result.start, end: result.end, query: gcStr(result.query) }
     } catch (error) {
       gcWarn('core computeMentionQuery failed:', gcShortError(error))
     }
@@ -887,7 +973,11 @@ function gcInitialState(overrides) {
       composerFocused: false,
       mention: null,
       mentionIndex: 0,
-      droppedMentions: []
+      droppedMentions: [],
+      // v1.7
+      trajectory: null,
+      trajectoryTurns: [],
+      composerFallback: false
     },
     overrides || null
   )

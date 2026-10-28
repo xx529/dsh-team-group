@@ -20,6 +20,8 @@ export const LIMITS = Object.freeze({
   maxMembers: 64,
   /** 后代深度上限（lead=0） */
   maxDepth: 3,
+  /** 作用域回溯：parentSession 链最大跳数（F27/§4.8.2） */
+  maxParentHops: 4,
   /** 每会话预取事件上限（防单个话多成员挤出他人，§4.5） */
   perSessionPrefetch: 400,
   /** 首屏消息条数 */
@@ -50,8 +52,16 @@ export const LIMITS = Object.freeze({
   readonlyIdleMs: 90000,
   /** 弱键配对时间窗（ms，§4.3.3 ③） */
   weakKeyTimeWindowMs: 5000,
-  /** 同发刷新后丢 batchId 时的前缀归并时间窗（ms，§4.4） */
+  /** 同发刷新后丢 batchId 时的前缀归并时间窗（ms，§4.4；M6 收紧到 5s） */
   fanoutTimeWindowMs: 5 * 60 * 1000,
+  /** 无 batchId 时仅允许「同批副本」归并的时间窗（M6：两次同文群发不应误合并） */
+  fanoutSignatureWindowMs: 5000,
+  /** localBatches TTL（§5.3.1） */
+  localBatchTtlMs: 5 * 60 * 1000,
+  /** 无 rpcId 时 localBatches 弱匹配时间窗（H1：±2min） */
+  localBatchFallbackWindowMs: 2 * 60 * 1000,
+  /** 折叠软换行估算：每行字符数（M1；CJK 近似，窄屏可 UI 传更小值） */
+  foldCharsPerLine: 40,
   /** 折叠：行数阈值（§6.6） */
   foldMaxLines: 8,
   /** 折叠：字符阈值（§6.6） */
@@ -218,6 +228,7 @@ export const CONTEXT_SOURCE_KINDS = Object.freeze([
   'tool-jobs',
   'skill-invocation',
   'user-approval',
+  'subagent-settled',
   'system-prompt',
   'goal',
   'schedule',

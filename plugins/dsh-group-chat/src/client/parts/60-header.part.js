@@ -49,14 +49,16 @@ function GcChannelHeader(props) {
 
   const statusChildren = []
   if (!singleAgent) {
-    statusChildren.push(h(GcStatusDot, { key: 'dot', state: gcRunningCount(channel) > 0 ? 'running' : 'inactive' }))
+    const statusModel = gcMembersStatusModel(channel)
+    statusChildren.push(h(GcStatusDot, { key: 'dot', state: statusModel.working > 0 ? 'running' : 'inactive' }))
     statusChildren.push(
       h(
         'span',
         { key: 'text' },
-        t('channel.membersRunning', {
-          n: gcMemberCount(channel),
-          m: gcRunningCount(channel)
+        t('channel.membersStatus', {
+          n: statusModel.total,
+          m: statusModel.working,
+          k: statusModel.waiting
         })
       )
     )
@@ -93,6 +95,46 @@ function GcChannelHeader(props) {
   if (teamName) {
     titleRow.push(h('span', { key: 'divider', className: 'gc-header-divider' }))
     titleRow.push(h('span', { key: 'team', className: 'gc-header-team', title: teamName }, teamName))
+  }
+
+  if (!singleAgent && props.onOpenTrajectory) {
+    const strip = gcMemberStripData(channel)
+    if (strip.visible.length > 0) {
+      const stripNodes = strip.visible.map(function (member) {
+        const state = gcMemberWorkStatus(member)
+        return h(
+          'button',
+          {
+            key: 'member-' + (member.sessionId || member.name),
+            type: 'button',
+            className: 'gc-member-strip-item',
+            'data-testid': 'group-chat-member-strip-item',
+            'data-member-id': gcStr(member.sessionId),
+            'data-member-state': state,
+            'data-action': 'open-trajectory',
+            title: member.name,
+            'aria-label': member.name + ' · ' + t('member.status.' + state),
+            onClick: function (event) {
+              event.preventDefault()
+              props.onOpenTrajectory(member)
+            }
+          },
+          h(GcAvatar, { name: member.name, kind: member.kind, size: 24 }),
+          h('span', { className: 'gc-member-status-dot', 'data-state': state, 'aria-hidden': 'true' })
+        )
+      })
+      titleRow.push(
+        h(
+          'div',
+          {
+            key: 'member-strip',
+            className: 'gc-member-strip',
+            'data-testid': 'group-chat-member-strip'
+          },
+          stripNodes
+        )
+      )
+    }
   }
 
   const mainChildren = [h('div', { key: 'row1', className: 'gc-header-row' }, titleRow)]

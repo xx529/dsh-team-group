@@ -63,6 +63,45 @@ function GcIconAt(props) {
   )
 }
 
+function GcIconCopy(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('rect', { x: 5.5, y: 2.5, width: 8, height: 9, rx: 1.6, stroke: 'currentColor', strokeWidth: 1.2 }),
+    h('path', { d: 'M10.5 13.5v.4a1.1 1.1 0 0 1-1.1 1.1H3.1A1.1 1.1 0 0 1 2 13.9V6.1A1.1 1.1 0 0 1 3.1 5h.4', stroke: 'currentColor', strokeWidth: 1.2, strokeLinecap: 'round' })
+  )
+}
+
+function GcIconExternal(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('path', { d: 'M6.5 3.5H3.9A1.4 1.4 0 0 0 2.5 4.9v7.2a1.4 1.4 0 0 0 1.4 1.4h7.2a1.4 1.4 0 0 0 1.4-1.4V9.5', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round' }),
+    h('path', { d: 'M9.5 2.5h4v4M13.2 2.8 7.6 8.4', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+}
+
+function GcIconTasks(props) {
+  const size = (props && props.size) || 16
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('rect', { x: 2.5, y: 2.5, width: 11, height: 11, rx: 2, stroke: 'currentColor', strokeWidth: 1.2 }),
+    h('path', { d: 'M5 8.2l2 2 4-4', stroke: 'currentColor', strokeWidth: 1.3, strokeLinecap: 'round', strokeLinejoin: 'round' })
+  )
+}
+
+function GcIconClose(props) {
+  const size = (props && props.size) || 14
+  return h(
+    'svg',
+    { width: size, height: size, viewBox: '0 0 16 16', fill: 'none', 'aria-hidden': 'true' },
+    h('path', { d: 'M3.5 3.5l9 9M12.5 3.5l-9 9', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round' })
+  )
+}
+
 /* ── 头像 / 状态点 / pill ─────────────────────────────────────────────── */
 
 function gcAvatarLetter(name) {
@@ -183,6 +222,179 @@ function GcRichText(props) {
     nodes.push(h('p', { key: 'p' + i }, children))
   }
   return h(Fragment, null, nodes)
+}
+
+/* ── Markdown 受控渲染（F22 / §6.12；禁止 innerHTML） ─────────────────── */
+
+function gcSplitMentions(value, mentionSet, onMention) {
+  const text = gcStr(value)
+  if (!text) return []
+  const re = /(@[0-9A-Za-z_\u4e00-\u9fa5.\-]+)/g
+  const out = []
+  let last = 0
+  let match = re.exec(text)
+  let key = 0
+  while (match) {
+    if (match.index > last) out.push(text.slice(last, match.index))
+    const token = match[0]
+    const name = token.slice(1)
+    if (!mentionSet || mentionSet.has(name)) {
+      out.push(
+        h(
+          'span',
+          {
+            key: 'm' + key,
+            className: 'gc-mention',
+            'data-mention': name,
+            'data-clickable': onMention ? 'true' : 'false',
+            role: onMention ? 'button' : undefined,
+            tabIndex: onMention ? 0 : undefined,
+            onClick: onMention
+              ? function (event) {
+                  event.stopPropagation()
+                  onMention(name)
+                }
+              : undefined
+          },
+          token
+        )
+      )
+    } else out.push(token)
+    last = match.index + token.length
+    key += 1
+    match = re.exec(text)
+  }
+  if (last < text.length) out.push(text.slice(last))
+  return out
+}
+
+function gcMarkdownMod() {
+  return gcCore('markdown')
+}
+
+/** 链接安全（防御纵深）：core 已过滤一次，渲染端再校验 scheme。 */
+function gcIsSafeLinkUrl(url) {
+  const value = gcStr(url).trim()
+  if (!value) return false
+  const mod = gcMarkdownMod()
+  if (mod && typeof mod.isSafeUrl === 'function') {
+    try {
+      return !!mod.isSafeUrl(value)
+    } catch {}
+  }
+  return /^(https?:|mailto:)/i.test(value)
+}
+
+function gcRenderMdInline(children, options) {
+  const list = gcAsArray(children)
+  const out = []
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i]
+    if (!node) continue
+    if (node.type === 'text') {
+      const parts = gcSplitMentions(node.value, options.mentionSet, options.onMention)
+      for (let j = 0; j < parts.length; j += 1) {
+        if (typeof parts[j] === 'string') out.push(parts[j])
+        else out.push(h(Fragment, { key: 'm' + i + '-' + j }, parts[j]))
+      }
+    } else if (node.type === 'strong') {
+      out.push(h('strong', { key: 's' + i, className: 'gc-md-strong' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'em') {
+      out.push(h('em', { key: 'e' + i, className: 'gc-md-em' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'code') {
+      out.push(h('code', { key: 'c' + i, className: 'gc-md-code' }, gcStr(node.value)))
+    } else if (node.type === 'link') {
+      const url = gcStr(node.url)
+      if (!gcIsSafeLinkUrl(url)) {
+        // 渲染端二次校验失败 → 纯文本（不产生 <a>）
+        out.push(h('span', { key: 'l' + i, className: 'gc-md-link-plain' }, gcRenderMdInline(node.children, options)))
+      } else {
+        out.push(
+          h(
+            'a',
+            {
+              key: 'l' + i,
+              className: 'gc-md-link',
+              href: url,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+              'data-md-link': 'true'
+            },
+            gcRenderMdInline(node.children, options)
+          )
+        )
+      }
+    } else if (node.type === 'break') {
+      out.push(h('br', { key: 'b' + i }))
+    } else if (typeof node.value === 'string') {
+      out.push(node.value)
+    }
+  }
+  return out
+}
+
+function gcRenderMdBlocks(blocks, options) {
+  const list = gcAsArray(blocks)
+  const out = []
+  for (let i = 0; i < list.length; i += 1) {
+    const node = list[i]
+    if (!node) continue
+    if (node.type === 'paragraph') {
+      out.push(h('p', { key: 'p' + i, className: 'gc-md-p' }, gcRenderMdInline(node.children, options)))
+    } else if (node.type === 'code_block') {
+      out.push(
+        h(
+          'pre',
+          { key: 'pre' + i, className: 'gc-md-pre', 'data-lang': gcStr(node.lang) || undefined },
+          h('code', null, gcStr(node.value))
+        )
+      )
+    } else if (node.type === 'list') {
+      const items = gcAsArray(node.items).map(function (item, itemIndex) {
+        return h('li', { key: 'li' + i + '-' + itemIndex, className: 'gc-md-li' }, gcRenderMdBlocks(item.children, options))
+      })
+      out.push(
+        h(
+          node.ordered ? 'ol' : 'ul',
+          { key: 'list' + i, className: 'gc-md-list', start: node.ordered && node.start ? node.start : undefined },
+          items
+        )
+      )
+    } else if (typeof node.value === 'string') {
+      out.push(h('p', { key: 'raw' + i, className: 'gc-md-p' }, node.value))
+    }
+  }
+  return out
+}
+
+/**
+ * 气泡正文渲染：core/markdown 的受控 AST → React 节点（无 innerHTML）。
+ * 模块缺失/解析异常 → `data-md="plain"` 的纯文本（保留换行）。
+ */
+function GcMarkdown(props) {
+  const text = gcStr(props.text)
+  const options = { mentionSet: props.mentionSet, onMention: props.onMention }
+  const mod = gcMarkdownMod()
+  if (mod && typeof mod.parseMarkdown === 'function') {
+    try {
+      const ast = mod.parseMarkdown(text)
+      if (!ast || ast.plain === true) {
+        return h('div', { className: 'gc-md', 'data-md': 'plain' }, gcSplitMentions(text, options.mentionSet, options.onMention))
+      }
+      return h(
+        'div',
+        {
+          className: 'gc-md',
+          'data-md': 'rich',
+          'data-md-truncated': ast.truncated ? 'true' : undefined
+        },
+        gcRenderMdBlocks(ast.children, options)
+      )
+    } catch (error) {
+      gcWarn('markdown render failed, plain fallback:', gcShortError(error))
+    }
+  }
+  return h('div', { className: 'gc-md', 'data-md': 'plain' }, gcSplitMentions(text, options.mentionSet, options.onMention))
 }
 
 /* ── SenderLine ───────────────────────────────────────────────────────── */
@@ -313,51 +525,50 @@ function GcFoldMeta(props) {
   const t = props.t
   const decision = props.decision
   const expanded = !!props.expanded
+  const maxLines = decision.maxLines || 50
+  const lineCount = decision.lines || 0
   return h(
     'div',
     { className: 'gc-fold-meta' },
-    h('span', null, t('msg.foldMeta', {
-      n: decision.chars,
-      state: expanded
-        ? t('msg.foldStateExpanded', { lines: decision.lines })
-        : t('msg.foldStateFolded', { lines: Math.min(decision.lines, 8) })
-    })),
+    !expanded ? h('span', null, t('msg.foldMetaLines', { n: maxLines })) : null,
     h(
       'button',
       {
         type: 'button',
         className: 'gc-fold-toggle',
         'data-testid': 'group-chat-fold-toggle',
+        'data-line-count': String(lineCount),
         'aria-expanded': expanded ? 'true' : 'false',
         onClick: function (event) {
           event.preventDefault()
           if (props.onToggle) props.onToggle()
         }
       },
-      expanded ? t('msg.collapse') : t('msg.expandAll', { n: decision.chars })
+      expanded ? t('msg.collapse') : t('msg.expandLines', { n: lineCount })
     )
   )
 }
 
 function GcRowActions(props) {
   const t = props.t
-  const actions = []
-  actions.push(
+  const actions = [
     h(
       'button',
       {
         key: 'copy',
         type: 'button',
-        className: 'gc-row-action',
-        'data-action': 'copy',
+        className: 'gc-icon-action',
+        'data-action': 'copy-message',
+        'aria-label': t('msg.action.copy'),
+        title: t('msg.action.copy'),
         onClick: function (event) {
           event.preventDefault()
           if (props.onCopy) props.onCopy()
         }
       },
-      t('msg.copy')
+      h(GcIconCopy, { size: 14 })
     )
-  )
+  ]
   if (props.onOpen) {
     actions.push(
       h(
@@ -365,14 +576,16 @@ function GcRowActions(props) {
         {
           key: 'open',
           type: 'button',
-          className: 'gc-row-action',
+          className: 'gc-icon-action',
           'data-action': 'open-session',
+          'aria-label': t('msg.action.openSession'),
+          title: t('msg.action.openSession'),
           onClick: function (event) {
             event.preventDefault()
             props.onOpen()
           }
         },
-        t('msg.openSession')
+        h(GcIconExternal, { size: 14 })
       )
     )
   }

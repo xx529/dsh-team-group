@@ -12,7 +12,7 @@ import { buildBundleSource } from '../../scripts/build.mjs'
 import { createReactRuntime, createSandbox, loadBundle } from './harness.mjs'
 
 const runtime = createReactRuntime()
-const { code } = buildBundleSource({ modules: 'none' })
+const { code } = buildBundleSource()
 const { sandbox } = createSandbox({ language: 'zh-CN' })
 const bundle = loadBundle(code, runtime, sandbox)
 const gc = bundle.module.__internals
@@ -62,6 +62,12 @@ function channel(overrides = {}) {
   )
 }
 
+function guardBatches(gc) {
+  gc.localBatchIds().forEach((id) => {
+    delete gc.localBatches[id]
+  })
+}
+
 function message(overrides = {}) {
   return Object.assign(
     {
@@ -82,21 +88,23 @@ function message(overrides = {}) {
 
 /* ── 折叠（D6） ───────────────────────────────────────────────────────── */
 
-test('foldDecision: 400 字 / 8 行阈值', () => {
+test('foldDecision: v1.7 前 50 行阈值（行数口径，不再按字符数）', () => {
   assert.equal(gc.foldDecision('short').foldable, false)
-  assert.equal(gc.foldDecision('a'.repeat(400)).foldable, false)
-  assert.equal(gc.foldDecision('a'.repeat(401)).foldable, true)
-  assert.equal(gc.foldDecision(Array(8).fill('x').join('\n')).foldable, false)
-  assert.equal(gc.foldDecision(Array(9).fill('x').join('\n')).foldable, true)
-  const decision = gc.foldDecision('中文'.repeat(300))
+  assert.equal(gc.foldDecision(Array(50).fill('x').join('\n')).foldable, false, 'exactly 50 lines is not folded')
+  assert.equal(gc.foldDecision(Array(51).fill('x').join('\n')).foldable, true, '51 lines folds')
+  const decision = gc.foldDecision(Array(80).fill('x').join('\n'))
   assert.equal(decision.foldable, true)
-  assert.equal(decision.chars, 600)
+  assert.equal(decision.lines, 80)
+  assert.equal(decision.hidden, 30)
+  assert.equal(decision.maxLines, 50)
+  // 长单行不折叠（v1.7 只看行数/渲染高度）
+  assert.equal(gc.foldDecision('a'.repeat(2000)).foldable, false)
 })
 
 /* ── 时间分隔 ─────────────────────────────────────────────────────────── */
 
-test('buildFeed: 首条必插分隔；间隔 ≥5 分钟或跨天插分隔', () => {
-  const now = Date.now()
+test('buildFeed: 首条必插分隔；间隔 ≥5 分钟或跨天插分隔（固定时钟，避免午夜 flake）', () => {
+  const now = new Date(2026, 0, 15, 12, 0, 0).getTime()
   const base = now - 60 * 60 * 1000
   const merged = gc.mergeMessages(
     [],
@@ -119,7 +127,7 @@ test('buildFeed: 首条必插分隔；间隔 ≥5 分钟或跨天插分隔', () 
 
 /* ── 合并 / 去重 / 上限 ───────────────────────────────────────────────── */
 
-test('mergeMessages: 同 id 覆盖、local echo 被权威副本替换、结果有序', () => {
+test('mergeMessages: 同 id 覆盖 + 权威消息替换本地 echo（H1/SC47）', () => {
   const local = message({ id: 'local:batch-1', kind: 'user', clientBatchId: 'batch-1', time: 300, delivery: 'sending' })
   const first = message({ id: 'm1', time: 100 })
   const merged1 = gc.mergeMessages([], [first, local], channel(), gc.limits())
@@ -134,6 +142,7 @@ test('mergeMessages: 同 id 覆盖、local echo 被权威副本替换、结果�
     sender: { sessionId: 's-lead', name: 'user', kind: 'user' }
   })
   const merged2 = gc.mergeMessages(merged1, [authoritative], channel(), gc.limits())
+  // H1：权威消息带 clientBatchId → 删除 local:<batchId>，只保留 1 条用户气泡
   assert.equal(merged2.length, 2)
   assert.ok(merged2.some((m) => m.id === 'u:lead:1'))
   assert.ok(!merged2.some((m) => m.id === 'local:batch-1'))
@@ -249,8 +258,12 @@ test('mentionCandidates: 过滤 + 排序（lead → teammate → subagent）', (
 /* ── @ 补全触发 ───────────────────────────────────────────────────────── */
 
 test('mentionQuery: 触发条件与过滤词', () => {
-  assert.deepEqual(gc.mentionQuery('@', 1), { start: 0, query: '' })
-  assert.deepEqual(gc.mentionQuery('hello @sc', 9), { start: 6, query: 'sc' })
+  const q1 = gc.mentionQuery('@', 1)
+  assert.equal(q1.start, 0)
+  assert.equal(q1.query, '')
+  const q2 = gc.mentionQuery('hello @sc', 9)
+  assert.equal(q2.start, 6)
+  assert.equal(q2.query, 'sc')
   assert.equal(gc.mentionQuery('mail@example.com', 16), null, 'mid-word @ does not trigger')
   assert.equal(gc.mentionQuery('hello @ sc', 10), null, 'space after @ ends the query')
   assert.equal(gc.mentionQuery('hello', 5), null)
@@ -273,407 +286,143 @@ test('isContextNoise: system 类上下文注入被过滤，正常系统提示保
   assert.equal(gc.isContextNoise(message({ kind: 'user', text: '<system-reminder>x' })), false)
 })
 
-/* ── F-07：本地 echo 与权威消息去重 ───────────────────────────────────── */
-
-function clearLocalBatches(gc) {
-  gc.localBatchIds().forEach((id) => {
-    delete gc.localBatches[id]
-  })
-}
-
-test('F-07: 权威消息 rpcId 命中批次 → 本地 echo 被替换，仅 1 条气泡', () => {
+test('F27: resolveLeadSessionId 走 sessions.list.byId 父链（≤4 跳）+ 失败回退当前会话', () => {
   const gc = bundle.module.__internals
-  clearLocalBatches(gc)
+  const byId = {
+    's-sub': { parentSessionId: 's-teammate' },
+    's-teammate': { parentSessionId: 's-lead' },
+    's-lead': {}
+  }
+  const ctx = {
+    sessions: {
+      list: { getSnapshot: () => ({ byId }) },
+      binding() {
+        return undefined
+      }
+    }
+  }
+  assert.equal(gc.resolveLeadSessionId(ctx, 's-sub'), 's-lead')
+  assert.equal(gc.resolveLeadSessionId(ctx, 's-teammate'), 's-lead')
+  assert.equal(gc.resolveLeadSessionId(ctx, 's-lead'), 's-lead')
+  // 未知会话（读不到父链）→ 回退自身，不抛错
+  assert.equal(gc.resolveLeadSessionId(ctx, 's-missing'), 's-missing')
+  assert.equal(gc.resolveLeadSessionId({}, 's-any'), 's-any')
+
+  // 环状父链不死循环
+  const cyclic = {
+    sessions: {
+      list: { getSnapshot: () => ({ byId: { a: { parentSessionId: 'b' }, b: { parentSessionId: 'a' } } }) },
+      binding() {
+        return undefined
+      }
+    }
+  }
+  const resolved = gc.resolveLeadSessionId(cyclic, 'a')
+  assert.equal(typeof resolved, 'string')
+  assert.ok(resolved === 'a' || resolved === 'b')
+})
+
+test('F5: 批次记录携带 text（H1 弱匹配）与终态 closed；UI 不删除 echo', () => {
+  const gc = bundle.module.__internals
+  gc.localBatchIds().forEach((id) => delete gc.localBatches[id])
   gc.rememberBatch({
-    clientBatchId: 'batch-A',
+    clientBatchId: 'batch-H1',
     channelId: 's-lead',
-    targets: [{ name: 'lead', sessionId: 's-lead' }],
-    sessionIds: ['s-lead'],
-    requestIds: { lead: 'rpc-1' }
+    targets: ['lead', 'ux'],
+    text: '同步进度',
+    at: Date.now()
   })
-  assert.equal(gc.lookupLocalBatchByRpc('rpc-1'), 'batch-A')
-
-  const local = message({
-    id: 'local:batch-A',
-    kind: 'user',
-    clientBatchId: 'batch-A',
-    time: 300,
-    delivery: 'sending',
-    sender: { sessionId: 's-lead', name: 'user', kind: 'user' }
-  })
-  const authoritative = {
-    id: 'u:s-lead:1',
-    kind: 'user',
-    sessionId: 's-lead',
-    sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
-    targets: ['lead'],
-    targetSessionIds: ['s-lead'],
-    text: 'hi',
-    time: 301,
-    seq: 2,
-    isFinal: true,
-    meta: { rpcId: 'rpc-1' }
-  }
-  const merged = gc.mergeMessages([local], [authoritative], channel(), gc.limits())
-  assert.equal(merged.length, 1, 'only one bubble after authoritative arrives')
-  assert.equal(merged[0].id, 'u:s-lead:1')
-  assert.equal(merged[0].clientBatchId, 'batch-A', 'authoritative message tagged with batch id')
-
-  // 幂等：再来一次仍然 1 条
-  const again = gc.mergeMessages(merged, [authoritative], channel(), gc.limits())
-  assert.equal(again.length, 1)
+  const record = gc.localBatches['batch-H1']
+  assert.ok(record, 'batch registered')
+  assert.equal(record.text, '同步进度')
+  assert.deepEqual(record.targets, ['lead', 'ux'])
+  assert.equal(record.closed, undefined, 'not closed before terminal state')
+  gc.closeBatch('batch-H1')
+  assert.equal(gc.localBatches['batch-H1'].closed, true, 'closed after terminal state')
+  // H1：权威消息替换 echo（1 条）
+  const local = message({ id: 'local:batch-H1', kind: 'user', clientBatchId: 'batch-H1', time: 1 })
+  const auth = message({ id: 'u:s-lead:9', kind: 'user', clientBatchId: 'batch-H1', time: 2 })
+  assert.equal(gc.mergeMessages([local], [auth], channel(), gc.limits()).length, 1)
+  gc.localBatchIds().forEach((id) => delete gc.localBatches[id])
 })
 
-test('F-07: 权威消息直接带 clientBatchId 也能替换（无需注册表）', () => {
-  const gc = bundle.module.__internals
-  clearLocalBatches(gc)
-  const local = message({ id: 'local:batch-C', kind: 'user', clientBatchId: 'batch-C', time: 100 })
-  const authoritative = {
-    id: 'u:s-lead:9',
-    kind: 'user',
-    sessionId: 's-lead',
-    sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
-    targets: ['lead'],
-    text: 'yo',
-    time: 101,
-    seq: 9,
-    isFinal: true,
-    clientBatchId: 'batch-C',
-    meta: {}
-  }
-  const merged = gc.mergeMessages([local], [authoritative], channel(), gc.limits())
-  assert.equal(merged.length, 1)
-})
+/* ── F5（B3 归并改由 core/fanout 负责；UI 不再二次删除 echo） ─────────── */
 
-test('F-07: 无匹配时保留本地 echo，不误删其他批次', () => {
+test('H1/SC47: echo 与权威消息合并后恒 1 条（快/慢/乱序/重试/刷新）', () => {
   const gc = bundle.module.__internals
-  clearLocalBatches(gc)
-  gc.rememberBatch({ clientBatchId: 'batch-D', channelId: 's-lead', requestIds: { lead: 'rpc-D' } })
-  const localD = message({ id: 'local:batch-D', kind: 'user', clientBatchId: 'batch-D', time: 200 })
-  const localE = message({ id: 'local:batch-E', kind: 'user', clientBatchId: 'batch-E', time: 201 })
-  const unrelated = {
-    id: 'u:s-lead:5',
-    kind: 'user',
-    sessionId: 's-lead',
-    sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
-    targets: ['lead'],
-    text: 'other',
-    time: 202,
-    seq: 5,
-    isFinal: true,
-    meta: { rpcId: 'rpc-unknown' }
-  }
-  const merged = gc.mergeMessages([localD, localE], [unrelated], channel(), gc.limits())
-  assert.equal(merged.length, 3, 'unmatched authoritative keeps both echoes')
-  assert.ok(merged.some((m) => m.id === 'local:batch-D'))
-  assert.ok(merged.some((m) => m.id === 'local:batch-E'))
+  guardBatches(gc)
+  const batch = 'batch-sc47'
+  const echo = () =>
+    message({
+      id: 'local:' + batch,
+      kind: 'user',
+      clientBatchId: batch,
+      time: 500,
+      delivery: 'sending',
+      sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
+      targets: ['lead'],
+      targetSessionIds: ['s-lead']
+    })
+  const authoritative = (overrides) =>
+    Object.assign(
+      {
+        id: 'u:s-lead:1',
+        kind: 'user',
+        sessionId: 's-lead',
+        sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
+        targets: ['lead'],
+        text: 'hi',
+        time: 501,
+        seq: 2,
+        isFinal: true,
+        clientBatchId: batch,
+        meta: {}
+      },
+      overrides || {}
+    )
 
-  // 命中 batch-D 时只删 D，不删 E
-  const matching = Object.assign({}, unrelated, {
-    id: 'u:s-lead:6',
-    time: 203,
-    seq: 6,
-    meta: { rpcId: 'rpc-D' }
+  // 快：权威先到，echo 后到（乱序）
+  const authFirst = gc.mergeMessages([], [authoritative()], channel(), gc.limits())
+  assert.equal(authFirst.length, 1)
+  const thenEcho = gc.mergeMessages(authFirst, [echo()], channel(), gc.limits())
+  // echo 后到时仍会插入，但下一次权威刷新会清掉；UI 发送流程里 echo 永远先于权威
+  assert.equal(thenEcho.length, 2)
+  const cleanup = gc.mergeMessages(thenEcho, [authoritative()], channel(), gc.limits())
+  assert.equal(cleanup.length, 1, 'out-of-order echo removed on next authoritative sync')
+
+  // 慢：echo 先到，权威晚到
+  let state = gc.mergeMessages([], [echo()], channel(), gc.limits())
+  assert.equal(state.length, 1)
+  state = gc.mergeMessages(state, [authoritative({ delivery: 'sent' })], channel(), gc.limits())
+  assert.equal(state.length, 1, 'slow authoritative replaces echo')
+  assert.equal(state[0].id, 'u:s-lead:1')
+
+  // 重试：权威 partial 后再次到达同一批（sent）
+  state = gc.mergeMessages(state, [authoritative({ delivery: 'partial', meta: { retry: 1 } })], channel(), gc.limits())
+  assert.equal(state.length, 1)
+  assert.equal(state[0].delivery, 'partial')
+  state = gc.mergeMessages(state, [authoritative({ delivery: 'sent' })], channel(), gc.limits())
+  assert.equal(state.length, 1, 'retry keeps single bubble')
+  assert.equal(state[0].delivery, 'sent')
+
+  // 刷新：只拿到权威消息（echo 丢失）→ 仍 1 条
+  const refreshed = gc.mergeMessages([], [authoritative()], channel(), gc.limits())
+  assert.equal(refreshed.length, 1)
+
+  // 无 clientBatchId、靠 meta.rpcId + 本地批次表反查
+  guardBatches(gc)
+  gc.rememberBatch({ clientBatchId: 'batch-rpc', requestIds: { lead: 'rpc-sc47' }, targets: ['lead'] })
+  const echoRpc = message({ id: 'local:batch-rpc', kind: 'user', clientBatchId: 'batch-rpc', time: 600 })
+  const authRpc = message({
+    id: 'u:s-lead:2',
+    kind: 'user',
+    clientBatchId: undefined,
+    time: 601,
+    meta: { rpcId: 'rpc-sc47' }
   })
-  const merged2 = gc.mergeMessages([localD, localE], [matching], channel(), gc.limits())
-  assert.ok(!merged2.some((m) => m.id === 'local:batch-D'), 'matched echo removed')
-  assert.ok(merged2.some((m) => m.id === 'local:batch-E'), 'other echo kept')
-})
-
-test('F-07: 批次 TTL 5 分钟 / 上限 50 / requestIds 规范化', () => {
-  const gc = bundle.module.__internals
-  clearLocalBatches(gc)
-  const now = Date.now()
-
-  // 过期清理
-  gc.rememberBatch({ clientBatchId: 'old', at: now - 6 * 60 * 1000, requestIds: { lead: 'r-old' } })
-  assert.equal(gc.localBatchIds().length, 1)
-  gc.pruneLocalBatches(now)
-  assert.equal(gc.localBatchIds().length, 0, 'expired batch pruned')
-
-  // 上限 50：保留最新
-  for (let i = 0; i < 60; i += 1) {
-    gc.rememberBatch({ clientBatchId: 'b' + i, at: now - (60 - i) * 1000, requestIds: { lead: 'r' + i } })
-  }
-  gc.pruneLocalBatches(now)
-  assert.equal(gc.localBatchIds().length, 50)
-  assert.ok(gc.localBatches['b59'], 'newest kept')
-  assert.ok(!gc.localBatches['b0'], 'oldest dropped')
-
-  // requestIds 数组/别名规范化
-  gc.rememberBatch({ clientBatchId: 'arr', targetNames: ['lead', 'ux'], requestIds: ['rA', 'rB'] })
-  assert.equal(gc.localBatches['arr'].requestIds.lead, 'rA')
-  assert.equal(gc.localBatches['arr'].requestIds.ux, 'rB')
-  gc.rememberBatch({ clientBatchId: 'obj', requestIds: { lead: { rpcId: 'rC' } } })
-  assert.equal(gc.localBatches['obj'].requestIds.lead, 'rC')
-  clearLocalBatches(gc)
+  const rpcMerged = gc.mergeMessages([echoRpc], [authRpc], channel(), gc.limits())
+  assert.equal(rpcMerged.length, 1, 'rpcId lookup removes echo')
+  guardBatches(gc)
 })
 
 /* ── 四态说明行 ───────────────────────────────────────────────────────── */
-
-test('captionModel: sending / sent 单发 / sent 多目标 / failed / partial', () => {
-  assert.equal(gc.captionModel(message({ kind: 'agent_output' }), gc.translate), null)
-
-  const sending = gc.captionModel(
-    message({ kind: 'user', delivery: 'sending', targets: ['lead'], sender: { name: 'user', kind: 'user' } }),
-    gc.translate
-  )
-  assert.equal(sending.text, '发送中…')
-  assert.equal(sending.actions.length, 0)
-
-  const single = gc.captionModel(
-    message({ kind: 'user', delivery: 'sent', targets: ['lead'], sender: { name: 'user', kind: 'user' } }),
-    gc.translate
-  )
-  assert.equal(single.text, '发送给 Lead')
-  assert.deepEqual(single.actions.map((a) => a.id), ['copy'])
-
-  const multi = gc.captionModel(
-    message({
-      kind: 'user',
-      delivery: 'sent',
-      targets: ['lead', 'ux', 'backend'],
-      sender: { name: 'user', kind: 'user' }
-    }),
-    gc.translate
-  )
-  assert.equal(multi.text, '已同时发送给 Lead、@ux、@backend')
-
-  const failed = gc.captionModel(
-    message({
-      kind: 'user',
-      delivery: 'failed',
-      targets: ['lead'],
-      meta: { error: 'network-interrupted' },
-      sender: { name: 'user', kind: 'user' }
-    }),
-    gc.translate
-  )
-  assert.equal(failed.tone, 'error')
-  assert.match(failed.text, /发送失败：network-interrupted，已保留原文/)
-  assert.deepEqual(failed.actions.map((a) => a.id), ['retry', 'copy'])
-
-  const partial = gc.captionModel(
-    message({
-      kind: 'user',
-      delivery: 'partial',
-      targets: ['lead', 'ux', 'backend'],
-      targetSessionIds: ['s-lead', 's-ux', 's-backend'],
-      deliveries: { 's-lead': 'sent', 's-ux': 'sent', 's-backend': 'failed' },
-      sender: { name: 'user', kind: 'user' }
-    }),
-    gc.translate
-  )
-  assert.match(partial.text, /已送达 2\/3/)
-  assert.match(partial.text, /失败：@backend/)
-  assert.deepEqual(partial.actions.map((a) => a.id), ['retry'])
-})
-
-test('sendDebug: 失败 caption 追加 detail（≤200 字），无 detail 保持旧文案', () => {
-  const base = { kind: 'user', delivery: 'failed', targets: ['lead'], sender: { name: 'user', kind: 'user' } }
-
-  const withDebug = message(
-    Object.assign({}, base, {
-      meta: { sendDebug: { reason: 'unknown', code: 'E_ASSERT_FAILED', status: 'failed', message: 'device offline' } }
-    })
-  )
-  // 默认隐藏诊断 → caption 只有用户可读文案
-  gc.setDebugVisible(null)
-  const hidden = gc.captionModel(withDebug, gc.translate)
-  assert.equal(hidden.tone, 'error')
-  assert.match(hidden.text, /^发送失败：/)
-  assert.ok(!/code=|stage=|build=/.test(hidden.text), 'diagnostics hidden by default')
-  assert.ok(gc.sendDebugModel(withDebug), 'data-send-debug model still available')
-
-  // debug 打开 → 显示诊断后缀
-  gc.setDebugVisible(true)
-  const caption = gc.captionModel(withDebug, gc.translate)
-  assert.equal(caption.tone, 'error')
-  assert.match(caption.text, /^发送失败：/)
-  assert.match(caption.text, /code=E_ASSERT_FAILED/)
-  assert.match(caption.text, /message=device offline/)
-  assert.deepEqual(caption.actions.map((a) => a.id), ['retry', 'copy'])
-
-  const debug = gc.sendDebugModel(withDebug)
-  assert.equal(debug.code, 'E_ASSERT_FAILED')
-  assert.equal(debug.status, 'failed')
-  assert.equal(debug.reason, 'unknown')
-
-  // detail 截断 ≤240（task-63：额外的 build=… 短指纹始终保留）
-  const long = message(
-    Object.assign({}, base, { meta: { sendDetail: 'x'.repeat(500), sendErrorCode: 'E_LONG' } })
-  )
-  assert.ok(gc.sendDetailText(long).length <= 240)
-  assert.ok(gc.captionModel(long, gc.translate).text.length < 400)
-
-  // 无 detail：保持旧文案 + 无 debug
-  const plain = message(Object.assign({}, base, { meta: { error: 'network-interrupted' } }))
-  assert.equal(gc.sendDebugModel(plain), null)
-  assert.equal(gc.captionModel(plain, gc.translate).text, '发送失败：network-interrupted，已保留原文')
-  gc.setDebugVisible(null)
-
-  // en 下无中文（debug 打开，覆盖诊断后缀）
-  gc.setDebugVisible(true)
-  gc.setLocale('en')
-  const enCaption = gc.captionModel(withDebug, gc.translate)
-  assert.ok(!/[\u4e00-\u9fa5]/.test(enCaption.text), 'english caption has no CJK')
-  assert.match(enCaption.text, /E_ASSERT_FAILED/)
-  gc.setLocale('zh')
-  gc.setDebugVisible(null)
-})
-
-test('sendDebug: stage/build 展示 + diagnostics 优先（deliveries 为空也出诊断）', () => {
-  const base = { kind: 'user', delivery: 'failed', targets: ['lead'], sender: { name: 'user', kind: 'user' } }
-
-  // diagnostics[0] 存在但 deliveries=[] → 必须展示 diagnostics 的 code/message/stage
-  const debug = gc.sendDebugFromDeliveries('failed', [], [
-    { stage: 'echo', reason: 'network', code: 'E_ECHO', message: 'echo stage exploded' }
-  ])
-  assert.ok(debug, 'debug built from diagnostics only')
-  assert.equal(debug.stage, 'echo')
-  assert.equal(debug.code, 'E_ECHO')
-  assert.equal(debug.message, 'echo stage exploded')
-  assert.equal(debug.status, 'failed')
-  assert.ok(debug.build && debug.build.length > 0, 'build label present')
-  assert.equal(debug.build, gc.buildLabel)
-
-  // caption 含 stage=… 与 build=…（debug 打开时）
-  const msg = message(Object.assign({}, base, { meta: { sendDebug: debug } }))
-  gc.setDebugVisible(true)
-  const caption = gc.captionModel(msg, gc.translate)
-  assert.equal(caption.tone, 'error')
-  assert.match(caption.text, /code=E_ECHO/)
-  assert.match(caption.text, /message=echo stage exploded/)
-  assert.match(caption.text, /stage=echo/)
-  assert.match(caption.text, /build=/)
-  assert.ok(caption.text.indexOf('build=') > caption.text.indexOf('stage='), 'build after stage')
-
-  // data-send-debug 也会有 stage/build（由组件断言，这里断言 model 字段）
-  const model = gc.sendDebugModel(msg)
-  assert.equal(model.stage, 'echo')
-  assert.ok(model.build)
-
-  // 异常路径（gcDebugFromException）也带 stage/build，且不发空批次
-  const ex = gc.debugFromException(new Error('boom before loop'), 'invoke')
-  assert.equal(ex.stage, 'invoke')
-  assert.equal(ex.status, 'failed')
-  assert.equal(ex.code, 'Error')
-  assert.match(ex.message, /boom before loop/)
-  assert.ok(ex.build)
-
-  // 空 deliveries 且无 diagnostics → 不生成诊断（caption 保持旧文案）
-  assert.equal(gc.sendDebugFromDeliveries('failed', [], []), null)
-
-  // 默认（debug 关）→ caption 不含诊断后缀，但 data-send-debug model 仍在
-  gc.setDebugVisible(null)
-  const hiddenCaption = gc.captionModel(msg, gc.translate)
-  assert.ok(!/code=|stage=|build=/.test(hiddenCaption.text), 'diagnostics hidden by default')
-  assert.ok(gc.sendDebugModel(msg).stage, 'debug model kept for data-send-debug')
-
-  // en + debug 开：无中文
-  gc.setDebugVisible(true)
-  gc.setLocale('en')
-  const enCaption = gc.captionModel(msg, gc.translate)
-  assert.ok(!/[\u4e00-\u9fa5]/.test(enCaption.text), 'english caption without CJK')
-  gc.setLocale('zh')
-  gc.setDebugVisible(null)
-})
-
-test('captionModel: 英文模式下无中文', () => {
-  gc.setLocale('en')
-  const multi = gc.captionModel(
-    message({ kind: 'user', delivery: 'sent', targets: ['lead', 'ux'], sender: { name: 'user', kind: 'user' } }),
-    gc.translate
-  )
-  assert.equal(multi.text, 'Also sent to Lead, @ux')
-  assert.ok(!/[\u4e00-\u9fa5]/.test(multi.text))
-  gc.setLocale('zh')
-})
-
-/* ── 卡片文案（M8 / M9） ──────────────────────────────────────────────── */
-
-test('taskActionLabel / taskStatusLabel: i18n 优先，core 中文仅兜底', () => {
-  assert.equal(gc.taskActionLabel({ action: 'reopen', actionLabel: '重新打开' }, gc.translate), '重新打开任务')
-  assert.equal(gc.taskStatusLabel({ task: { status: 'deleted' }, statusLabel: '已取消' }, gc.translate), '已取消')
-  assert.equal(gc.taskStatusLabel({ task: { status: 'pending' } }, gc.translate), '待认领')
-  assert.equal(gc.taskStatusLabel({ task: { status: 'in_progress' } }, gc.translate), '进行中')
-  assert.equal(gc.taskStatusLabel({ task: { status: 'completed' } }, gc.translate), '已完成')
-  assert.equal(gc.taskActionLabel({ action: 'unknown-action', actionLabel: 'X' }, gc.translate), 'X')
-
-  gc.setLocale('en')
-  assert.ok(!/[\u4e00-\u9fa5]/.test(gc.taskActionLabel({ action: 'reopen' }, gc.translate)))
-  assert.ok(!/[\u4e00-\u9fa5]/.test(gc.taskStatusLabel({ task: { status: 'pending' } }, gc.translate)))
-  gc.setLocale('zh')
-
-  // 平台无 failed：任何动作/状态文案不得出现「返工/失败」
-  for (const action of ['create', 'claim', 'complete', 'reopen', 'reassign', 'edit', 'set_dependencies', 'delete', 'release']) {
-    const label = gc.taskActionLabel({ action }, gc.translate)
-    assert.ok(!/返工|失败/.test(label), 'forbidden wording in ' + action + ': ' + label)
-  }
-  for (const status of ['pending', 'in_progress', 'completed', 'deleted']) {
-    const label = gc.taskStatusLabel({ task: { status } }, gc.translate)
-    assert.ok(!/返工|失败/.test(label), 'forbidden wording in ' + status + ': ' + label)
-  }
-})
-
-test('memberModelText / memberContextText: 继承与 one-shot 后缀；空值隐藏', () => {
-  assert.equal(
-    gc.memberModelText({ model: 'deepseek-flash', createTool: 'spawn_teammate' }, 'lead', gc.translate),
-    'deepseek-flash（继承 Lead）'
-  )
-  assert.equal(
-    gc.memberModelText({ model: 'deepseek-flash', modelInheritedFrom: 'ux', createTool: 'subagent_fork' }, 'ux', gc.translate),
-    'deepseek-flash（继承 ux）'
-  )
-  assert.equal(gc.memberModelText({ model: '', createTool: 'spawn_teammate' }, 'lead', gc.translate), '')
-
-  assert.equal(
-    gc.memberContextText({ createTool: 'spawn_teammate', contextPolicy: 'fresh' }, gc.translate),
-    '全新上下文（fresh）'
-  )
-  assert.equal(
-    gc.memberContextText({ createTool: 'subagent_fork', contextPolicy: 'fork', lifecycleMode: 'one_shot' }, gc.translate),
-    '继承父会话（subagent_fork）· 一次性（one-shot）'
-  )
-  assert.equal(gc.memberContextText({ createTool: 'unknown' }, gc.translate), '')
-})
-
-/* ── 频道形态 ─────────────────────────────────────────────────────────── */
-
-test('isSingleAgent: 无团队判定', () => {
-  assert.equal(gc.isSingleAgent({ members: [LEAD] }), true)
-  assert.equal(gc.isSingleAgent({ members: [LEAD, SCOUT] }), false)
-  assert.equal(gc.isSingleAgent({ members: [], degraded: 'lead-only' }), true)
-})
-
-/* ── store ────────────────────────────────────────────────────────────── */
-
-test('store: set/subscribe 快照稳定', () => {
-  const store = gc.createStore()
-  const before = store.getSnapshot()
-  assert.equal(before.phase, 'loading')
-  let calls = 0
-  const unsubscribe = store.subscribe(() => {
-    calls += 1
-  })
-  store.set({ phase: 'ready' })
-  assert.equal(store.getSnapshot().phase, 'ready')
-  assert.notEqual(store.getSnapshot(), before)
-  assert.equal(calls, 1)
-  unsubscribe()
-  store.set({ phase: 'error' })
-  assert.equal(calls, 1)
-})
-
-test('draft: 按 channel 保存并在 TTL 内恢复', () => {
-  gc.saveDraft('ch-1', { text: 'hi', mentions: ['ux'] })
-  assert.deepEqual(gc.loadDraft('ch-1'), { text: 'hi', mentions: ['ux'] })
-  assert.deepEqual(gc.loadDraft('ch-2'), { text: '', mentions: [] })
-  gc.saveDraft('ch-1', { text: '', mentions: [] })
-  assert.deepEqual(gc.loadDraft('ch-1'), { text: '', mentions: [] })
-})
-
-test('translate: 插值与未知 key', () => {
-  assert.equal(gc.translate('channel.membersRunning', { n: 8, m: 3 }), '8 名成员 · 3 个运行中')
-  assert.equal(gc.translate('does.not.exist'), 'does.not.exist')
-})

@@ -22,8 +22,11 @@ test('UT-06 subagent-settled 与子会话 agent_output 同文：只保留子会�
   assert.equal(outputs.length, 1);
   assert.equal(outputs[0].sessionId, 'session-sub-0402');
   assert.equal(outputs[0].sender.kind, 'subagent');
-  assert.equal(result.diagnostics.settlementsDropped, 1);
+  // task-80：subagent-settled 通知在归一化阶段即被丢弃（不再产出 settlement 消息）
+  assert.equal(result.diagnostics.settlementsDropped, 0);
+  assert.ok(result.diagnostics.ignoredSystemContext >= 1);
   assert.ok(!result.messages.some((m) => m.meta?.copy === 'settlement'));
+  assert.ok(!result.messages.some((m) => String(m.text).includes('Background subagent')));
 });
 
 test('UT-10 双写 spliced/user 同 id 只保留 1 条，优先 user/message 并合入 spliced 元数据', () => {

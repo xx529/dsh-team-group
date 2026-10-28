@@ -170,6 +170,11 @@ if (build) {
 // ── 7. 源码边界 ─────────────────────────────────────────────────────
 const srcDirs = ['src/core', 'src/adapters', 'src/send', 'src/client'];
 const srcFiles = srcDirs.flatMap((d) => walkJs(join(ROOT, d)));
+/** DOM 用法判定：必须出现 `window.` / `document.` 属性访问（排除 AST 的 'document' 字面量）。 */
+function hasDomUsage(code) {
+  return /\b(?:window|document)\s*\./.test(code);
+}
+
 /** @type {string[]} */
 const boundaryIssues = [];
 for (const file of srcFiles) {
@@ -186,13 +191,23 @@ for (const file of srcFiles) {
     else if (!spec.endsWith('.js')) boundaryIssues.push(`${rel}: import without .js '${spec}'`);
   }
   if (rel.startsWith('src/core') || rel.startsWith('src/adapters') || rel.startsWith('src/send')) {
-    if (/\bwindow\b/.test(code)) boundaryIssues.push(`${rel}: window`);
-    if (/\bdocument\b/.test(code)) boundaryIssues.push(`${rel}: document`);
+    // 只匹配 DOM 属性访问（如 document.head / window.setTimeout）；
+    // 字符串字面量 `'document'`（Markdown AST 根类型）不算 DOM 用法。
+    if (hasDomUsage(code)) boundaryIssues.push(`${rel}: window/document`);
     if (/from\s+['"]node:/.test(code)) boundaryIssues.push(`${rel}: node builtin`);
   }
   if (read(file).includes('/Users/lzx')) boundaryIssues.push(`${rel}: absolute path`);
 }
 check('source', '源码边界（无 default/动态 import/非相对/node/DOM）', boundaryIssues.length === 0, boundaryIssues.length === 0 ? `${srcFiles.length} files` : boundaryIssues.slice(0, 5).join(' | '));
+check(
+  'source',
+  'AST 根类型 document 不算 DOM（回归）',
+  hasDomUsage('{type:"document",children:[]}') === false &&
+    hasDomUsage("type: 'document'") === false &&
+    hasDomUsage('document.head.appendChild(x)') === true &&
+    hasDomUsage('window.setTimeout(fn, 0)') === true,
+  "ok"
+);
 check('source', 'src/host 无 Host 业务 JS', walkJs(join(ROOT, 'src/host')).length === 0, 'only README');
 check('source', '无越界源码目录引用', !srcFiles.some((f) => read(f).includes('src/host/')), 'ok');
 

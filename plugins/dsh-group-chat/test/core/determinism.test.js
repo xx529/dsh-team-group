@@ -11,7 +11,7 @@ const ENVELOPE = new Set(['13-entry-envelope']);
 
 test('全部 fixture 归一化两次结果完全一致（消息/诊断/成员）', () => {
   const names = listFixtures();
-  assert.ok(names.length >= 18, `fixture 组数应 >= 18，实际 ${names.length}`);
+  assert.ok(names.length >= 19, `fixture 组数应 >= 19，实际 ${names.length}`);
   for (const name of names) {
     const key = name.replace(/\.jsonl$/, '');
     const a = normalizeFixture(name, {}, { envelope: ENVELOPE.has(key) }).result;
@@ -59,6 +59,7 @@ test('fixture 清单与架构 §8.2 对齐（17 组，含 member-card / task-car
     '16-member-card',
     '17-task-card',
     '18-system-context',
+    '19-subagent-notice',
   ];
   for (const name of expected) assert.ok(names.includes(name), `缺少 fixture ${name}`);
 });
