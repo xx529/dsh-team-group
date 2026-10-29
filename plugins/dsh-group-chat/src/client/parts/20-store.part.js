@@ -735,7 +735,6 @@ function gcCaptionModel(message, t) {
   if (!message || message.kind !== 'user') return null
   const status = message.delivery || (message.deliveries ? gcAggregateDelivery(message.deliveries) : 'sent')
   const targets = gcAsArray(message.targets)
-  const list = gcTargetListText(message)
 
   if (status === 'sending') {
     return { tone: 'muted', text: t('msg.sending'), actions: [] }
@@ -796,11 +795,9 @@ function gcCaptionModel(message, t) {
       actions: [{ id: 'retry', label: t('msg.retry') }]
     }
   }
-  return {
-    tone: 'normal',
-    text: targets.length > 1 ? t('msg.deliveredTo', { list: list }) : t('msg.sendToLead'),
-    actions: [{ id: 'copy', label: t('msg.copy') }]
-  }
+  // v0.8.4（用户反馈）：sent 状态不再渲染气泡下说明行。
+  // 多目标由正文 canonical 前缀 + 输入器 chips 表达；仅 sending/partial/failed 有 caption。
+  return null
 }
 
 function gcAggregateDelivery(deliveries) {

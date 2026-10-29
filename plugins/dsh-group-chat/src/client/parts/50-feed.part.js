@@ -249,7 +249,40 @@ function GcMessageRow(props) {
 
   const children = []
   if (!self) {
-    children.push(h(GcAvatar, { key: 'avatar', name: senderName, kind: senderKind, size: 32 }))
+    const avatar = h(GcAvatar, { name: senderName, kind: senderKind, size: 32 })
+    const canTrajectory = !!sender.sessionId && senderKind !== 'user' && typeof props.onOpenTrajectoryMember === 'function'
+    children.push(
+      canTrajectory
+        ? h(
+            'button',
+            {
+              key: 'avatar',
+              type: 'button',
+              className: 'gc-avatar-btn',
+              'data-action': 'open-trajectory',
+              'data-member-id': gcStr(sender.sessionId),
+              'data-member-name': senderName,
+              'aria-label': t('member.trajectoryAria', {
+                name: senderName,
+                status: t('member.status.' + gcMemberWorkStatus(member))
+              }),
+              onClick: function (event) {
+                event.preventDefault()
+                event.stopPropagation()
+                props.onOpenTrajectoryMember({
+                  sessionId: sender.sessionId,
+                  name: senderName,
+                  kind: senderKind,
+                  status: member ? member.status : 'unknown',
+                  model: member ? member.model : undefined,
+                  parentName: parentName
+                })
+              }
+            },
+            avatar
+          )
+        : avatar
+    )
   }
   children.push(h('div', { key: 'main', className: 'gc-row-main' }, mainChildren))
 
@@ -351,6 +384,7 @@ function GcFeedBody(props) {
         onOpenSession: props.onOpenSession,
         onOpenFile: props.onOpenFile,
         onOpenTrajectory: props.onOpenTrajectory,
+        onOpenTrajectoryMember: props.onOpenTrajectoryMember,
         onCaptionAction: props.onCaptionAction,
         onCardAction: props.onCardAction,
         onCopyTaskId: props.onCopyTaskId

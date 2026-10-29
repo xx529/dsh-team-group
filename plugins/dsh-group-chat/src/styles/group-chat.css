@@ -2208,3 +2208,26 @@ body.gc-view-group-chat [data-composer-seat] {
 .gc-md-link-plain {
   color: var(--dsw-alias-label-primary);
 }
+
+
+/* 消息行头像可点击（打开自研轮次轨迹侧栏） */
+.gc-avatar-btn {
+  flex: none;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: inline-flex;
+  line-height: 0;
+}
+
+.gc-avatar-btn:hover {
+  filter: brightness(1.08);
+}
+
+.gc-avatar-btn:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}

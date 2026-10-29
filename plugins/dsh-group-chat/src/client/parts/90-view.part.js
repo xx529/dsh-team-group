@@ -1251,6 +1251,9 @@ function GroupChatView(props) {
     onReconnect: function () {
       if (controllerRef.current) controllerRef.current.syncNow()
     },
+    onOpenTrajectoryMember: function (member) {
+      actions.onOpenTrajectory(member)
+    },
     onOpenTrajectory: function (member) {
       if (!member) return
       const current = store.getSnapshot()
@@ -1359,6 +1362,7 @@ function GroupChatView(props) {
       onCaptionAction: actions.onCaptionAction,
       onCardAction: actions.onCardAction,
       onCopyTaskId: actions.onCopyTaskId,
+      onOpenTrajectoryMember: actions.onOpenTrajectoryMember,
       onRetryOpen: actions.onRetryOpen,
       onOpenChat: actions.onOpenChat
     }),

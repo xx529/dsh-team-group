@@ -54,11 +54,11 @@ cd plugins/dsh-group-chat
 node scripts/build.mjs           # 生成 lib/client.js（唯一入口：src/client/entry.js + parts + locale + css）
 node scripts/build.mjs --check   # 校验 lib/client.js 与源文件逐字节一致（提交前必跑）
 node scripts/verify.mjs          # 34 项打包/边界/契约校验；--json 可机读
-npm test                         # 全部 329 条（core 187 / send 71 / client 71；显式 glob，勿用裸 node --test）
+npm test                         # 全部 330 条（core 187 / send 71 / client 72；显式 glob，勿用裸 node --test）
 npm run test:core / test:send / test:client   # 分层跑
 ```
 
-> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**329 pass / 0 fail**（core 187 / send 71 / client 71；验收用例 181 条，以实际输出为准）。
+> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**330 pass / 0 fail**（core 187 / send 71 / client 72；验收用例 181 条，以实际输出为准）。
 >
 > **失败诊断默认隐藏**：发送失败 caption 默认只显示用户可读文案；诊断信息（`code`/`message`/`stage`/`build`）需 `?gc-debug=1` 或 `localStorage['group-chat:debug']='1'` 才显示；`data-send-debug` / `data-build` 属性**始终保留**（tester 可断言，不依赖开关）。
 
@@ -87,7 +87,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 3. **数据通路**：客户端 `ctx.sessions.retain(sessionId,{source})` → `binding.eventSource`（`SessionEventWindow`）+ `projectionsBySession[lead].values.agentTeam`；跨会话合并排序键 `(time, sessionIdRank, seq)`；范围=Lead 全部后代，深度 ≤3、会话 ≤32（A10）。
 4. **发送通路**：`sessions.binding(target).session.prompt([{type:'text',text}], mode, signal, requestId)`；默认 Lead，`@` 时 Lead + 被 @ 成员；**先 Lead 后成员串行**；`targets>1` 注入 canonical 前缀 `[群聊 · 同发] 收件人：@lead、@ux、@backend` + 固定说明行；四态 `sending/sent/partial/failed`，部分失败只重试失败目标。
 5. **颜色**：只用 `--dsw-alias-*` / `--dsw-specific-*` 主题 token（`src/styles` 中允许的 `rgba(0,0,0,…)` 阴影回退除外）；禁止臆造品牌色、硬编码主题色。
-6. **DOM 契约冻结**（架构 §6.5.2，不得改名）：`group-chat-feed`、`group-chat-time-divider`、`group-chat-bubble`、`group-chat-bubble-caption`、`group-chat-fold-toggle`、`group-chat-unread-pill[data-count]`、`group-chat-newmessages-hint[data-count]`、`group-chat-filter-banner[data-filter]`+`[data-action=clear-filter]`、`group-chat-readonly-banner`、`group-chat-reconnect-banner`、`group-chat-mention-popup[role=listbox]`+`[role=option][data-mention]`、`group-chat-composer`、`group-chat-send`、`group-chat-target-row[data-targets]`、`group-chat-error[data-retryable]`；消息行 `data-kind`/`data-message-id`/`data-status`；成员 `data-member-kind`/`data-parent`；入群 `data-card=member-join`+`data-creation-id`/`data-pair-order`；任务卡 `data-card=task`+`data-task-*`。**v0.8 新增**：`group-chat-target-chips`（输入框下方 chip 区）、`group-chat-member-strip` + `data-member-state=working|waiting`、`group-chat-trajectory-panel` + `data-turn-index`、`data-card-avatar`、Markdown 内容节点（strong/ul/code/pre/table）。**v0.8.1 新增**：`data-member-name`（完整名字）、`data-task-collapsed=true|false`；**`data-task-owner-avatar` 已删除**（负责人用字段行头像+名字）。
+6. **DOM 契约冻结**（架构 §6.5.2，不得改名）：`group-chat-feed`、`group-chat-time-divider`、`group-chat-bubble`、`group-chat-bubble-caption`、`group-chat-fold-toggle`、`group-chat-unread-pill[data-count]`、`group-chat-newmessages-hint[data-count]`、`group-chat-filter-banner[data-filter]`+`[data-action=clear-filter]`、`group-chat-readonly-banner`、`group-chat-reconnect-banner`、`group-chat-mention-popup[role=listbox]`+`[role=option][data-mention]`、`group-chat-composer`、`group-chat-send`、`group-chat-target-row[data-targets]`、`group-chat-error[data-retryable]`；消息行 `data-kind`/`data-message-id`/`data-status`；成员 `data-member-kind`/`data-parent`；入群 `data-card=member-join`+`data-creation-id`/`data-pair-order`；任务卡 `data-card=task`+`data-task-*`。**v0.8 新增**：`group-chat-target-chips`（输入框下方 chip 区）、`group-chat-member-strip` + `data-member-state=working|waiting`、`group-chat-trajectory-panel` + `data-turn-index`、`data-card-avatar`、Markdown 内容节点（strong/ul/code/pre/table）。**v0.8.1 新增**：`data-member-name`（完整名字）、`data-task-collapsed=true|false`；**`data-task-owner-avatar` 已删除**（负责人用字段行头像+名字）。**v0.1.1 新增**：`agent-trajectory-panel`（自研轮次轨迹容器；消息行头像/频道头成员头像可触发，**用户头像不可点**）。
 7. **i18n**：文案全部走 `locale/{zh,en}.json`，键集必须完全一致；新增文案同时改 zh/en。
 8. **构建约束**：`src/**/*.js`（`src/client/**` 除外）必须是 named export、相对 import 带 `.js`、无 `export default`/`export *`/动态 `import()`/Node API；`src/client/parts/*.part.js` 按文件名序拼接、共享作用域、不得重名。
 9. **不改宿主**：不修改 DSH 安装包（asar）、不改 profile 配置；不写用户会话日志。
@@ -96,7 +96,8 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
     - **单一输入器（F24）**：群聊视图内隐藏宿主 composer、只留插件 composer；Enter 发送/Shift+Enter 换行；发送后清空且不得回填；切走恢复宿主 composer；隐藏方式异常时降级为两个输入框也不得发送两次。
     - **成员条（F26 + F33 + v1.7.3）**：每成员 24px 头像 + **完整名字** + 绿/灰状态点；**全部成员显示、禁止 `+N`**；**换行优先**（多行、头部自适应），超宽才横向滚动；**不得使用两端渐变/黑色遮罩**。
     - **inline @ chip（F25）**：仅键入 `@` 触发补全；弹层不透明；条目小字=角色描述（非状态）；chip 在输入框下方、彩色底+**白字（`--gc-on-brand:#fff`）**；提示文案只有「键入 @ 可同时发送给多人」。
-    - **轨迹侧栏（F26）**：点头像打开右侧抽屉（agent/状态/模型 + 轮次时间/最终输出摘要/工具数/状态），可 Esc/遮罩关闭，不阻塞消息流。
+    - **sent 用户气泡（v0.1.1）**：已发送的用户消息气泡**不再显示发送说明行/复制行**；多目标由正文前缀（F19）+ 输入框下方 target chips（F25）表达。
+    - **轨迹侧栏（F26）**：点头像打开右侧抽屉（agent/状态/模型 + 轮次时间/最终输出摘要/工具数/状态），可 Esc/遮罩关闭，不阻塞消息流；**消息行头像与频道头成员头像均可点击打开自研 `agent-trajectory-panel`，用户头像不可点**。
     - **50 行折叠（F29）**：默认前 50 行，超过才折叠；系统/欢迎/同发说明永不折叠；行数按渲染后行数计。
     - **任务卡 v5（F23）**：与气泡明显区分（状态色竖条/任务图标/状态 pill/负责人头像+名字）；**无「复制任务 ID」**；操作者头像必须渲染（缺失首字母占位）。
     - **subagent-settled 过滤（F30/§7.2）**：父会话 `subagent-settled` 副本不得渲染为 agent/user 消息（按 id/文本去重）。
@@ -119,7 +120,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
    node scripts/build.mjs && node scripts/verify.mjs && npm test
    ```
 4. **locale**：zh/en 同步改，构建会校验键集一致性。
-5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（329）全绿；有视觉变更时按 §6 更新证据。
+5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（330）全绿；有视觉变更时按 §6 更新证据。
 6. **原型门禁**：用户确认 Figma 原型（P1–P13）后才进入实现；原型未确认不得改 UI 源码。
 
 ## 6. 质量门与证据
@@ -128,7 +129,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | --- | --- | --- |
 | 构建 | `build --check` fresh；`lib/client.js` 由源码确定性生成 | 命令输出 |
 | 打包校验 | `node scripts/verify.mjs` **34/34 PASS**（含 locale 键集一致、边界、无 Host 业务、无绝对路径、无 Node 内建） | 命令输出 |
-| 单测 | `npm test` **329 pass / 0 fail**（core 187 / send 71 / client 71） | 命令输出 |
+| 单测 | `npm test` **330 pass / 0 fail**（core 187 / send 71 / client 72） | 命令输出 |
 | 验收用例 | `tests/design/test-plan.md` **181 条**；v0.8.1 真机验收：表格/成员条 1280/任务卡人物/展开态 **PASS（视觉）**，**仍缺 2 项交互截图**（任务卡「收起」、SC47 最终版回归——窗口 split/坐标漂移未取，由组件测试覆盖） | `tests/runs/2026-10-29-task-101.md`、`tests/artifacts/v42-*` |
 | 性能 | 1000 事件归一化 ≤50ms（本机 M1 中位数 ~1.5ms）；首屏 200 条 ≤250ms | `tests/runs/perf-01.log` |
 | 真机走查 | tester 按 `tests/design/click-walk.md` 在 DSH Desktop 真实点击；不得以静态代码阅读代替 | `tests/runs/*.md`、`tests/interactions/click-walk-results.md` |
@@ -144,12 +145,12 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | 项 | 当前值 |
 | --- | --- |
 | 插件版本 | `0.1.0` |
-| 最近验证 bundle | `sha256=6a9125ee41d64eadccb8eadf9bd9a251f76f78740a8f16cab9b6caf2dd1685f4`（604,043 B，冷启动修复最终包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
-| build 指纹 | `0.1.0+3fa84cb5f6f5`（冷启动修复最终包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
+| 最近验证 bundle | `sha256=198dc1b70da8ccc249176e880fd8b22d2fe068923cfea2a61603e66ed8a83bcf`（605,648 B，v0.1.1 两处小修最终包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
+| build 指纹 | `0.1.0+4f076e5111d2`（v0.1.1 两处小修最终包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
 | PRD | **v0.8.1**（F1–F35 / SC1–SC53；18 条反馈 + 5 条线上问题映射见 §1.6） |
 | 架构 | **v1.7.3**（含 DOM 契约、决策记录 v1.1–v1.7.3、成员条换行优先/全显修订） |
 | UX | **v4.2**；原型 Figma `team-group` **P1–P13**（v4.2 PNG 已重导；含 13-task-cards / 14-agent-trajectory） |
-| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 6a9125ee…**（verify 34/34、**329 tests**、181 验收用例；视觉修复 PASS；**冷启动修复：`await retain.ready` + 骨架加载态，10s 宽限后才判空态**；v0.8.1 验收缺 2 项交互截图见 §6 缺口） |
+| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 198dc1b7…**（verify 34/34、**330 tests**、181 验收用例；视觉修复 + 冷启动修复 PASS；**v0.1.1：sent 气泡说明/复制行移除、头像可点开自研轨迹**） |
 
 ## 8. 安全与边界
 

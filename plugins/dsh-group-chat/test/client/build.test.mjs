@@ -149,6 +149,11 @@ test('locale: zh/en 键集完全一致', () => {
   // M9：copyId 文案已随「移除复制任务 ID」清理（zh/en 同步删除）
   assert.equal(zh['task.copyId'], undefined, 'task.copyId removed from zh')
   assert.equal(en['task.copyId'], undefined, 'task.copyId removed from en')
+  // v0.8.4：sent 不渲染说明行 → 相关文案键已清理
+  for (const key of ['msg.deliveredTo', 'msg.sendToLead', 'msg.sentTo']) {
+    assert.equal(zh[key], undefined, key + ' removed from zh')
+    assert.equal(en[key], undefined, key + ' removed from en')
+  }
   assert.ok(keys.includes('meta.description'))
 
   // 键集不一致必须报错

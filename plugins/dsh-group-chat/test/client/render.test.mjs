@@ -157,9 +157,25 @@ test('render: 频道头 / 时间分隔 / 气泡 / 说明行', async () => {
     assert.ok(findAllByTestId(rendered, 'group-chat-time-divider').length > 0, 'time dividers')
     assert.ok(findAllByTestId(rendered, 'group-chat-bubble').length > 0, 'bubbles')
 
-    const userCaption = findAllByTestId(rendered, 'group-chat-bubble-caption')[0]
-    assert.ok(userCaption, 'user bubble caption')
-    assert.match(visibleText(userCaption), /已同时发送给 Lead/)
+    // v0.8.4：sent 状态不再有说明行；仅 sending/partial/failed 有 caption
+    const sentUserRows = findAll(
+      rendered,
+      (node) => node.props && node.props['data-kind'] === 'user' && node.props['data-status'] === 'sent'
+    )
+    assert.ok(sentUserRows.length > 0, 'sent user bubble present')
+    for (const row of sentUserRows) {
+      assert.equal(
+        findAllByTestId(row, 'group-chat-bubble-caption').length,
+        0,
+        'sent user bubble has no caption row'
+      )
+    }
+    const failedUserRows = findAll(
+      rendered,
+      (node) => node.props && node.props['data-status'] === 'failed' && node.props['data-kind'] === 'user'
+    )
+    assert.ok(failedUserRows.length > 0, 'failed user bubble present')
+    assert.ok(findAllByTestId(failedUserRows[0], 'group-chat-bubble-caption').length > 0, 'failed keeps caption')
   } finally {
     mounted.restore()
   }
@@ -1531,6 +1547,55 @@ test('F32: GFM 表格文本 → 真实表格 DOM；非法表格降级段落（co
     const invalid = renderer.render(h(gc.GcMarkdown, { text: '| a | b |\n| -- |\n| 1 | 2 |' }))
     assert.equal(findAll(invalid, (node) => node.type === 'table').length, 0, 'invalid table degrades')
     assert.match(visibleText(invalid), /a/)
+  } finally {
+    mounted.restore()
+  }
+})
+
+
+/* ── v0.8.4：消息行头像 → 自研轮次轨迹侧栏 ─────────────────────────── */
+
+test('消息行头像可点击：打开自研 GcTrajectoryPanel（agent-trajectory-panel）', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const tree = renderer.tree
+
+    // 消息行（非成员条）里的头像按钮
+    const avatarButtons = findAll(
+      tree,
+      (node) => node.props && node.props['data-action'] === 'open-trajectory' && node.props.className === 'gc-avatar-btn'
+    )
+    assert.ok(avatarButtons.length > 0, 'message row avatars are clickable buttons')
+    assert.match(avatarButtons[0].props['aria-label'], /轮次轨迹/)
+    assert.ok(avatarButtons[0].props['data-member-id'])
+
+    // 用户消息行不渲染头像按钮
+    const userRows = findAll(tree, (node) => node.props && node.props['data-kind'] === 'user')
+    for (const row of userRows) {
+      assert.equal(
+        findAll(row, (node) => node.props && node.props.className === 'gc-avatar-btn').length,
+        0,
+        'user avatar not clickable'
+      )
+    }
+
+    // 点击 → 打开自研 panel（而不是 DSH 自带侧栏）
+    const clicked = { prevented: false, stopped: false }
+    avatarButtons[0].props.onClick({
+      preventDefault() { clicked.prevented = true },
+      stopPropagation() { clicked.stopped = true }
+    })
+    await renderer.settle()
+    assert.ok(clicked.prevented && clicked.stopped, 'click prevents default and stops bubbling')
+    const panel = findByTestId(renderer.tree, 'agent-trajectory-panel')
+    assert.ok(panel, 'self-built trajectory panel opens')
+    assert.equal(panel.props.role, 'dialog')
+    assert.equal(panel.props['aria-modal'], 'true')
+    assert.ok(findByTestId(renderer.tree, 'agent-trajectory-overlay'), 'self-built overlay')
+    // 关闭按钮来自自研面板
+    assert.ok(findAll(renderer.tree, (node) => node.props && node.props['data-action'] === 'close-trajectory').length > 0)
   } finally {
     mounted.restore()
   }
