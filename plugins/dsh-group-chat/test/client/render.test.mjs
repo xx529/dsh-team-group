@@ -663,6 +663,107 @@ test('F26 轨迹: source.getEvents → core/turns.aggregateTurns（真实轮次�
   }
 })
 
+/* ── 冷启动（task-110）：pending 骨架 / resolve 出消息 / sync 不重复 ─── */
+
+test('冷启动: open 未就绪/空首屏显示骨架，不显示「团队还没有发言」空态', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const channel = {
+      channelId: 's-lead',
+      lead: { sessionId: 's-lead', name: 'lead', kind: 'lead', status: 'running' },
+      members: [
+        { sessionId: 's-lead', name: 'lead', kind: 'lead', status: 'running' },
+        { sessionId: 's-scout', name: 'scout', kind: 'teammate', status: 'running' }
+      ],
+      runningCount: 2
+    }
+    const renderer = runtime.createRenderer()
+
+    // 1) loading 中：骨架，无空态
+    let tree = renderer.render(
+      h(gc.GcFeed, { t: gc.translate, state: { phase: 'loading', messages: [], channel }, items: [] })
+    )
+    assert.equal(findAllByTestId(tree, 'group-chat-skeleton').length, 5, 'skeleton while loading')
+    assert.equal(findByTestId(tree, 'group-chat-empty'), null, 'no empty state while loading')
+
+    // 2) open 已 resolve 但等首批数据（冷启动超时/child 未 ready）：仍骨架，无空态
+    tree = renderer.render(
+      h(gc.GcFeed, {
+        t: gc.translate,
+        state: { phase: 'ready', messages: [], channel, awaitingFirstBatch: true },
+        items: []
+      })
+    )
+    assert.equal(findAllByTestId(tree, 'group-chat-skeleton').length, 5, 'skeleton while awaiting first batch')
+    assert.equal(findByTestId(tree, 'group-chat-empty'), null, 'no empty state while awaiting first batch')
+
+    // 3) 宽限期结束仍为空 → 才显示空态
+    tree = renderer.render(
+      h(gc.GcFeed, {
+        t: gc.translate,
+        state: { phase: 'ready', messages: [], channel, awaitingFirstBatch: false },
+        items: []
+      })
+    )
+    assert.equal(findByTestId(tree, 'group-chat-skeleton'), null)
+    assert.ok(findByTestId(tree, 'group-chat-empty'), 'empty state after grace period')
+
+    // 4) 首屏到达 → 出消息；随后全量 sync（同 id）不重复
+    const page = gc.mergeMessages(
+      [],
+      [
+        {
+          id: 'u:lead:1',
+          kind: 'user',
+          sessionId: 's-lead',
+          sender: { sessionId: 's-lead', name: 'user', kind: 'user' },
+          targets: ['lead'],
+          text: 'hello',
+          time: 100,
+          seq: 1,
+          isFinal: true
+        }
+      ],
+      channel,
+      gc.limits()
+    )
+    assert.equal(page.length, 1)
+    const synced = gc.mergeMessages(page, page, channel, gc.limits())
+    assert.equal(synced.length, 1, 'full sync is idempotent (no duplicates)')
+    const withLateChild = gc.mergeMessages(
+      synced,
+      [
+        {
+          id: 'a:scout:2',
+          kind: 'agent_output',
+          sessionId: 's-scout',
+          sender: { sessionId: 's-scout', name: 'scout', kind: 'teammate' },
+          text: 'late child history',
+          time: 200,
+          seq: 2,
+          isFinal: true
+        }
+      ],
+      channel,
+      gc.limits()
+    )
+    assert.equal(withLateChild.length, 2, 'late child history appended once')
+    const items = gc.buildFeed(withLateChild, 3000)
+    tree = renderer.render(
+      h(gc.GcFeed, {
+        t: gc.translate,
+        state: { phase: 'ready', messages: withLateChild, channel, awaitingFirstBatch: false },
+        items
+      })
+    )
+    assert.equal(findAll(tree, (node) => node.props && node.props['data-kind'] === 'agent_output').length, 1)
+    assert.equal(findAll(tree, (node) => node.props && node.props['data-kind'] === 'user').length, 1)
+  } finally {
+    mounted.restore()
+  }
+})
+
 /* ── 状态 ─────────────────────────────────────────────────────────────── */
 
 test('状态: 只读历史（横幅 / 频道头后缀 / 输入 40% 禁用 / 发送不可用）', async () => {

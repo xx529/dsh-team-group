@@ -248,11 +248,22 @@ function gcCreateController(options) {
     return gcMergeRosterChannel(channel, options.getRoster(), options.leadSessionId)
   }
 
+  let firstBatchTimer = null
+
+  function clearFirstBatchWait() {
+    if (firstBatchTimer && typeof clearTimeout === 'function') {
+      clearTimeout(firstBatchTimer)
+      firstBatchTimer = null
+    }
+    if (store.getSnapshot().awaitingFirstBatch) store.set({ awaitingFirstBatch: false })
+  }
+
   function commitOpen(page) {
     if (!alive() || !page) return
     const state = store.getSnapshot()
     const channel = withRoster(page.channel || state.channel)
     const messages = gcMergeMessages([], page.messages, channel, limits)
+    const empty = messages.length === 0
     store.set({
       channel: channel,
       messages: messages,
@@ -260,8 +271,20 @@ function gcCreateController(options) {
       phase: 'ready',
       error: null,
       reachedOldest: page.hasMore === false,
+      // 冷启动 ready 前 open 可能超时返回空页：先保持骨架，不闪「团队还没有发言」
+      awaitingFirstBatch: empty,
       ...(options.restoredDraft ? { draft: options.restoredDraft } : null)
     })
+    if (empty) {
+      const graceMs = Number(options.readyGraceMs) > 0 ? Number(options.readyGraceMs) : 10000
+      if (firstBatchTimer && typeof clearTimeout === 'function') clearTimeout(firstBatchTimer)
+      firstBatchTimer = setTimeout(function () {
+        firstBatchTimer = null
+        if (alive()) store.set({ awaitingFirstBatch: false })
+      }, graceMs)
+    } else {
+      clearFirstBatchWait()
+    }
     if (options.onOpen) options.onOpen(page)
   }
 
@@ -271,6 +294,7 @@ function gcCreateController(options) {
     const channel = withRoster(page.channel || state.channel)
     const incoming = gcAsArray(page.messages)
     const messages = gcMergeMessages(state.messages, incoming, channel, limits)
+    if (messages.length > 0) clearFirstBatchWait()
     store.set({
       channel: channel,
       messages: messages,
@@ -305,6 +329,8 @@ function gcCreateController(options) {
       members: options.getMembers ? options.getMembers() : undefined,
       // F5（H1 后）：本地批次活对象交给 core lookupBatchId 反查（UI 不删除 echo）
       localBatches: gcLocalBatches,
+      // 冷启动：等待 retain.ready 的超时（大 session 更稳；adapter 默认 1.5s）
+      readyTimeoutMs: 3000,
       props: props,
       t: gcTranslate
     })
@@ -409,6 +435,10 @@ function gcCreateController(options) {
     if (syncTimer && typeof clearTimeout === 'function') {
       clearTimeout(syncTimer)
       syncTimer = null
+    }
+    if (firstBatchTimer && typeof clearTimeout === 'function') {
+      clearTimeout(firstBatchTimer)
+      firstBatchTimer = null
     }
     pendingSync = false
     if (typeof unsubscribe === 'function') {

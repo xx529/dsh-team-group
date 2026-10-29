@@ -54,19 +54,19 @@ test('open：从 lead 事件自举成员目录（BFS 发现 teammate），返回
   assert.equal(host.refCount(lead), 0, 'close 释放 retain');
 });
 
-test('CT-02 sync：无变化返回空增量；append 后返回新消息且游标推进', async () => {
+test('CT-02 sync：返回全量 computed messages（冷启动修复）；append 后含新消息且游标推进', async () => {
   const { source, host, lead } = setup('07-fanout-3targets');
   const page = await source.open(lead);
   const none = await source.sync(page.cursor);
-  assert.deepEqual(none.messages, []);
+  assert.equal(none.messages.length, page.messages.length, 'sync 返回全量（commitSync 按 id 合并）');
   host.appendEvents(lead, [
     ev('turn/start', 900, T + 50000, { turn: 20 }),
     ev('assistant/message', 901, T + 50001, { turn: 20, step: 1, message: { role: 'assistant', content: [{ type: 'text', text: '实时新增' }] } }),
     ev('turn/end', 902, T + 50002, { turn: 20, reason: { kind: 'completed' } }),
   ]);
   const delta = await source.sync(page.cursor);
-  assert.equal(delta.messages.length, 1);
-  assert.equal(delta.messages[0].text, '实时新增');
+  assert.equal(delta.messages.length, page.messages.length + 1, '全量 + 新增');
+  assert.ok(delta.messages.some((m) => m.text === '实时新增'));
   assert.ok(delta.cursor.newestKey > page.cursor.newestKey);
   source.close();
 });
@@ -173,4 +173,166 @@ test('F3：getEvents/getMemberEvents 返回已 retain 窗口的原始事件，�
   assert.deepEqual(source.getEvents('missing-session'), []);
   source.close();
   assert.deepEqual(source.getEvents(lead), []);
+});
+
+/* ── 冷启动：retain.ready 异步（历史 open） ───────────────────────── */
+
+/** 模拟 DSH 冷启动：ready 前 eventSource 为空窗口，ready 后才有历史 */
+function makeColdHost(defs = {}) {
+  /** @type {Map<string, any>} */
+  const refs = new Map();
+  /** @type {Map<string, {deferred: any, ws: any, notify: (events: any[]) => void}>} */
+  const controls = new Map();
+  const listeners = new Map();
+  const host = {
+    retain(sessionId) {
+      const sid = String(sessionId);
+      if (refs.has(sid)) return refs.get(sid);
+      /** @type {any} */
+      const deferred = {};
+      deferred.promise = new Promise((resolve, reject) => {
+        deferred.resolve = resolve;
+        deferred.reject = reject;
+      });
+      const ws = { entries: [], revision: 0, hasMore: false };
+      const es = {
+        getSnapshot: () => ws,
+        subscribe(fn) {
+          listeners.set(sid, fn);
+          return () => {
+            if (listeners.get(sid) === fn) listeners.delete(sid);
+          };
+        },
+      };
+      const ref = {
+        ready: deferred.promise,
+        binding: {
+          session: { getSnapshot: () => ({ id: sid, parentSession: defs[sid]?.parentSession }) },
+          eventSource: es,
+        },
+        release() {
+          refs.delete(sid);
+          listeners.delete(sid);
+        },
+      };
+      refs.set(sid, ref);
+      controls.set(sid, {
+        deferred,
+        ws,
+        notify(events) {
+          ws.entries = events.map((event) => ({ type: 'event', event }));
+          ws.revision += 1;
+          const fn = listeners.get(sid);
+          if (fn) fn();
+        },
+      });
+      return ref;
+    },
+  };
+  return { host, controls };
+}
+
+test('cold-start：open 等待根会话 retain.ready 后返回历史消息', async () => {
+  const T = 1793158400000;
+  const history = [
+    ev('user/message', 1, T, {
+      id: 'm-history',
+      role: 'user',
+      content: [{ type: 'text', text: '冷启动历史消息' }],
+      source: { kind: 'user', rpcId: 'rpc-history' },
+    }),
+  ];
+  const { host, controls } = makeColdHost({ lead: {} });
+  const source = createClientSessionSource({
+    ctx: { sessions: host },
+    channelId: 'lead',
+    sessionId: 'lead',
+    readyTimeoutMs: 200,
+  });
+  const openPromise = source.open('lead');
+  let resolved = false;
+  openPromise.then(() => {
+    resolved = true;
+  });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(resolved, false, 'ready 前 open 必须等待（不能立即返回空页）');
+  controls.get('lead').notify(history);
+  controls.get('lead').deferred.resolve();
+  const page = await openPromise;
+  assert.ok(page.messages.some((m) => m.text === '冷启动历史消息'), 'ready 后历史加载');
+  assert.ok(page.cursor.offsets.lead >= 1);
+  source.close();
+});
+
+test('cold-start：child 晚 ready 后 sync 返回全量并补入 child 旧历史', async () => {
+  const T = 1793158400000;
+  const leadHistory = [
+    ev('team/member', 1, T, { member: { id: 'child', name: 'ux', kind: 'teammate' } }),
+    ev('user/message', 2, T + 100, {
+      id: 'm-lead',
+      role: 'user',
+      content: [{ type: 'text', text: 'lead 历史' }],
+      source: { kind: 'user', rpcId: 'rpc-lead' },
+    }),
+  ];
+  const childHistory = [
+    ev('user/message', 1, T + 50, {
+      id: 'm-child-old',
+      role: 'user',
+      content: [{ type: 'text', text: 'child 旧历史' }],
+      source: { kind: 'user', rpcId: 'rpc-child' },
+    }),
+  ];
+  const { host, controls } = makeColdHost({ lead: {}, child: { parentSession: 'lead' } });
+  const source = createClientSessionSource({
+    ctx: { sessions: host },
+    channelId: 'lead',
+    sessionId: 'lead',
+    readyTimeoutMs: 200,
+  });
+  const openPromise = source.open('lead');
+  controls.get('lead').notify(leadHistory);
+  controls.get('lead').deferred.resolve();
+  const page = await openPromise;
+  assert.ok(page.messages.some((m) => m.text === 'lead 历史'));
+  assert.equal(page.messages.some((m) => m.text === 'child 旧历史'), false, 'child 未 ready 时无其历史');
+
+  controls.get('child').notify(childHistory);
+  controls.get('child').deferred.resolve();
+  await new Promise((r) => setTimeout(r, 0));
+  const synced = await source.sync(page.cursor);
+  assert.ok(synced.messages.some((m) => m.text === 'child 旧历史'), 'child 晚 ready 后 sync 全量补入旧历史');
+  assert.ok(synced.messages.some((m) => m.text === 'lead 历史'));
+  assert.ok(synced.cursor.offsets.child >= 1, 'cursor 更新 child offset');
+  source.close();
+});
+
+test('cold-start 降级：ready reject / 超时都不崩，返回可用空页', async () => {
+  const { host, controls } = makeColdHost({ lead: {} });
+  const source = createClientSessionSource({
+    ctx: { sessions: host },
+    channelId: 'lead',
+    sessionId: 'lead',
+    readyTimeoutMs: 30,
+  });
+  const p = source.open('lead');
+  controls.get('lead').deferred.reject(new Error('open failed'));
+  const page = await p;
+  assert.deepEqual(page.messages, []);
+  assert.ok(page.channel);
+  source.close();
+
+  // 超时未 ready → 降级返回空页（不挂起）
+  const second = makeColdHost({ lead: {} });
+  const source2 = createClientSessionSource({
+    ctx: { sessions: second.host },
+    channelId: 'lead',
+    sessionId: 'lead',
+    readyTimeoutMs: 20,
+  });
+  const t0 = Date.now();
+  const timed = await source2.open('lead');
+  assert.ok(Date.now() - t0 >= 10, '应等待约 20ms 后超时降级');
+  assert.deepEqual(timed.messages, []);
+  source2.close();
 });

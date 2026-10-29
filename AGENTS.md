@@ -54,11 +54,11 @@ cd plugins/dsh-group-chat
 node scripts/build.mjs           # 生成 lib/client.js（唯一入口：src/client/entry.js + parts + locale + css）
 node scripts/build.mjs --check   # 校验 lib/client.js 与源文件逐字节一致（提交前必跑）
 node scripts/verify.mjs          # 34 项打包/边界/契约校验；--json 可机读
-npm test                         # 全部 325 条（core 184 / send 71 / client 70；显式 glob，勿用裸 node --test）
+npm test                         # 全部 329 条（core 187 / send 71 / client 71；显式 glob，勿用裸 node --test）
 npm run test:core / test:send / test:client   # 分层跑
 ```
 
-> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**325 pass / 0 fail**（core 184 / send 71 / client 70；验收用例 181 条，以实际输出为准）。
+> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**329 pass / 0 fail**（core 187 / send 71 / client 71；验收用例 181 条，以实际输出为准）。
 >
 > **失败诊断默认隐藏**：发送失败 caption 默认只显示用户可读文案；诊断信息（`code`/`message`/`stage`/`build`）需 `?gc-debug=1` 或 `localStorage['group-chat:debug']='1'` 才显示；`data-send-debug` / `data-build` 属性**始终保留**（tester 可断言，不依赖开关）。
 
@@ -119,7 +119,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
    node scripts/build.mjs && node scripts/verify.mjs && npm test
    ```
 4. **locale**：zh/en 同步改，构建会校验键集一致性。
-5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（325）全绿；有视觉变更时按 §6 更新证据。
+5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（329）全绿；有视觉变更时按 §6 更新证据。
 6. **原型门禁**：用户确认 Figma 原型（P1–P13）后才进入实现；原型未确认不得改 UI 源码。
 
 ## 6. 质量门与证据
@@ -128,12 +128,14 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | --- | --- | --- |
 | 构建 | `build --check` fresh；`lib/client.js` 由源码确定性生成 | 命令输出 |
 | 打包校验 | `node scripts/verify.mjs` **34/34 PASS**（含 locale 键集一致、边界、无 Host 业务、无绝对路径、无 Node 内建） | 命令输出 |
-| 单测 | `npm test` **325 pass / 0 fail**（core 184 / send 71 / client 70） | 命令输出 |
+| 单测 | `npm test` **329 pass / 0 fail**（core 187 / send 71 / client 71） | 命令输出 |
 | 验收用例 | `tests/design/test-plan.md` **181 条**；v0.8.1 真机验收：表格/成员条 1280/任务卡人物/展开态 **PASS（视觉）**，**仍缺 2 项交互截图**（任务卡「收起」、SC47 最终版回归——窗口 split/坐标漂移未取，由组件测试覆盖） | `tests/runs/2026-10-29-task-101.md`、`tests/artifacts/v42-*` |
 | 性能 | 1000 事件归一化 ≤50ms（本机 M1 中位数 ~1.5ms）；首屏 200 条 ≤250ms | `tests/runs/perf-01.log` |
 | 真机走查 | tester 按 `tests/design/click-walk.md` 在 DSH Desktop 真实点击；不得以静态代码阅读代替 | `tests/runs/*.md`、`tests/interactions/click-walk-results.md` |
 | 视觉/原型 | 对比 `docs/ux/prototype/*.png`（2× 基线，1440×900）；结构/尺寸/令牌核对 | `tests/artifacts/`、`tests/runs/*.md` |
 | 裁定 | tester 给二值 PASS/FAIL，不接受「有条件通过」；HIGH/CRITICAL 即 FAIL | `tests/runs/` 最新记录 |
+
+**冷启动（v0.8.3 修复）**：进入群聊必须先 `await retain.ready` 再判定；加载期间显示骨架，**10s 宽限后才允许判空态**（避免冷会话/慢磁盘误判「无团队」）。
 
 已知覆盖缺口（task-101 记录，勿当作已覆盖）：**M2** 折叠高度为近似值（50 行与视口高度/代码块换行口径未逐像素核对）；**M5** 轨迹侧栏无分页、无 focus trap（键盘焦点未限制在抽屉内）；**多目标同发未真机直发**（单测覆盖）；**视觉像素 diff NA**（1280×720/窗口状态 vs 1440×900@2× 基线，仅结构/视觉截图对照）。另：**2 项交互截图因窗口 split 状态未取**（任务卡「收起」、SC47 最终版回归），由组件测试覆盖；纯键盘全流程未执行、虚拟化未启用（首屏 200 + 内存 2000 + 120ms 批量）。
 
@@ -142,12 +144,12 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | 项 | 当前值 |
 | --- | --- |
 | 插件版本 | `0.1.0` |
-| 最近验证 bundle | `sha256=42f53968bf453fcc16863ff7928c8d48388c7a342b53f4fe339d4920f6b5bd8c`（599,609 B，视觉修复最终包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
-| build 指纹 | `0.1.0+ea68937a339f`（视觉修复最终包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
+| 最近验证 bundle | `sha256=6a9125ee41d64eadccb8eadf9bd9a251f76f78740a8f16cab9b6caf2dd1685f4`（604,043 B，冷启动修复最终包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
+| build 指纹 | `0.1.0+3fa84cb5f6f5`（冷启动修复最终包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
 | PRD | **v0.8.1**（F1–F35 / SC1–SC53；18 条反馈 + 5 条线上问题映射见 §1.6） |
 | 架构 | **v1.7.3**（含 DOM 契约、决策记录 v1.1–v1.7.3、成员条换行优先/全显修订） |
 | UX | **v4.2**；原型 Figma `team-group` **P1–P13**（v4.2 PNG 已重导；含 13-task-cards / 14-agent-trajectory） |
-| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 42f53968…**（verify 34/34、**325 tests**、181 验收用例；**视觉修复 PASS：任务卡外层头像统一 32px、inline/target chip 白字**；v0.8.1 验收缺 2 项交互截图见 §6 缺口） |
+| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 6a9125ee…**（verify 34/34、**329 tests**、181 验收用例；视觉修复 PASS；**冷启动修复：`await retain.ready` + 骨架加载态，10s 宽限后才判空态**；v0.8.1 验收缺 2 项交互截图见 §6 缺口） |
 
 ## 8. 安全与边界
 

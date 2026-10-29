@@ -973,6 +973,7 @@ function gcInitialState(overrides) {
       error: null,
       loadingOlder: false,
       reachedOldest: false,
+      awaitingFirstBatch: false,
       unreadCount: 0,
       filter: null,
       draft: { text: '', mentions: [] },

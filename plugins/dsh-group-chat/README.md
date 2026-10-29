@@ -149,6 +149,12 @@ npm run test:core / test:send   # 仅内核 / 仅发送
 useSyncExternalStore）与假宿主（`window.__ModuleLoader__`、假 `ctx`），加载**真实构建产物**
 后用 Mock `ChannelSource` 渲染并断言 DOM 契约。
 
+## 7.5 冷启动与加载态（task-110）
+
+- `createClientSessionSource` 的 `open()` 会等待根会话 `retain.ready`（默认 1.5s 超时）；本插件传 **`readyTimeoutMs: 3000`**，大 session 更稳。
+- open resolve 前 show **骨架**；若 ready 超时返回空页但后续 ready 仍会补数据，UI 保持 **`awaitingFirstBatch` 骨架**（宽限 10s），**不闪「团队还没有发言」空态**；首批数据到达即清空骨架。
+- `sync()` 返回**全量消息**，按 id 合并 → 冷启动补齐历史**不重复**；首屏/增量到达后自动贴底或保持锚点。
+
 ## 8. 已知限制（architect UI 复审遗留，本轮明确降级）
 
 | 项 | 现状 | 原因/计划 |

@@ -365,7 +365,10 @@ function GcFeed(props) {
   const t = props.t
   const nodes = []
 
-  if (state.phase === 'loading' && gcAsArray(state.messages).length === 0) {
+  if (
+    (state.phase === 'loading' || state.awaitingFirstBatch) &&
+    gcAsArray(state.messages).length === 0
+  ) {
     nodes.push(h(GcSkeleton, { key: 'skeleton', t: t }))
   } else if (state.phase === 'error' && gcAsArray(state.messages).length === 0) {
     nodes.push(h(GcErrorState, { key: 'error', t: t, error: state.error, onRetry: props.onRetryOpen }))

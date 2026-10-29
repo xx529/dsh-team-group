@@ -22,8 +22,8 @@ window.__ModuleLoader__.load({
     var __GC_BUILD = {
   "id": "@local/dsh-group-chat",
   "version": "0.1.0",
-  "hash": "ea68937a339f",
-  "build": "0.1.0+ea68937a339f",
+  "hash": "3fa84cb5f6f5",
+  "build": "0.1.0+3fa84cb5f6f5",
   "modules": [
     "src/adapters/client-session-source.js",
     "src/adapters/index.js",
@@ -194,6 +194,7 @@ function retainWithSourceFallback(sessions, sessionId, sourceKey) {
  * @property {'attach'|'delivery'|'none'} [toolFold]
  * @property {number} [maxMessages]
  * @property {boolean} [noRoster]
+ * @property {number} [readyTimeoutMs] 冷启动等待 retain.ready 的超时（默认 1500ms）
  */
 
 class ClientSessionSource {
@@ -217,6 +218,8 @@ class ClientSessionSource {
     this.listeners = new Set();
     /** @type {Map<string, () => void>} */
     this.unsubscribers = new Map();
+    /** @type {Map<string, Promise<boolean>>} retain.ready 等待（冷启动历史 open 是异步的） */
+    this.readyPromises = new Map();
     /** @type {ChannelMessage[]} */
     this.messages = [];
     /** @type {import('../core/model.js').ChannelMember[]} */
@@ -239,6 +242,9 @@ class ClientSessionSource {
       this.channelId = resolved;
       this.sessionId = this.sessionId || resolved;
     }
+    // 冷启动：sessions.retain() 的历史 open 是异步的，eventSource 在 ready 前是空窗口
+    this._ensureRetained(this.channelId);
+    await this._waitReady(this.channelId, this._readyTimeoutMs());
     const computed = this._refresh();
     const limit = Number.isInteger(opts.limit) && opts.limit > 0 ? opts.limit : LIMITS.firstScreen;
     const pageMessages = firstScreen(computed.messages, limit);
@@ -271,11 +277,9 @@ class ClientSessionSource {
   async sync(cursor) {
     this._assertOpen();
     const computed = this._refresh();
-    /** @type {ChannelMessage[]} */
-    const delta = [];
-    for (const m of computed.messages) {
-      if (!cursor?.newestKey || compareOrderKey(orderKey(m), cursor.newestKey) > 0) delta.push(m);
-    }
+    // 冷启动修复：返回全量 computed.messages（commitSync 按 id 合并），
+    // 否则成员会话晚 ready 的更早历史会被 newestKey 增量过滤掉。
+    const all = computed.messages;
     const next = cloneCursor(cursor, this.channelId);
     if (computed.messages.length > 0) {
       next.newestKey = orderKey(computed.messages[computed.messages.length - 1]);
@@ -290,7 +294,7 @@ class ClientSessionSource {
     }
     return buildPage({
       channel: computed.channel,
-      messages: delta,
+      messages: all,
       cursor: next,
       hasMore: false,
       truncated: computed.diagnostics.truncated,
@@ -380,6 +384,7 @@ class ClientSessionSource {
     this.refs.clear();
     this.store.clear();
     this.listeners.clear();
+    this.readyPromises.clear();
     this.messages = [];
   }
 
@@ -458,7 +463,93 @@ class ClientSessionSource {
     const ref = retainWithSourceFallback(this.ctx.sessions, sid, this.sourceKey);
     this.refs.set(sid, ref);
     this._subscribeWindow(sid, ref);
+    this._attachReady(sid, ref);
     return ref;
+  }
+
+  /**
+   * 冷启动：retain 的 reference 可能有异步 `ready` Promise（历史 open）。
+   * ready 后立即用最新 binding 重新订阅（ready 前 eventSource 可能为空/不可订），并通知 append。
+   * @param {string} sessionId
+   * @param {any} ref
+   */
+  _attachReady(sessionId, ref) {
+    if (!ref || typeof ref.ready?.then !== 'function') {
+      if (!this.readyPromises.has(sessionId)) this.readyPromises.set(sessionId, Promise.resolve(true));
+      return;
+    }
+    if (this.readyPromises.has(sessionId)) return;
+    const promise = Promise.resolve(ref.ready)
+      .then(
+        (resolved) => {
+          if (this.closed || this.refs.get(sessionId) !== ref) return true;
+          try {
+            const binding = resolved?.binding ?? resolved;
+            if (binding && typeof binding === 'object' && (binding.eventSource || binding.session)) {
+              ref.binding = binding;
+            }
+          } catch {
+            /* ignore */
+          }
+          try {
+            this._unsubscribeWindow(sessionId);
+            this._subscribeWindow(sessionId, ref);
+          } catch {
+            /* ignore */
+          }
+          this._schedule('append');
+          return true;
+        },
+        () => {
+          // ready 失败：降级为当前窗口（可能为空），不抛错；仍尝试通知一次
+          if (!this.closed) this._schedule('append');
+          return false;
+        },
+      )
+      .catch(() => false);
+    this.readyPromises.set(sessionId, promise);
+  }
+
+  /**
+   * @param {string} sessionId
+   * @param {number} timeoutMs
+   * @returns {Promise<boolean>} true=ready（或无 ready 概念）；false=超时/失败降级
+   */
+  async _waitReady(sessionId, timeoutMs) {
+    const ready = this.readyPromises.get(sessionId);
+    if (!ready) return true;
+    /** @type {any} */
+    let timer;
+    const timeout = new Promise((resolve) => {
+      timer = setTimeout(() => resolve('timeout'), Math.max(1, timeoutMs));
+    });
+    try {
+      const result = await Promise.race([ready, timeout]);
+      return result !== 'timeout' && result !== false;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /** @returns {number} */
+  _readyTimeoutMs() {
+    return Number.isFinite(this.deps.readyTimeoutMs) && this.deps.readyTimeoutMs > 0
+      ? Number(this.deps.readyTimeoutMs)
+      : 1500;
+  }
+
+  /**
+   * @param {string} sessionId
+   */
+  _unsubscribeWindow(sessionId) {
+    const unsub = this.unsubscribers.get(sessionId);
+    if (!unsub) return;
+    this.unsubscribers.delete(sessionId);
+    try {
+      unsub();
+    } catch {
+      /* ignore */
+    }
   }
 
   /**
@@ -9576,6 +9667,7 @@ function gcInitialState(overrides) {
       error: null,
       loadingOlder: false,
       reachedOldest: false,
+      awaitingFirstBatch: false,
       unreadCount: 0,
       filter: null,
       draft: { text: '', mentions: [] },
@@ -11365,7 +11457,10 @@ function GcFeed(props) {
   const t = props.t
   const nodes = []
 
-  if (state.phase === 'loading' && gcAsArray(state.messages).length === 0) {
+  if (
+    (state.phase === 'loading' || state.awaitingFirstBatch) &&
+    gcAsArray(state.messages).length === 0
+  ) {
     nodes.push(h(GcSkeleton, { key: 'skeleton', t: t }))
   } else if (state.phase === 'error' && gcAsArray(state.messages).length === 0) {
     nodes.push(h(GcErrorState, { key: 'error', t: t, error: state.error, onRetry: props.onRetryOpen }))
@@ -13164,11 +13259,22 @@ function gcCreateController(options) {
     return gcMergeRosterChannel(channel, options.getRoster(), options.leadSessionId)
   }
 
+  let firstBatchTimer = null
+
+  function clearFirstBatchWait() {
+    if (firstBatchTimer && typeof clearTimeout === 'function') {
+      clearTimeout(firstBatchTimer)
+      firstBatchTimer = null
+    }
+    if (store.getSnapshot().awaitingFirstBatch) store.set({ awaitingFirstBatch: false })
+  }
+
   function commitOpen(page) {
     if (!alive() || !page) return
     const state = store.getSnapshot()
     const channel = withRoster(page.channel || state.channel)
     const messages = gcMergeMessages([], page.messages, channel, limits)
+    const empty = messages.length === 0
     store.set({
       channel: channel,
       messages: messages,
@@ -13176,8 +13282,20 @@ function gcCreateController(options) {
       phase: 'ready',
       error: null,
       reachedOldest: page.hasMore === false,
+      // 冷启动 ready 前 open 可能超时返回空页：先保持骨架，不闪「团队还没有发言」
+      awaitingFirstBatch: empty,
       ...(options.restoredDraft ? { draft: options.restoredDraft } : null)
     })
+    if (empty) {
+      const graceMs = Number(options.readyGraceMs) > 0 ? Number(options.readyGraceMs) : 10000
+      if (firstBatchTimer && typeof clearTimeout === 'function') clearTimeout(firstBatchTimer)
+      firstBatchTimer = setTimeout(function () {
+        firstBatchTimer = null
+        if (alive()) store.set({ awaitingFirstBatch: false })
+      }, graceMs)
+    } else {
+      clearFirstBatchWait()
+    }
     if (options.onOpen) options.onOpen(page)
   }
 
@@ -13187,6 +13305,7 @@ function gcCreateController(options) {
     const channel = withRoster(page.channel || state.channel)
     const incoming = gcAsArray(page.messages)
     const messages = gcMergeMessages(state.messages, incoming, channel, limits)
+    if (messages.length > 0) clearFirstBatchWait()
     store.set({
       channel: channel,
       messages: messages,
@@ -13221,6 +13340,8 @@ function gcCreateController(options) {
       members: options.getMembers ? options.getMembers() : undefined,
       // F5（H1 后）：本地批次活对象交给 core lookupBatchId 反查（UI 不删除 echo）
       localBatches: gcLocalBatches,
+      // 冷启动：等待 retain.ready 的超时（大 session 更稳；adapter 默认 1.5s）
+      readyTimeoutMs: 3000,
       props: props,
       t: gcTranslate
     })
@@ -13325,6 +13446,10 @@ function gcCreateController(options) {
     if (syncTimer && typeof clearTimeout === 'function') {
       clearTimeout(syncTimer)
       syncTimer = null
+    }
+    if (firstBatchTimer && typeof clearTimeout === 'function') {
+      clearTimeout(firstBatchTimer)
+      firstBatchTimer = null
     }
     pendingSync = false
     if (typeof unsubscribe === 'function') {

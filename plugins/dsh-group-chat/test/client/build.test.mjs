@@ -115,6 +115,10 @@ test('bundle: 包装形态 / id / 语法合法 / DOM 契约符号', () => {
     assert.ok(result.code.includes(attr), 'missing data attribute: ' + attr)
   }
 
+  // 冷启动：deps 传入 readyTimeoutMs，且 feed 保持 awaitingFirstBatch 骨架
+  assert.match(result.code, /readyTimeoutMs: 3000/, 'readyTimeoutMs passed to adapter')
+  assert.ok(result.code.includes('awaitingFirstBatch'), 'awaitingFirstBatch loading gate')
+
   // R-M4：localBatches 必须同时接给 adapter 与 send deps（活对象共享）
   const localBatchesWiring = (result.code.match(/localBatches: gcLocalBatches/g) || []).length
   assert.ok(localBatchesWiring >= 2, 'localBatches wired to adapter and send deps, got ' + localBatchesWiring)
