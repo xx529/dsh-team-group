@@ -464,7 +464,7 @@ function GcTaskCardMessage(props) {
     h(
       'span',
       { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
-      h(GcAvatar, { name: actorName, kind: actorKind, size: compact ? 24 : 32 })
+      h(GcAvatar, { name: actorName, kind: actorKind, size: 32 })
     ),
     h(
       'div',

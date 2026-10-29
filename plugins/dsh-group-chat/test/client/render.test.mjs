@@ -341,7 +341,8 @@ test('render: 气泡圆角按发送者区分（CSS 变量）/ 输入卡 radius 2
   assert.match(css, /body\.gc-view-group-chat \[data-composer-seat\]/)
   // 只用主题 token 取色（不出现裸色值）
   const colorLiterals = css.match(/#[0-9a-fA-F]{3,8}\b|rgba?\([^)]*\)/g) || []
-  const allowed = colorLiterals.filter((value) => /rgba\(0, 0, 0/.test(value))
+  // 允许：阴影/遮罩回退 rgba(0,0,0,…) 与用户要求的品牌实底纯白 --gc-on-brand:#fff
+  const allowed = colorLiterals.filter((value) => /rgba\(0, 0, 0/.test(value) || /^#fff(?:fff)?$/i.test(value))
   assert.deepEqual(colorLiterals.filter((v) => !allowed.includes(v)), [], 'hardcoded colors outside shadow fallbacks')
 })
 
@@ -834,6 +835,11 @@ test('F-01: CSS 契约 — root/shell 满高不溢出，feed 唯一滚动，head
   assert.ok(!/\.gc-member-strip \{[^}]*mask-image/s.test(compact))
   assert.match(compact, /\.gc-member-strip \.gc-avatar \{[^}]*width: 26px/s)
   assert.match(compact, /\.gc-member-name \{[^}]*font-size: 12px/s)
+  // 用户要求：inline @ chip 与输入区 chips 文字纯白（--gc-on-brand）
+  assert.match(compact, /--gc-on-brand:\s*#fff/)
+  assert.match(compact, /\.gc-chip\[data-tone='target'\] \{[^}]*color: var\(--gc-on-brand/s)
+  assert.match(compact, /\.gc-chip\[data-tone='mention'\] \{[^}]*color: var\(--gc-on-brand/s)
+  assert.match(compact, /\.gc-bubble \.gc-mention,[\s\S]{0,80}color: var\(--gc-on-brand/s)
   // F32：表格样式（表头底色/斑马纹/横向滚动）
   assert.match(compact, /\.gc-md-table-wrap \{[^}]*overflow-x: auto/s)
   assert.match(compact, /table\.gc-md-table thead th \{[^}]*background: var\(--dsw-alias-bg-layer-2\)/s)
@@ -1383,6 +1389,9 @@ test('F35: 任务卡人物一致 —— 外层唯一头像，卡内无重复 act
     for (const card of cards) {
       const avatars = findAll(card, (node) => node.props && node.props['data-card-avatar'] === 'true')
       assert.equal(avatars.length, 1, 'exactly one actor avatar per task card')
+      // 用户要求：compact 与 normal 头像统一 32（Figma v4.2 图1）
+      const avatar = findAll(avatars[0], (node) => node.props && node.props.className === 'gc-avatar')[0]
+      assert.equal(avatar.props['data-size'], '32', 'task card avatar size unified at 32')
       assert.equal(findAll(card, (node) => node.props && node.props['data-task-owner-avatar']).length, 0)
       const senderLine = findAll(card, (node) => node.props && node.props.className === 'gc-sender')[0]
       assert.ok(senderLine, 'sender line present')

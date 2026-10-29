@@ -36,6 +36,8 @@
   --gc-fold-max: 1100px;   /* v1.7：50 行 × 22px */
   --gc-fold-mask: 56px;
 
+  /* 品牌实底上的文字色（用户要求纯白，避免 button-primary-fill 偏蓝） */
+  --gc-on-brand: #fff;
   --gc-font: 14px;
   --gc-line: 22px;
   --gc-code-font: var(--dsw-font-markdown-code-font-family, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -1753,7 +1755,7 @@ body.gc-view-group-chat [data-composer-seat] {
 /* inline @ chip（v1.7：彩底白字） */
 .gc-bubble .gc-mention,
 .gc-md .gc-mention {
-  color: var(--dsw-alias-button-primary-fill);
+  color: var(--gc-on-brand, #fff);
   background: var(--dsw-alias-state-business-primary);
   border-radius: var(--gc-radius-xs);
   padding: 0 4px;
@@ -1814,12 +1816,12 @@ body.gc-view-group-chat [data-composer-seat] {
 
 .gc-chip[data-tone='target'] {
   background: var(--dsw-alias-state-business-primary);
-  color: var(--dsw-alias-button-primary-fill);
+  color: var(--gc-on-brand, #fff);
 }
 
 .gc-chip[data-tone='mention'] {
   background: var(--dsw-alias-state-business-tertiary);
-  color: var(--dsw-alias-button-primary-fill);
+  color: var(--gc-on-brand, #fff);
 }
 
 .gc-chip[data-tone='mention']:hover {
