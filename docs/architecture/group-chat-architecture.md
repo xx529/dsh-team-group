@@ -2,18 +2,46 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 文档版本 | **v1.7.1**（v1.7 + **成员条全显修订**：全部成员、禁止 `+N`，换行优先/超宽横向滚动+两端渐隐；同步 UX v4.1） |
+| 文档版本 | **v1.7.3**（v1.7.2 + **成员条改回换行优先**：多行、头部自适应；超宽才横向滚动；修复 1280 下两端名字被裁切；数据/发送契约不变） |
 | 作者 | architect（Agent Team teammate） |
-| 任务 | task-6（v1.0）→ task-9（v1.1）→ task-17（v1.2 气泡流）→ task-23（v1.3 成员卡）→ task-30（v1.4 creator 消息 + 欢迎提示）→ task-35（v1.5 四项裁决 + DOM 契约冻结）→ task-45（v1.6 任务卡片消息）→ task-49（v1.6.1 视觉修正）→ task-77（v1.7 F22–F30 实现契约）→ task-86（v1.7.1 成员条全显修订） |
+| 任务 | task-6（v1.0）→ task-9（v1.1）→ task-17（v1.2 气泡流）→ task-23（v1.3 成员卡）→ task-30（v1.4 creator 消息 + 欢迎提示）→ task-35（v1.5 四项裁决 + DOM 契约冻结）→ task-45（v1.6 任务卡片消息）→ task-49（v1.6.1 视觉修正）→ task-77（v1.7 F22–F30 实现契约）→ task-86（v1.7.1 成员条全显修订）→ task-97（v1.7.2 线上 5 问题）→ task-102 收尾（v1.7.3 成员条换行） |
 | 阶段 | 阶段 2–3 之间：**只做设计，不写生产代码**；代码实现以用户确认 Figma 原型为门禁（PRD §9） |
-| 上游输入 | `docs/research/api-feasibility.md`（624 行，简称 **API**）<br>`docs/research/event-model.md`（658 行，简称 **EVT**）<br>`docs/research/member-card-fields.md`（**341 行**，task-20 成员卡片字段取证，简称 **MCF**）<br>`docs/research/task-card-fields.md`（**399 行**，task-42 任务卡字段/操作者/动作取证，简称 **TCF**）<br>`docs/specs/group-chat-prd.md` **v0.8**（1537 行，F22–F30/SC39–SC48，简称 **PRD**）<br>`docs/ux/group-chat-ux.md`（468 行，v4 片段 §4.3 Markdown/§4.4 轨迹/§4.5 成员状态/§4.6 行为，简称 **UX**；文档头仍 v3.3，待 ux 升版）<br>`docs/ux/prototype.md`（347 行）+ `docs/ux/prototype/01-tabs.png … 14-agent-trajectory.png`（Figma v4）<br>`tests/design/test-plan.md` §13（tester DOM 契约建议）+ `tests/design/prototype-review.md`<br>Figma 文档 `team-group` · Page `0:1`（**当前 v4 帧**：P1 `16:151` / P2 `49:1765` / P3 `25:1112` / P4 `50:1934` / P5 `17:436` / P6 `17:528` / P7 `10:1411` / P8 `17:703` / P9 `17:790` / P10 `21:954` / P11 `25:1221` / P12 `30:1466` / P13 `50:1972` / F0 `25:1170`，令牌板 `10:78`，组件库 `10:197`；旧帧已删除） |
+| 上游输入 | `docs/research/api-feasibility.md`（624 行，简称 **API**）<br>`docs/research/event-model.md`（658 行，简称 **EVT**）<br>`docs/research/member-card-fields.md`（**341 行**，task-20 成员卡片字段取证，简称 **MCF**）<br>`docs/research/task-card-fields.md`（**399 行**，task-42 任务卡字段/操作者/动作取证，简称 **TCF**）<br>`docs/specs/group-chat-prd.md` **v0.8**（1537 行，F22–F30/SC39–SC48；**PRD v0.8.1 的 F31–F35 尚未落盘**，本版 F31–F35 契约先按用户 5 个线上问题冻结，待 pm 补 PRD 后对齐 SC49–SC53，简称 **PRD**）<br>`docs/ux/group-chat-ux.md` **v4.1**（468 行，简称 **UX**；v4.2 将补 F31–F35）<br>`docs/ux/prototype.md`（347 行）+ `docs/ux/prototype/01-tabs.png … 14-agent-trajectory.png`（Figma 实际帧：**P12 v5 `51:2099`**、P2 `49:1765`、P3 `51:2325`、P4 `50:1934`、P13 `50:1972`；v4.2 导出待 ux 更新）<br>`tests/design/test-plan.md` §13（tester DOM 契约建议）+ `tests/design/prototype-review.md`<br>Figma 文档 `team-group` · Page `0:1`（**当前帧**：P1 `16:151` / P2 `49:1765` / P3 `51:2325` / P4 `50:1934` / P5 `17:436` / P6 `17:528` / P7 `10:1411` / P8 `17:703` / P9 `17:790` / P10 `21:954` / P11 `25:1221` / **P12 `51:2099`（v5）** / P13 `50:1972` / F0 `25:1170`，令牌板 `10:78`，组件库 `10:197`；旧帧已删除） |
 | 下游消费者 | frontend / backend（实现拆分 §9）、tester（验收 §8.6）、Lead（决策记录见顶部） |
 | 证据标记 | **[证据]** 直接读到代码/类型/日志/CSS/inspect 结果；**[推断]** 基于证据的推理；**[UNVERIFIED]** 未实测，实现期必须验证 |
 | 写作用域 | 仅写 `docs/architecture/**`；未安装插件、未改配置、未写生产代码、未对 Figma 做写操作 |
 
 ---
 
-## 决策记录 v1.7.1（成员条全显修订 · 用户要求优先）
+## 决策记录 v1.7.3（成员条改回换行优先 · 用户要求优先）
+
+> 触发：tester 在 **1280** 宽度发现成员条单行横滚时两端名字被裁切；用户要求「成员全部显示」。Lead 裁决：**换行优先（flex-wrap，多行，频道头 auto 高度），不做单行横滚裁切**；仅当仍超宽（>32 成员/极端窄屏）才横向滚动。本记录修订 v1.7.2-3 的布局，不改数据/发送契约。
+
+| # | 修正 | 冻结内容 | 落点 |
+| --- | --- | --- | --- |
+| V1.7.3-1 | **成员条换行优先** | 成员条 `display:flex; flex-wrap:wrap`（**允许多行**），每项头像+全名+状态点；**名字不截断、不裁切**；频道头高度**自适应**（基础 68，每多一行 +26+4；不强制固定 56）；**禁止 mask/渐隐**；仅当单行+换行仍超宽（>32 成员或 768 极窄）才启用横向滚动（隐藏滚动条），正常 1280/1440 不出现横滚；768 允许换行多行展示全名 | §6.15.1、§6.7.2、§6.5.2、§8.4、E49/SC51、F3 |
+
+> 取代：v1.7.2-3 的「单行横向滚动」布局；其余 F31–F35 契约不变。
+
+---
+
+## 决策记录 v1.7.2（线上 5 问题：F31–F35 · 历史冻结）
+
+> 输入：用户 5 个线上问题（空 agent 输出 / Markdown 表格 / 成员条全名去遮罩 / 任务卡折叠 / 任务卡人物一致）。**PRD v0.8.1 与 UX v4.2 尚未落盘**（仓库当前 PRD v0.8、UX v4.1），本记录先冻结实现契约；PM/UX 落盘后仅同步 SC 编号与文案，不改本版语义。F31–F35 对应 SC49–SC53（建议编号，待 PRD 确认）。
+
+| # | 修正 | 冻结内容 | 落点 |
+| --- | --- | --- | --- |
+| V1.7.2-1 | **F31 空 agent 输出过滤** | `assistant/message` 的最终输出取「最后一个 `trim()` 后非空的 text 块」；**若为空且无附件/卡片内容 → 不产 `agent_output` 气泡、也不产「本轮中断」空提示**（纯工具轮次不产 agent_output；**不渲染工具摘要行（用户裁决）**；流式中途/空完成静默）。turn 聚合与工具数仍从原始事件统计，不受过滤影响；诊断计数 `emptyAgentOutput` | §4.2、§4.2.3、§7 R-07 |
+| V1.7.2-2 | **F32 Markdown GFM 表格** | AST 新增 `table{header{table{header{cells,align},rows}}}`：header 行 + 分隔行（`---`/`:---:`/`---:`）+ 数据行；支持 `\|` 转义、首尾管道可选、单元格内 inline（含链接/行内代码）；渲染 `<table class=gc-md-table>` + thead/tbody/th/td + `data-md-table`；单元格仍是受控 React 节点，禁 HTML，链接只允许 http(s)/mailto；宽表横向滚动，行数/单元格上限与 50 行折叠计数含表格 | §6.12、§6.5.2、§6.17 |
+| V1.7.2-3 | **F33 成员条全名去遮罩** | 每项 = 头像 + **成员全名**（不省略/不截断）+ 状态点；**删除 `mask-image`/两端渐隐**；`data-member-strip-item` 内含 name 文本与 `data-member-id/state`；**布局已被 v1.7.3 修订为换行优先（多行、头部自适应）** | §6.15.1、§6.7.2、§6.5.2、§8.4 |
+| V1.7.2-4 | **F34 任务卡默认折叠字段 + 展开** | 默认可见：目标（subject）、任务 ID、状态 pill、负责人（文字 + 可选角色小标签）、依赖、完成时间（completed）；**description/requirements/acceptance 默认 hidden**；有隐藏内容时显示 `data-action=expand-task` 按钮（`aria-expanded=false`），点击展开全部详情；展开状态按 `messageId` 记忆于当前视图 store，**刷新/重进不持久化**；无详情则按钮不渲染 | §6.18、§6.5.2 |
+| V1.7.2-5 | **F35 人物一致** | 外层 `SenderLine` = actor（头像/名字/角色/时间）；**card body 内删除重复 actor 头像**，`data-card-avatar` 全卡**只允许出现一次**（挂在外层 SenderLine 头像）；负责人字段行 = **文字 + 可选小标签**，**不再渲染负责人头像**（负责人行不含任何 avatar 属性）；actor 与 owner 可不同，字段语义分开 | §6.18、§6.5.2、§8.4 |
+
+> **不变项**：§4 既有消息语义（除 F31 空输出过滤）、dedupe/排序、§5 发送通路与四态、member_card/task_card 去重键、O8 composer 隐藏、Markdown 其余安全规则均不变。
+
+---
+
+## 决策记录 v1.7.1（成员条全显修订 · 历史冻结）
 
 > 触发：frontend 指出 v1.7 §6.15.1 写「最多 5 + +N」，与用户明确要求「全部成员显示」冲突。**以用户要求为准**；UX v4.1 已同步（§4.5：全部成员、禁止 +N、换行优先/超宽横向滚动+16px 渐隐）。数据/发送契约不变。
 
@@ -588,6 +616,8 @@ interface TaskCardPayload {
     revision: number                // 每条成功变更加 1；一条 revision 一张卡
     subject: string
     description: string
+    requirements?: string           // v1.7.2 F34：PRD v0.8.1 若提供「要求」；无则省略（禁止伪造）
+    acceptance?: string             // v1.7.2 F34：PRD v0.8.1 若提供「验收标准」；无则省略
     status: TaskStatus              // 严格四枚举；无 failed
     ownerId?: string
     ownerName?: string              // 优先取 tool/result.ownerName；否则 ownerId→名册
@@ -633,8 +663,8 @@ interface ChannelPage {
 | `user/message` | `source.kind==='agent-message'`（当前构建，`senderSessionId`） | `kind:'agent_to_agent'` | targets=[本会话成员名]；sender 由 `senderSessionId` 查名册；正文剥 `^Team message(?: \S+)? from .+?:$` | EVT §2.3 |
 | `user/message` | `source.kind==='team-message'`（旧构建，`senderName/messageId`） | `kind:'agent_to_agent'` | 优先用结构化 `senderName/messageId`；正文剥前缀 | EVT §2.4 |
 | `user/message` | `source.kind==='subagent-settled'` | `kind:'system'`（**丢弃**，若子会话自己的 agent_output 已收） | 见 §4.3 ③ | EVT §3.3 |
-| `assistant/message` | 该 `turn` 内最后一个**内容非空**的 text 块，且 `turn/end.reason.kind==='completed'` | `kind:'agent_output'`, `isFinal:true` | `id = ${sessionId}:turn:${turn}`；只有 `text` 块（丢弃 reasoning） | EVT §4.2–§4.3 |
-| `assistant/message` | 同上但 `turn/end.reason.kind` ∈ `error/aborted/max-tokens/interrupted` | `kind:'agent_output'`, 追加 system 提示「本轮中断/失败」 | 系统条独立成消息 | EVT §4.3 |
+| `assistant/message` | 该 `turn` 内最后一个 **`trim()` 后非空**的 text 块，且 `turn/end.reason.kind==='completed'` | `kind:'agent_output'`, `isFinal:true`；**若最终 text 为空 → 不产消息**（`emptyAgentOutput++`） | `id = ${sessionId}:turn:${turn}`；只有 `text` 块（丢弃 reasoning） | EVT §4.2–§4.3 / V1.7.2-1 |
+| `assistant/message` | 同上但 `turn/end.reason.kind` ∈ `error/aborted/max-tokens/interrupted` | 有非空 text → `kind:'agent_output'` + 追加 system 提示「本轮中断/失败」；**text 为空 → 两者都不产**（不产空输出/空中断提示） | 系统条独立成消息；空轮次静默 | EVT §4.3 / V1.7.2-1 |
 | `turn/end` | `reason.kind==='forked'` 或事件 `session/end-seed` | **丢弃** | — | EVT §7.2 |
 | `agent/inbox/spliced` | `inserted.length>0` | 不单独出消息；仅补 `投递时间/接收方/target` 元数据 | 与同 id `user/message` 合并 | EVT §9 陷阱 1 |
 | `team/member` | Lead 会话，`phase==='active'` | **两条**（v1.4）：① `kind:'system'` 欢迎提示（`systemReason:'member-welcome'`，text=`欢迎 @{name} 加入群聊`）；② `kind:'member_card'`（sender=**creator**，即 lead；`memberCard.member`=新成员） | id/name/description/provider→contextPolicy；anchor=active 事件 time | MCF §1/§3.1 |
@@ -740,6 +770,28 @@ interface ChannelPage {
 - 去重键 **`${teamId}:${taskId}:${revision}`**；一条 revision 一张卡；
 - 历史回放按 revision 升序，`replay:true`（DOM `data-replay="true"`）；
 - 时间用 `team/task.time`（比 result 更准）参与全群聊 `(time, sessionRank, seq)` 排序；同一毫秒 tie-break 建议 member_card < task_card < 普通消息（研究 §7.5），由实现常量固定。
+
+#### 4.2.3 F31 空 agent 输出过滤（v1.7.2）
+
+**判定**：`finalText = 该 turn 内最后一个 trim() 后非空的 text 块`（仅 `assistant/message.message.content` 的 text 块；reasoning/tool_use 不算）。若 `finalText === ''`：
+
+1. **不产 `agent_output` 气泡**（即使 `turn/end.reason.kind` 为 completed/error/aborted/max-tokens/interrupted）；
+2. **不产「本轮中断/失败」system 提示**（避免空提示噪音）；整轮在消息流中静默；
+3. **不影响** `aggregateTurns`：轨迹侧栏仍按原始事件统计轮次/状态/工具数（纯工具轮次显示「无输出摘要」）；
+4. 诊断：`normalize.diagnostics.emptyAgentOutput` 计数；调试模式可在频道诊断面板查看，不进入 UI feed。
+
+**边界**：
+
+| 场景 | 行为 |
+| --- | --- |
+| 纯工具轮次（只有 tool/call，无 assistant text） | 不产 agent_output/空中断提示；**工具摘要行不渲染（用户裁决，M6 不渲染）**；轨迹仍显示该轮（工具数 >0） |
+| 流式中途（transient `assistant/live-chunk`） | 一律丢弃（只消费持久 `assistant/message`）；不产生半截气泡 |
+| 已中断（aborted/interrupted）且有 text | 产 agent_output + 中断提示（保留现有行为） |
+| 已中断且无 text | 静默（不产空提示） |
+| completed 且 text 为空白（空格/换行） | 静默（trim 判定） |
+| text 非空但只有 Markdown 空内容（如 `****`） | 视为非空，按 Markdown 渲染（可显示为空段落）——正常不做二次语义解析 |
+
+**去重/排序/轮次**：过滤发生在 emit 阶段（`agent_output` 产出前），不影响 `data.id` 去重键、`(time, sessionRank, seq)` 排序、`agent_output` 的 `isFinal` 语义。
 
 **每轮最终输出的判定（口径 A，唯一）**：
 
@@ -1266,7 +1318,7 @@ GroupChatView(props)
 │  ├─ GroupTitle（「群聊」14/500 label-primary）
 │  ├─ Divider（1×14，border-l2）
 │  ├─ TeamName（lead 会话标题，14/400 label-secondary，单行省略）
-│  ├─ MemberStrip（F26：**全部成员**、禁止 `+N`；24–26px 响应式头像，状态点绿=工作中/灰=等待；换行优先，超宽横向滚动+两端 16px 渐隐；点击头像开轨迹侧栏；`data-testid=group-chat-member-strip` + `data-member-id` + `data-member-state=working|waiting`）
+│  ├─ MemberStrip（F33/v1.7.3：**全部成员 + 全名 + 状态点**；头像 26/24/22 响应式；**换行优先（多行、头部自适应）、禁止 mask/渐隐**；仅极端超宽才横向滚动；点击/Enter 开轨迹侧栏；`group-chat-member-strip` + `data-member-id` + `data-member-state=working|waiting` + `data-member-name`）
 │  ├─ StatusText（「{n} 名成员 · {m} 工作中 · {k} 等待」11/400 label-tertiary）
 │  ├─ FilterButton（32×32，interactive-bg-hover + 圆角 8；打开 MemberFilterPopover）
 │  ├─ NewMessagesHint（未读「{n} 条新消息」11 caption；点击滚到底并清零，V1.1-5）
@@ -1284,14 +1336,15 @@ GroupChatView(props)
 │  │     ├─ InfoRows（label 11 label-caption / value 12 label-secondary；模型/上下文/创建方式/父成员，空值隐藏整行）
 │  │     ├─ InitialTask（label 11 + 正文 11/17 label-tertiary 两行截断 +「展开」11 文字链；展开只影响本卡）
 │  │     └─ CardActions（查看会话 12/500 business-primary；查看任务 12 secondary 仅 teammate；均为文字链接）
-│  ├─ TaskCardMessage（M9 = 操作者发出的一条带卡消息；sender=actor，紧凑版用于密集流）
-│  │  ├─ SenderLine(actor)（复用 M8：头像 32 + 名字 14/600 + 角色小标签 11「主 Agent」/「Teammate」+ 时间 11 贴右；不做气泡）
-│  │  └─ CardBody（max-width 520、bg-layer-1、border-l2、radius 12、padding 16；**左侧 3px 状态色竖条 + 顶部任务图标**；紧凑版约 84px；`data-card-accent`）
-│  │     ├─ TaskActionRow（动作标签 11 label-caption + 状态 pill 20/999 + `task-N` 等宽 11 label-caption 贴右）
-│  │     ├─ TaskTitle（subject 14/600 label-primary，单行省略）
-│  │     ├─ TaskDescription（create 卡 11.5/17 label-tertiary 2 行 +「展开」；其它卡 1 行/隐藏）
-│  │     ├─ TaskInfoRows（**负责人头像 20 + 名字**（无 owner「未认领」）/ 依赖 / 完成时间；label 11 caption / value 11.5 secondary，行高 20）
-│  │     └─ （v1.7 删除 CopyTaskId；卡片动作仅保留 hover 图标操作，无任务详情页）
+│  ├─ TaskCardMessage（M9/F35：操作者发的一条带卡消息；sender=actor；卡内不重复头像）
+│  │  ├─ SenderLine(actor)（头像 32 **全卡唯一**，`data-card-avatar` + 名字 14/600 + 角色小标签 11 + 时间 11；不做气泡）
+│  │  └─ CardBody（max-width 520、bg-layer-1、border-l2、radius 12、padding 16；**左侧 3px 状态色竖条 + 顶部任务图标**；紧凑版用于密集流；`data-card-accent`）
+│  │     ├─ TaskActionRow（动作标签 13/500 + 状态 pill 11 + `task-N` mono 11 贴右）
+│  │     ├─ TaskTitle（subject/目标 14/600 label-primary，单行省略）
+│  │     ├─ TaskSummaryFields（默认可见：负责人=文字+可选 `data-owner-role` 小标签（**无头像**）/ 依赖 / 完成时间；label 11 caption / value 11.5 secondary）
+│  │     ├─ TaskDetails（F34 默认 hidden：description / requirements / acceptance；`data-field=...`，展开后显示）
+│  │     └─ TaskExpandToggle（`data-action=expand-task` + aria-expanded，仅存在隐藏内容时渲染；无 CopyTaskId/详情页）
+
 │  ├─ MessageRow（不再有整行时间戳/徽标/chip 行/FinalTag）
 │  │  ├─ SenderLine（agent 侧：头像 32（可点击开轨迹侧栏，`data-action=open-trajectory`）+ 名字 14/500 label-secondary + 状态 11/400 label-caption + 6px 状态点）
 │  │  │   └─ subagent 名字后缀：`· <父显示名> 的子体`（11 label-caption，无缩进/连接线）
@@ -1428,7 +1481,7 @@ no match → 顶部提示条「该成员暂无消息」
 | `agent_output`（M3） | `MessageRow` + `SenderLine` | 头像 + 名字 + 状态点 | `Bubble`（普通气泡，**无「最终输出」徽标**）MarkdownText（折叠） | 无（hover 提供「打开所属会话」） | turn, isFinal（仅排序/去重，不进 UI） |
 | `system`（M4） | `CollapsedNote`（① 默认）/ `WelcomeNote`（② 成员欢迎） | — | ① 居中 11.5/400 label-tertiary 纯文本（无底色）；② **v1.7 改居中 11.5/400 label-tertiary**（无底色、非蓝字右对齐，SC48） | — | systemReason（②='member-welcome'） |
 | `member_card`（M8） | `MemberJoinMessage` = `SenderLine(creator)` + `CardBody`；前置同组的 `WelcomeNote`（`system` 消息） | **sender=creator**：头像 32 + 名字 14/600 + 角色小标签 11（主 Agent / Teammate）+ 时间 11 | `CardBody`：`CardTitle` + `CardDescription` + `InfoRows`（模型 `{model}（继承 Lead/creator）` / 上下文 / 创建方式 / 父成员，空值隐藏行；D-D）+ `InitialTask`（2 行截断，可展开） | `CardActions`：查看会话 / 查看任务（文字链接） | sender=creator；memberCard{member,time,actions}；creationId/pairOrder |
-| `task_card`（M9） | `TaskCardMessage` = `SenderLine(actor)` + `TaskCardBody` | **sender=actor**（操作者头像 32 **必须渲染**，缺失首字母占位 + 名字 14/600 + 角色标签 11 + 时间 11） | 独立卡片（**左侧 3px 状态色竖条 + 任务图标**）：`TaskActionRow`（动作标签 13/500 + 状态 pill 11 + task id mono 11）+ subject 14/600 + description（create 2 行/其它 1 行）+ `TaskInfoRows`（**负责人头像 20 + 名字**/依赖/完成时间） | **无「复制任务 ID」**；hover 图标复制/打开会话，无任务详情页 | sender=actor；taskCard{...}；`data-card-accent` |
+| `task_card`（M9/F34/F35） | `TaskCardMessage` = `SenderLine(actor)` + `TaskCardBody` | **sender=actor**（头像 32 **全卡唯一**，缺失首字母占位 + 名字 14/600 + 角色标签 11 + 时间 11） | 独立卡片（竖条/任务图标）：`TaskActionRow` + subject + **默认字段**（负责人文字+可选标签/依赖/完成时间）+ **默认隐藏详情**（description/requirements/acceptance） | `data-action=expand-task` 展开/收起；**无「复制任务 ID」**、无 owner 头像、无详情页 | sender=actor；taskCard{...}；`data-card-accent`/`data-task-expanded` |
 | `delivery`（M5） | `MessageRow` + `Bubble` 内 `FileRow` | 头像 + 名字 + 状态点 | 文件名 + PathLabel + 「打开」 | — | files |
 | ~~工具过程（M6）~~ | **v1.7 作废**：不渲染工具摘要行；过程只进轨迹侧栏（§6.15） | — | — | — | — |
 | subagent 发言（S） | 与 `agent_to_agent`/`agent_output` **完全相同** | 名字后缀 `· <父显示名> 的子体`（11 caption）；**无缩进、无连接线** | 与普通气泡一致 | 同上 | sender.kind='subagent' |
@@ -1487,10 +1540,10 @@ interface SubagentAddress {
 | 入群消息 | `data-kind="member_card"` + `data-sender="<creatorName>"` + `data-card="member-join"`（CardBody）+ `data-member-id` + `data-member-kind` + `data-member-state` + `data-creation-id` + `data-pair-order` | SC32/33/34 |
 | 入群卡动作 | `data-action` ∈ {view-session, view-task, expand-task} + `data-state` ∈ {enabled, disabled} | SC34 |
 | 入群卡字段行 | `data-field` ∈ {model, context, create-tool, parent, description, task} | SC34（无模型行断言） |
-| 任务卡消息 | `data-kind="task_card"` + `data-card="task"` + `data-sender="<actorName>"` + `data-task-id` + `data-task-revision` + `data-task-action` + `data-task-status` + `data-task-owner` + `data-task-actor` + `data-task-blocked-by` + `data-replay` ∈ {true, false} | SC35–SC38 |
-| 任务卡动作/字段（v1.7） | `data-card-accent` ∈ {pending, in_progress, completed, deleted}；`data-card-avatar`（操作者头像，**必须存在且非空**）；`data-task-owner-avatar`；`data-action` ∈ {copy-message, open-session}（**不存在 copy-task-id**）；`data-field` ∈ {owner, blocked-by, completion-time, description, revision} | SC43 |
-| Markdown 正文 | 容器 `data-md="rich\|plain"`；`.gc-md-strong/.gc-md-em/.gc-md-code/.gc-md-pre/.gc-md-ul/.gc-md-ol/.gc-md-li/.gc-md-link`；代码块 `data-lang` | SC39 |
-| 频道头成员条 | `data-testid="group-chat-member-strip"`；成员 `data-member-id` + `data-member-state="working\|waiting"` + `data-action="open-trajectory"`；**全部成员各一个节点，禁止 `+N`/更多聚合节点** | SC42 |
+| 任务卡消息（v1.7.2） | `data-kind="task_card"` + `data-card="task"` + `data-sender="<actorName>"` + `data-task-id` + `data-task-revision` + `data-task-action` + `data-task-status` + `data-task-owner` + `data-task-actor` + `data-task-blocked-by` + `data-replay` ∈ {true, false} + `data-task-expanded` ∈ {true, false}；**`data-card-avatar` 全卡仅 1 个（外层 actor）** | SC35–SC38 / SC43 |
+| 任务卡动作/字段（v1.7.2） | `data-card-accent` ∈ {pending, in_progress, completed, deleted}；`data-card-avatar`（**唯一 actor 头像，外层 SenderLine**）；**负责人行无头像（不再有 owner avatar 属性）**；`data-action` ∈ {copy-message, open-session, expand-task}（**不存在 copy-task-id**）；`data-field` ∈ {owner, blocked-by, completion-time, description, requirements, acceptance}；owner 行可带 `data-owner-role` | SC43 / SC52 / SC53 |
+| Markdown 正文（v1.7.2） | 容器 `data-md="rich\|plain"`；`.gc-md-strong/.gc-md-em/.gc-md-code/.gc-md-pre/.gc-md-ul/.gc-md-ol/.gc-md-li/.gc-md-link`；代码块 `data-lang`；**表格 `table.gc-md-table[data-md-table]` + `data-md-table-wrap` + `th/td[data-align]`** | SC39 / SC50 |
+| 频道头成员条（v1.7.3） | `data-testid="group-chat-member-strip"`；成员 `data-member-id` + `data-member-state="working\|waiting"` + `data-member-name`（**全名文本节点，常驻可见**）+ `data-action="open-trajectory"`；**全部成员各一个节点，禁止 `+N`/更多聚合；禁止 mask/渐隐伪元素；换行优先、名字不裁切** | SC42 / SC51 |
 | 轮次轨迹侧栏 | `data-testid="agent-trajectory-panel"` + `data-member-id`；遮罩 `agent-trajectory-overlay`；关闭 `data-action="close-trajectory"`；轮次行 `data-testid="agent-trajectory-turn"` + `data-turn-index` + `data-turn-status`；加载更多 `data-testid="agent-trajectory-load-older"` | SC42 |
 | 输入目标 chips | `data-testid="group-chat-target-chips"`；chip `data-target="lead\|ux"` + `data-mention`；提示 `data-testid="group-chat-composer-hint"` | SC41 |
 | 消息操作图标 | 按钮 `data-action="copy-message"` / `"open-session"`，`aria-label=复制原文` / `打开所属会话` | SC45 |
@@ -1612,12 +1665,15 @@ interface SubagentAddress {
 | 任务卡动作行 | 动作标签 11；状态 pill 高 20 / radius 999 / 11；task id 等宽 11 贴右 | UX §4.2 |
 | 任务卡标题/描述/信息行 | subject 14/600 单行省略；description 11.5/17（create 2 行）；信息行 label 11 / value 11.5、行高 20 | UX §4.2 |
 | 任务卡动作 | ~~复制任务 ID~~（v1.7 移除）；hover 图标 copy/open-session；无详情页跳转 | PRD F23 |
-| 成员条（F26，v1.7.1） | **全部成员、禁止 +N**；头像 26（桌面）/24（1280）/22（768），状态点 6–7px；换行行高 26+4、头部 68→98 自适应；>32 横向滚动 + 两端 16px 渐隐 | UX v4.1 §4.5 / PRD F26 |
+| 任务卡折叠字段（v1.7.2） | 折叠态：目标/ID/状态/负责人（文字+可选小标签）/依赖/完成时间；详情按钮「展开详情」11.5 文本链；展开后 description/requirements/acceptance 完整显示 | PRD v0.8.1 F34（待落盘）/ §6.18 |
+| 任务卡头像（v1.7.2） | actor 头像 32，全卡仅 1 个（外层 SenderLine）；owner 行无头像；`data-card-avatar` 计数=1 | PRD v0.8.1 F35（待落盘）/ §6.18 |
+| Markdown 表格（v1.7.2） | 表头底 layer-2 / 字 secondary；边框 border-l2；th/td padding 6–8、11.5/18；宽表横向滚动 | PRD v0.8.1 F32（待落盘）/ §6.12 |
+| 成员条（F33，v1.7.3） | **全部成员、全名、禁止 +N、禁止 mask/渐隐**；头像 26（桌面）/24（1280）/22（768），名字 11/12；**换行优先（多行）、头部自适应（68 + 每行 +26+4）**；仅极端超宽才横向滚动；状态点 6–7px | PRD v0.8.1 F33（待落盘）/ §6.15.1 |
 | 轨迹侧栏（F26） | 宽 380（覆盖式）；轮次卡 radius 10 / padding 12；时间 10.5、摘要 11.5/16（2 行）、工具数 10.5；<768 全屏 | PRD F26 / UX §4.4 |
 | 目标 chips（F25） | 高 22 / radius 999 / 文字 11（business 底+白字），位于输入框下方 | PRD F25 |
 | Markdown（F22） | 正文 14/22；行内代码 13 mono；代码块 12 mono + radius 8 + 语言标签 10.5；列表行高 22 | PRD F22 / UX §4.3 |
 | 折叠 50 行（F29） | 50 × 22 = 1100px；遮罩 56px；链接 12px 文本 | PRD F29 |
-| 任务卡竖条/图标/负责人头像（F23） | 竖条 3px；任务图标 16；负责人头像 20；操作者头像 32 必渲染 | PRD F23 |
+| 任务卡竖条/图标/头像（F23/F35，v1.7.2） | 竖条 3px；任务图标 16；**actor 头像 32 全卡唯一（外层 SenderLine）**；负责人行**无头像**（文字+可选小标签） | PRD F23/F35 / §6.18 |
 
 #### 6.7.3 UX §11 的令牌修正（**必须按此实现，否则编译期无错、运行期丢样式**）
 
@@ -1710,6 +1766,11 @@ interface SubagentAddress {
 | `task.unassigned`（v1.7 文案改「未认领」，键保留） | 未认领 | Unclaimed | 负责人空回退（reopen/release/delete） |
 | `task.noBlockedBy` | 无 | None | 依赖空回退 |
 | `task.actorSystem` | 系统操作者 | System | 配对四级回退兜底 |
+| `task.expand` | 展开详情 | Show details | 任务卡详情按钮（折叠态） |
+| `task.collapse` | 收起详情 | Hide details | 任务卡详情按钮（展开态） |
+| `task.field.description` / `task.field.requirements` / `task.field.acceptance` | 描述 / 要求 / 验收标准 | Description / Requirements / Acceptance | 展开后详情区字段名 |
+| `task.ownerRole` | {role} | {role} | 负责人可选角色小标签（如「Lead」/「Teammate」） |
+| `member.openTrajectory` | 查看 {name} 的轮次轨迹（{state}） | View {name}'s trajectory ({state}) | 成员条按钮 aria-label |
 | `composer.hint` | 键入 @ 可同时发送给多人 | Type @ to send to more members | 输入框下提示（仅此句） |
 | `composer.hostFallback` | 兼容模式：宿主输入器未隐藏 | Compatibility mode: host composer is still visible | O8 降级提示 |
 | `channel.membersStatus` | {n} 名成员 · {m} 工作中 · {k} 等待 | {n} members · {m} working · {k} waiting | 频道头状态文案 |
@@ -1761,19 +1822,55 @@ interface SubagentAddress {
 
 ---
 
-### 6.12 Markdown 渲染契约（F22 / SC39 / O9）
+### 6.12 Markdown 渲染契约（F22/F32 / SC39/SC50 / O9）
 
-**支持子集（安全）**：粗体 `**x**`、斜体 `*x*`、无序/有序列表、行内代码 `` `x` ``、围栏代码块（```lang）、链接 `[t](url)`、段落与换行。**不支持**：原始 HTML、图片、表格、引用、任务列表、脚注、内嵌 HTML 实体以上语法 → **降级为纯文本**（内容不丢、不报错）。
+**支持子集（安全）**：粗体 `**x**`、斜体 `*x*`、无序/有序列表、行内代码 `` `x` ``、围栏代码块（```lang）、链接 `[t](url)`、段落与换行、**GFM 表格（v1.7.2/F32）**。**不支持**：原始 HTML、图片、引用、任务列表、脚注、内嵌 HTML 实体 → **降级为纯文本**（内容不丢、不报错）。
 
-**实现**：`src/core/markdown.js` 零依赖 tokenizer（纯函数，无 DOM/Node）→ AST；`src/client/parts` 中 React 受控渲染。**禁止** `dangerouslySetInnerHTML` / `innerHTML`（verify 脚本增加 grep 断言）。文本先做 HTML 实体转义，未知 token 原样作为文本节点；解析异常 catch 后整段纯文本（`data-md="plain"`）。
+**AST（v1.7.2 新增 table）**：
 
-**链接安全**：仅 `http:` / `https:` / `mailto:`；其它 scheme（`javascript:`/`data:`/`file:`）按纯文本渲染；外链 `<a target="_blank" rel="noopener noreferrer">`，点击走宿主默认行为（不弹二次确认，O9）；DOM `data-md-link` 便于测试。
+```ts
+type MdAlign = 'left' | 'center' | 'right'
+interface MdTableCell { children: MdInline[] }          // 单元格内仍走 parseInline
+interface MdTable {
+  type: 'table'
+  header: { cells: MdTableCell[]; align: (MdAlign | null)[] }
+  rows: MdTableCell[][]
+}
+// table 作为 block 节点；header 行必填，数据行可 0 行（仅表头也渲染）
+```
 
-**样式（走 token）**：正文继承气泡 `14/22`；`strong` 600；行内代码 13px mono + `--dsw-alias-state-business-primary` 字、无底色；代码块 `--dsw-alias-bg-base` 底 + `--dsw-alias-border-l2` 边 + 12px mono + radius 8 + 横向滚动 + 语言标签 10.5 caption；链接 `--dsw-alias-state-business-primary`；列表行高 22。
+**GFM 表格解析规则**：
 
-**DOM 契约**：容器 `data-md="rich"|"plain"`、`.gc-md`；`strong.gc-md-strong`、`em.gc-md-em`、`code.gc-md-code`、`pre.gc-md-pre[data-lang]`、`ul/ol.gc-md-list`、`li.gc-md-li`、`a.gc-md-link`。**纯文本降级**：`data-md="plain"` + 文本节点（保留换行）。
+1. 起始：含 `|` 的非空行 + 紧随的**分隔行**（`| --- | :---: | ---: |`，每列 `-` 至少 1 个、可带冒号）；不满足分隔行的 `|` 行按普通段落文本渲染（不误判）。
+2. 列数 = 表头单元格数；数据行不足补空单元格、超出截断（保持 table 结构）；数据行以空行/非表格行结束。
+3. 管道转义：`\|` 视为单元格内字面 `|`；行内代码 `` `a|b` `` 内的 `|` 不切分；首尾 `|` 可选。
+4. 对齐：分隔行 `:---`/`:---:`/`---:` → left/center/right，其余 null；`align` 长度与列数一致。
+5. 单元格内 inline：复用同一 `parseInline`（粗体/斜体/行内代码/链接），链接仍走 `isSafeUrl`；表格内不支持嵌套块（列表/代码块降级为文本）。
+6. 上限：表格最多 **200 行 × 20 列**（超出截断并标 `truncated`）；整条仍受 64KB 上限。
+7. 异常/不完整（缺分隔行、列数 0）→ 该段按普通段落纯文本，不抛错。
 
-**性能**：按 `(messageId, revision)` LRU 缓存 AST（上限 500）；仅可视/展开行渲染；单条 >64KB 先截断并标 `data-md-truncated`；代码高亮仅在可见时启用（宿主 `useCodeHighlighter`，失败回退 `<pre>`）；单条首渲染 ≤8ms（M1）。
+**渲染 DOM（受控 React，禁 innerHTML）**：
+
+```html
+<div class="gc-md-table-wrap" data-md-table-wrap>
+  <table class="gc-md-table" data-md-table>
+    <thead><tr><th data-align="left|center|right">…</th></tr></thead>
+    <tbody><tr><td data-align="…">…</td></tr></tbody>
+  </table>
+</div>
+```
+
+- 宽表：`.gc-md-table-wrap { overflow-x:auto; max-width:100% }`，隐藏纵向滚动；表头不吸顶。
+- 安全：表格单元格只渲染 React 文本/inline 节点；**禁止** `dangerouslySetInnerHTML`/`innerHTML`；HTML 标签按文本转义；链接 scheme 白名单与全文一致。
+- 样式 token：边框 `--dsw-alias-border-l2`；表头底 `--dsw-alias-bg-layer-2`、字 `--dsw-alias-label-secondary`；单元格字 `--dsw-alias-label-primary`；`th/td` padding 6–8px、11.5/18；表格不参与气泡长文折叠的内部单行折叠（整表随 50 行阈值整体折叠）。
+- 行数计入 50 行折叠（§6.17）：表格按 `1（表头）+ 1（分隔行）+ 数据行数` 计（不含换行后的软换行）。
+- 性能：AST 缓存同 §6.12 通用；大表仅渲染可视消息（虚拟列表）；解析 + 渲染单表 ≤8ms（200 行内）。
+
+**其余实现/安全/样式（v1.7.2 不变）**：零依赖 tokenizer → AST；链接仅 `http:`/`https:`/`mailto:`；`target=_blank rel="noopener noreferrer"`；代码块 `--dsw-alias-bg-base` + 12px mono + 语言标签；行内代码 13px mono；正文 14/22。
+
+**DOM 契约**：容器 `data-md="rich"|"plain"`、`.gc-md`；`strong.gc-md-strong`、`em.gc-md-em`、`code.gc-md-code`、`pre.gc-md-pre[data-lang]`、`ul/ol.gc-md-list`、`li.gc-md-li`、`a.gc-md-link`、**`table.gc-md-table[data-md-table]` + `data-md-table-wrap` + `th/td[data-align]`**。纯文本降级：`data-md="plain"` + 文本节点（保留换行）。
+
+**性能**：按 `(messageId, revision)` LRU 缓存 AST（上限 500）；仅可视/展开行渲染；单条 >64KB 先截断并标 `data-md-truncated`；代码高亮仅在可见时启用（失败回退 `<pre>`）；表格单独计数上限 200×20。
 
 ### 6.13 单一输入器与宿主 composer 隐藏（F24 / SC40 / O8）
 
@@ -1803,11 +1900,13 @@ interface SubagentAddress {
 
 ### 6.15 成员状态条与轮次轨迹侧栏（F26 / SC42 / O7）
 
-#### 6.15.1 频道头成员条
+#### 6.15.1 频道头成员条（v1.7.2：全名、去遮罩）
 
 - 数据：成员目录（§4.8.2 roster + sessions）；状态主源 `useSessionStatus`/`SessionSnapshot.running`，回退 `team/member.member.phase==='active'` / `descriptor.mode`；映射 **running→`working`（绿点）**、其他→**`waiting`（灰点）**；未知按 waiting。
-- 展示：**全部成员**（最多 A10 的 32 个；**禁止 `+N`/更多聚合**）。头像响应式 26px（桌面）/24px（1280）/22px（768），圆角 8，状态点 6–7px（绿=工作中/灰=等待）；顺序 lead → running teammate → waiting teammate → subagent；状态文案 `{n} 名成员 · {m} 工作中 · {k} 等待`；hover/focus tooltip「名字 · 工作中/等待」，头像 `tabindex=0`，Enter/点击打开该成员轨迹侧栏。
-- 超宽策略：优先**换行**（第 2 行起继续，行高 26+4；频道头高度 68→98 自适应）；若仍超宽（>32 成员/窄屏）→ **横向滚动**（隐藏滚动条，滚轮/触控板横滑）+ 最左/最右 **16px 渐隐**。不得用「+N」折叠，不得省略成员。
+- 展示：**全部成员**（最多 A10 的 32 个；**禁止 `+N`/更多聚合**）。每项 = 头像（响应式 26/24/22，圆角 8）+ **成员全名文本**（11/12px `label-secondary`，**不省略、不截断、不隐藏**）+ 状态点（6–7px，绿=工作中/灰=等待）；顺序 lead → running teammate → waiting teammate → subagent；状态文案 `{n} 名成员 · {m} 工作中 · {k} 等待`。
+- 布局（v1.7.3，取代 v1.7.2 的单行横滚）：**换行优先**：`display:flex; flex-wrap:wrap; align-content:flex-start`，**允许多行**；每项 `flex:none`，名字 `white-space:nowrap` **完整显示、不省略/不裁切**；频道头高度**自适应**（基础 68px，每多一行 +26+4；不强制固定 56）；**禁止 `mask-image`/两端渐隐**。仅当换行后仍超宽（>32 成员或 768 极窄）才启用**横向滚动**（`overflow-x:auto`、隐藏滚动条），正常 1280/1440 不出现横滚。键盘 Tab 聚焦时 `scrollIntoView({block:'nearest',inline:'nearest'})`。
+- 点击/无障碍：头像与名字同属一个 `<button>`；`data-member-id`、`data-member-state=working|waiting`、`data-member-name`；`aria-label="查看 {name} 的轮次轨迹（工作中/等待）"`；点击/Enter 打开该成员轨迹侧栏。鼠标 hover 可用 tooltip 补充「名字 · 状态」，但名字本身常驻可见（不依赖 tooltip）。
+- 窄屏 768：仍全部成员 + 全名（**换行多行展示**；仅极端超宽才横向滚动），头像 22、名字 11；不折叠、不 +N。
 - 实时更新：订阅成员 running 状态变化，节流 120ms；不新增订阅（复用成员目录/状态 hook）。
 
 #### 6.15.2 轮次轨迹侧栏（O7 结论：可行，纯 Client）
@@ -1821,7 +1920,7 @@ interface SubagentAddress {
 
 ### 6.16 降噪与图标操作（F28 / SC45）
 
-- **M6 作废**：不渲染「N 个工具调用 · 见轨迹」文本行；不渲染 raw 工具名/参数；工具过程只能通过轨迹侧栏查看。
+- **M6 工具摘要：不渲染（用户裁决）**：不渲染「N 个工具调用」摘要行、不渲染 raw 工具名/参数；即使内核为纯工具轮次产出 `delivery + meta.toolSummary`，UI 也必须隐藏（空 text delivery 过滤是符合用户要求的正确行为）；工具过程只通过轨迹侧栏查看。
 - 消息操作图标（替换文字链）：`copy-message`（copy icon，`aria-label="复制原文"`，tooltip）、`open-session`（external-link icon，`aria-label="打开所属会话"`）；位置气泡右下角/说明行内，hover/聚焦出现（触屏常显），不遮挡正文；复制用 `writeClipboard` + Toast；打开会话复用 §6.5.1 `uiWorkspace.openSession`（含降级）。
 - DOM：`data-action="copy-message"|"open-session"`；图标按钮 ≥24px 命中区（窄屏 ≥44）。
 
@@ -1831,15 +1930,46 @@ interface SubagentAddress {
 - 折叠态：容器 `max-height:1100px` + overflow hidden + 底部 56px 渐变遮罩；链接 `group-chat-fold-toggle`「展开全部（共 N 行）」12px `state-business-primary` 文本链；展开后「收起」；`aria-expanded`；只影响本条。
 - 测量：Markdown 渲染后 `useLayoutEffect` 测内容高度（ResizeObserver 监听宽度/字体变化，100ms 防抖）；只测可视/展开行（虚拟列表内）；≥50 行才挂折叠；展开/收起保持顶部锚点。
 - 不折叠：system 提示、欢迎提示、同发说明行、成员卡/任务卡、消息头；单条内容上限 64KB（安全阀）。
+- **表格行数（v1.7.2）**：GFM 表格按 `1（表头）+ 1（分隔行）+ 数据行数` 计入 50 行；表格内不单独折叠（整表随正文一起折叠/展开），宽表横向滚动。
 
-### 6.18 任务卡重设计（F23 / SC43）
+### 6.18 任务卡契约（F23/F34/F35 · v1.7.2）
 
-- **形态**：独立卡片（不是气泡）：`bg-layer-1` + `border-l2` + radius 12 + padding 16；**左侧 3px 状态色竖条**（pending=`label-dimmed`、in_progress=`state-business-primary`、completed=`state-success-primary`、deleted=`label-caption`）+ **顶部任务图标**（tasks icon，16px，`label-secondary`）+ 动作标签 13/500 + 状态 pill 11。
-- **头部**：操作者 SenderLine 不变；**操作者头像必须渲染**（组件无条件渲染 Avatar；数据缺失时首字母色块占位，禁止空 div）；名字/角色标签/时间同 M8。
-- **正文**：subject 14/600（单行省略）；task id mono 11 caption；description（create 2 行截断 +「展开」，其它 1 行，上限 16KB）；**负责人头像 20 + 名字**（无 owner → 「未认领」）；依赖 `blockedBy` →「被 task-1、task-2 阻塞」/「无」；完成时间（仅 completed）。
-- **动作**：**移除「复制任务 ID」**；hover/focus 显示 `copy-message`/`open-session` 图标（与普通消息一致）；无任务详情页跳转。
-- **DOM 扩展**：`data-card=task` 容器 + `data-card-accent`（四枚举）+ `data-card-avatar`（操作者头像，**必须存在且非空**）+ `data-task-owner-avatar` + 既有 `data-task-*`；**不得出现 `data-action="copy-task-id"`**。
-- 与气泡区分验收：卡片容器 background/radius/border 与 bubble 不同 + 存在竖条与任务图标（SC43）。
+#### 6.18.1 形态与人物一致（F35）
+
+- **外层**：`SenderLine(actor)` = 操作者头像 32（**唯一头像**，缺失时首字母占位）+ 名字 14/600 + 角色标签 11 + 时间 11；`data-card-avatar` **只允许出现一次**，挂在该外层头像上（卡内不再有第二张 actor 头像）。
+- **card body**：独立卡片（`bg-layer-1` + `border-l2` + radius 12 + padding 16 + 左侧 3px 状态色竖条 + 顶部任务图标 + 动作标签 13/500 + 状态 pill 11）；**不渲染 actor 头像**，**不渲染负责人头像**（负责人行只输出文字/标签）。
+- **人物语义**：外层 sender = actor（谁操作谁发话）；负责人 = task.owner（可为空/与 actor 不同），只在信息行以**文字 + 可选角色小标签**（`data-owner-role`）表达；两者不得互相替代或重复头像。
+- task id 用 mono 11 caption 放头部，subject/目标 14/600 单行省略；状态仅真实四枚举（pending/in_progress/completed/deleted），无 failed/返工。
+
+#### 6.18.2 默认折叠字段与展开（F34）
+
+**默认可见（折叠态）**：
+
+| 字段 | 位置/形式 | 空值 |
+| --- | --- | --- |
+| 目标 | subject 14/600（单行省略） | 必填 |
+| 任务 ID | 头部 mono 11（`task-N`） | 必填 |
+| 状态 | 头部状态 pill 11（四枚举） | 必填 |
+| 负责人 | 信息行「负责人」+ 名字文字 + 可选角色小标签；**无头像** | 「未认领」 |
+| 依赖 | 信息行「依赖」+「被 task-1、task-2 阻塞」 | 「无」 |
+| 完成时间 | 信息行「完成时间」 | 仅 completed 显示；其它隐藏整行 |
+
+**默认隐藏（详情区）**：`description`、`requirements`（若 payload 提供）、`acceptance`（若 payload 提供）；均**不参与折叠态高度**，展开后按字段名 + 文本展示（description 完整多行，不截断；requirements/acceptance 各一段）。**快照没有对应字段时：不渲染该详情、不显示占位、不从 description 推断/拆分（禁止伪造）**。
+
+**展开交互**：
+
+- 仅当存在任一隐藏内容时渲染按钮 `data-action="expand-task"`（文案 `task.expand`「展开详情」），`aria-expanded` 初始 `false`；展开后按钮文案 `task.collapse`「收起详情」、`aria-expanded=true`。
+- 展开状态按 `messageId` 存 UI store（`taskCardExpanded: Record<string, boolean>`）；**当前视图内切换消息/筛选保留，刷新/重进群聊不持久化**；不写 localStorage。
+- 展开/收起只影响该卡；卡片不参与长文折叠（§6.17）；无详情按钮不渲染（避免空按钮）。
+- 键盘：Button 原生 Tab/Enter/Space；展开后焦点保持在按钮；卡内容变化不抖动（预留详情区高度变化，feed 锚点由虚拟列表处理）。
+
+#### 6.18.3 DOM 契约（v1.7.2）
+
+- 容器：`data-kind="task_card"` + `data-card="task"` + `data-card-accent`（四枚举）+ `data-card-avatar`（**全卡唯一**，外层 SenderLine 头像）+ `data-task-id/revision/action/status/owner/actor/blocked-by` + `data-replay`。
+- 状态/展开：`data-task-expanded="true|false"` 在卡容器上；按钮 `data-action="expand-task"` + `aria-expanded`；详情区 `data-field=description|requirements|acceptance`（仅展开时存在）。
+- 字段行：`data-field` ∈ {owner, blocked-by, completion-time, description, requirements, acceptance}；负责人行 `data-task-owner` 文本 + 可选 `data-owner-role`；**负责人行没有头像属性**；**不得出现 `data-action="copy-task-id"`**。
+- 紧凑版：同样遵守「头像唯一（外层）+ 无 owner 头像」；字段默认折叠规则一致；compact 只影响卡片留白/字号，不改变人物语义。
+- 与气泡区分：卡片容器 background/radius/border 与 bubble 不同 + 存在状态竖条/任务图标（SC43）。
 
 ## 7. 可靠性与边界
 
@@ -1964,20 +2094,25 @@ interface SubagentAddress {
 | E38 单一输入器（F24） | 打开群聊；输入「测试」按 Enter；Shift+Enter；切回对话 | `body.gc-view-group-chat` 存在且 `[data-composer-seat]` 不可见；`group-chat-composer` 唯一；Enter 后 `data-kind=user` +1；Shift+Enter 不发送；输入 value 空（不回填）；切回后宿主 composer 可见 | SC40 |
 | E39 @ 交互（F25） | 聚焦/普通输入/键入 @/选 ux | 前两者无 `group-chat-mention-popup`；键入 @ 后出现且背景 alpha=1；选项含名字+角色描述、无状态小字；chip 在输入框下方 `group-chat-target-chips`、business 底+白字、默认 `@Lead`；提示仅「键入 @ 可同时发送给多人」 | SC41 |
 | E40 成员条 + 轨迹侧栏（F26） | 点击运行中成员头像；Esc 关闭 | `group-chat-member-strip` 含全部成员（节点数=成员数，**无 +N**）且 `data-member-state=working\|waiting`；`agent-trajectory-panel` 可见且含 `data-turn-index` 行、头像/模型/状态；Esc 关闭、feed 滚动不变 | SC42 |
-| E41 任务卡重设计（F23） | 打开任务创建卡 | `data-card=task` 容器带 `data-card-accent` + 任务图标 + 3px 竖条；`data-card-avatar` 非空；负责人头像 `data-task-owner-avatar` + 名字；不存在 `data-action=copy-task-id`；与 bubble 样式不同 | SC43 |
+| E41 任务卡重设计（F23/F35） | 打开任务创建卡 | `data-card=task` 容器带 `data-card-accent` + 任务图标 + 3px 竖条；**`data-card-avatar` 全卡仅 1 个（外层 actor）**；负责人行为文字+可选标签（无头像）；不存在 `data-action=copy-task-id`；与 bubble 样式不同 | SC43/SC53 |
 | E42 作用域（F27） | 分别从 Lead 与 teammate 会话打开群聊 | 两次 feed 的 `data-message-id` 集合一致、频道头成员条一致；来源会话不影响频道内容 | SC44 |
 | E43 降噪/图标（F28） | 查看含工具调用的消息 | 页面文本不含 `个工具调用`/raw 工具名；操作按钮为 icon + aria-label=复制原文/打开所属会话；复制后剪贴板=纯文本 | SC45 |
 | E44 50 行折叠（F29） | 50 行与 51 行消息各一条 | 50 行无 `group-chat-fold-toggle`；51 行有 + `aria-expanded=false` + 文案「展开全部（共 51 行）」；系统/欢迎/同发说明行无折叠；展开后 `data-line-count` 正确 | SC46 |
 | E45 防重复（F30） | 一次发送（慢/快网络）、连点、刷新重进 | feed 中该文本 `data-kind=user` 节点=1；`data-message-id` 唯一（无 `local:*`）；连点不新增；刷新后仍 1 条 | SC47 |
 | E46 欢迎提示居中（F20 v0.8） | 成员 active 插入欢迎提示 | `data-kind=system`+`data-system-variant=welcome`；水平居中（几何中心≈内容列中心）；无右对齐蓝字样式；文案「欢迎 @name 加入群聊」 | SC48 |
-> **执行方式**：E1–E46 优先用 Playwright（有鉴权 URL 时）；无 token 时用 open-computer-use 的「AX 定位 + 截图」优先跑 E1/E2/E7/E8/E11/E19/E21/E23/E26/E28/E29/E31/E33/E34/E35/E37/E38/E39/E40/E41/E42/E43/E44/E45；其余以组件测试补证（§8.3.1）。
+| E47 空输出过滤（F31） | 构造纯工具轮次/空完成/空中断/有文本中断 | 纯工具/空完成/空中断：feed 无对应 agent_output、无中断提示、**无工具摘要行**；轨迹仍显示轮次+toolCount；有文本中断：气泡+提示；diagnostics.emptyAgentOutput 递增 | SC49 |
+| E48 GFM 表格（F32） | 渲染含对齐/转义管道/行内链接/代码的表格，以及畸形表格 | `table[data-md-table]`/thead/tbody/th/td/`data-align` 正确；`\|` 显示为竖线；链接 `data-md-link` 且 scheme 受限；`<script>` 文本化；畸形表格降级纯文本；宽表 wrap 可横滚 | SC50 |
+| E49 成员条全名（F33） | 9 名成员含长名；1280/1440/768 | 每项含头像+全名文本+状态点；无 `+N`；无 mask/渐隐（computed mask-image=none）；**1280 下换行显示、两端名字完整不被裁切、头部高度自适应**；768 换行全显；仅极端超宽才横向滚动；键盘可达 | SC51 |
+| E50 任务卡折叠（F34） | 打开 create/claim 卡；点击展开/收起；刷新 | 折叠态字段可见、详情区不存在；按钮 `data-action=expand-task`+aria-expanded=false；展开后详情字段出现、aria=true；刷新后回到折叠态（不持久化）；无详情不渲染按钮 | SC52 |
+| E51 任务卡人物一致（F35） | 打开任意动作任务卡（compact/normal） | `data-card-avatar` 计数=1（外层 actor）；负责人行无头像（无任何 owner avatar 节点）；owner 行文字+可选 `data-owner-role`；sender=actor；无 copy-task-id | SC53 |
+> **执行方式**：E1–E51 优先用 Playwright（有鉴权 URL 时）；无 token 时用 open-computer-use 的「AX 定位 + 截图」优先跑 E1/E2/E7/E8/E11/E19/E21/E23/E26/E28/E29/E31/E33/E34/E35/E37/E38/E39/E40/E41/E42/E43/E44/E45/E47/E48/E49/E50/E51；其余以组件测试补证（§8.3.1）。
 
 ### 8.4 视觉回归
 
 - **基准**：`docs/ux/prototype/01-tabs.png … 14-agent-trajectory.png`（Figma v4 导出；新增 P2 v4 `49:1765`、P4 `50:1934`、P12 v4 `30:1466`、P13 `50:1972`）。**注意**：P3 折叠帧仍是旧「8 行/400 字」版本（PRD v0.8 已改 50 行），视觉回归中折叠相关断言以 §6.17 的 DOM/尺寸为准，待 ux 重导 P3。
 - **方法**：Playwright `toHaveScreenshot`（同尺寸 viewport + deviceScaleFactor=2），**只比对 chrome/布局区**（tab 行、频道头、输入区、消息卡片骨架），消息正文区域用 mask 屏蔽（内容由数据驱动，不可与 mock 文案逐字对比）。
 - **容差**：`maxDiffPixelRatio: 0.01`（字体渲染差异）；字体族不同导致的整体偏移用「区域对齐 + 结构化断言」（尺寸/间距/圆角 computed style）兜底。
-- **必须单独断言（v1.7）**：tab 13px/500/下划线 2px/gap 32；会话头 76px；**频道头 56px（群头像 32、群聊标题、团队名、状态行）**；内容列 920/856/720；**气泡 max-width 600 / 正文 14/22；用户气泡 radius 20 / padding 10×16，agent/系统/卡片气泡 radius 12 / padding 10×14**；他人气泡 bg-layer-2、自己 bg-layer-3；**TimeDivider 居中 12/400**；BubbleCaption 11px；**无角色徽标 / 无 chip 行 / 无行内时间**；subagent **无缩进/连接线**、名字后缀「· 父名 的子体」；折叠 50 行（1100px）/遮罩 56px/链接 12px 文本；**成员条全部成员（24–26px 响应式、禁止 +N）/状态点 6–7px；轨迹侧栏 380px；Markdown 代码块 12 mono+语言标签；chips 在输入框下方；任务卡 3px 竖条+任务图标+操作者/负责人头像**；**P11**：只读横幅高 32/圆角 8/layer-2 底、输入区 40% 不透明、重试隐藏；筛选提示条 + 频道头 `· 筛选: scout` 后缀。
+- **必须单独断言（v1.7）**：tab 13px/500/下划线 2px/gap 32；会话头 76px；**频道头 56px（群头像 32、群聊标题、团队名、状态行）**；内容列 920/856/720；**气泡 max-width 600 / 正文 14/22；用户气泡 radius 20 / padding 10×16，agent/系统/卡片气泡 radius 12 / padding 10×14**；他人气泡 bg-layer-2、自己 bg-layer-3；**TimeDivider 居中 12/400**；BubbleCaption 11px；**无角色徽标 / 无 chip 行 / 无行内时间**；subagent **无缩进/连接线**、名字后缀「· 父名 的子体」；折叠 50 行（1100px）/遮罩 56px/链接 12px 文本；**成员条全部成员（24–26px 响应式、全名可见、禁止 +N、禁止 mask/渐隐、**换行优先/1280 不裁切**）/状态点 6–7px；轨迹侧栏 380px；Markdown 代码块 12 mono+语言标签、GFM 表格（thead/tbody/对齐）；chips 在输入框下方；任务卡 3px 竖条+任务图标+actor 头像唯一（无 owner 头像）+折叠字段/展开按钮**；**P11**：只读横幅高 32/圆角 8/layer-2 底、输入区 40% 不透明、重试隐藏；筛选提示条 + 频道头 `· 筛选: scout` 后缀。
 
 ### 8.5 性能基准（脚本化）
 
@@ -2043,6 +2178,11 @@ interface SubagentAddress {
 | SC46（F29） | 50 行内不折叠、51 行折叠、永不折叠对象 | §6.17/§6.5.2 | E44 | 50 无 toggle；51 有 + aria-expanded=false + 「共 51 行」；系统/欢迎/说明行无折叠 |
 | SC47（F30） | 防重复气泡 | §5.3.1/§4.4 | E45 | 同文本 user 节点=1、id 唯一无 `local:*`、连点不增、刷新后 1 |
 | SC48（F20 v0.8） | 欢迎提示居中系统样式 | §6.15/§6.9 | E46 | `data-system-variant=welcome` 居中、tertiary、无右对齐蓝字 |
+| SC49（F31） | 空 agent 输出过滤 | §4.2.3/§7 | E47 | 纯工具/空完成/空中断 → feed 无 agent_output、无空提示、无工具摘要行；轨迹仍显示该轮与工具数；有文本的中断仍出气泡+提示 |
+| SC50（F32） | GFM 表格 AST/DOM/安全 | §6.12/§6.5.2 | E48 | `table.gc-md-table[data-md-table]` + thead/tbody/th/td + `data-align`；`\|` 转义、链接白名单、HTML 文本化、畸形表格降级纯文本、宽表横向滚动 |
+| SC51（F33） | 成员条全名去遮罩/换行 | §6.15.1/§6.5.2 | E49 | 每项 avatar+全名+状态点；`data-member-name` 文本可见；无 mask/渐隐；**换行优先、1280/1440 无名字裁切、头部自适应**；768 换行全显 |
+| SC52（F34） | 任务卡默认折叠 + 展开 | §6.18/§6.5.2 | E50 | 默认见目标/ID/状态/负责人/依赖/完成时间；description/requirements/acceptance 隐藏；`data-action=expand-task` + aria-expanded；展开状态不跨刷新 |
+| SC53（F35） | 任务卡人物一致 | §6.18/§6.5.2 | E51 | `data-card-avatar` 全卡计数=1；负责人行无头像；负责人行文字+可选小标签；外层 sender=actor |
 ---
 
 ## 9. 实现拆分（3 条可并行写 + 1 次集成 + 1 轮 QA）
@@ -2101,13 +2241,22 @@ interface SubagentAddress {
 | **B4 DOM 契约与快照** | `src/client/parts/` 之外：`test/client/snapshot.mjs`、DOM 常量 | 新增 `group-chat-member-strip`/`agent-trajectory-panel`/`group-chat-target-chips`/`.gc-md-*`/`data-card-avatar`/`data-card-accent` 快照断言 | B1/B2 | snapshot 覆盖新增契约；旧契约不回归 |
 | **F1 Markdown 视图 + 折叠 50 行** | `src/client/parts/*markdown*`、`*bubble*`、`src/styles/group-chat.css` | 受控渲染、代码块语言标签、纯文本降级、折叠测量/链接/锚点（§6.12/§6.17） | B1 | SC39/SC46；无 innerHTML；50/51 行边界 |
 | **F2 单一输入器 + @ 交互** | `src/client/parts/*composer*`、`*mention*`、`entry.js`（body 标记/清理）、CSS | 隐藏宿主 composer + 自检/降级；Enter 发送/IME；chips 下方；弹层实底+描述小字；提示文案（§6.13/§6.14） | B3 | SC40/SC41；切视图恢复；降级提示不抛错 |
-| **F3 成员状态条 + 轨迹侧栏** | `src/client/parts/*member*`、`*trajectory*`、CSS | 成员条（**全部成员/禁止 +N**、响应式头像/状态点/点击）、380px 抽屉、轮次列表/分页/关闭/焦点（§6.15） | B2 | SC42；Esc/遮罩/同头像关闭；滚动不丢 |
+| **F3 成员状态条 + 轨迹侧栏** | `src/client/parts/*member*`、`*trajectory*`、CSS | 成员条（**全部成员/全名/禁止 +N/mask**、**换行优先/头部自适应**、头像+名字+状态点/点击）、380px 抽屉、轮次列表/关闭/焦点（§6.15） | B2 | SC42/SC51；Esc/遮罩/同头像关闭；1280 不裁切 |
 | **F4 降噪/图标 + 任务卡重设计 + 欢迎居中** | `src/client/parts/*message*`、`*task*`、`*welcome*`、CSS | 去 M6、copy/open 图标+aria、任务卡竖条/图标/负责人头像/去复制 ID、欢迎改居中（§6.16/§6.18） | B1/B4 | SC43/SC45/SC48；头像必渲染（空数据用例） |
 | **F5 作用域与去重接线** | `src/client/entry.js`、`src/client/parts/*view*`、`src/adapters/*` | resolveLeadSession 接入频道；草稿/滚动按 channelId；echo 替换接线（§4.8.2/§5.3.1） | B2/B3 | SC44/SC47；从 teammate/subagent 打开一致 |
 | **Q1 验收** | tester：`tests/design/*`、`tests/runs/*`、`tests/artifacts/*` | SC39–SC48 真机/组件/视觉；DOM 契约核对；P3 50 行待 ux 重导的记录 | F1–F5 | 二值 PASS/FAIL；HIGH/CRITICAL=FAIL |
 
 - **并行建议**：B1+B3（内核）与 F2（输入器）无依赖可先行；B2 与 F3 并行；F4 依赖 B1/B4；F5 最后接线。**风险点**：F2 的宿主 composer 隐藏（O8）需真实 GUI 验证；F1/F3 的视觉需等 UX v4 定稿（P2/P4/P12/P13 已出，P3 待重导）。
 - **不做**：不新增 Host 路由/Service；不改宿主包；不引入 Markdown 第三方依赖（零依赖 parser）。
+
+### 9.6 v1.7.2 增量拆分（F31–F35 实现边界）
+
+| 任务 | 写作用域（插件内） | 内容 | 依赖 | done-when |
+| --- | --- | --- | --- | --- |
+| **B5 内核：F31 过滤 + F32 表格解析** | `src/core/normalize.js`、`src/core/markdown.js`、`test/core/*` | 空 agent 输出过滤 + diagnostics；GFM 表格 tokenizer（分隔行/对齐/转义/上限/畸形降级） | 无 | core 测试覆盖纯工具/空中断/表格全边界；SC49/SC50 内核断言 |
+| **F6 视图：表格/成员条/任务卡** | `src/client/parts/30-primitives`、`50-feed`、`60-header`、`40-cards`、`20-store`、`src/styles/group-chat.css` | 表格 React 渲染 + wrap；成员条全名单行滚动去 mask；任务卡折叠字段/expand-task/唯一 avatar；i18n | B5 | SC50–SC53；DOM 契约断言；视觉基线待 v4.2 |
+| **F7 接线：展开状态/成员条键盘** | `src/client/parts/90-view.part.js`、`20-store` | `taskCardExpanded` store、展开状态不持久化、成员条键盘滚动 | F6 | E50/E51；刷新回折叠 |
+| **Q2 验收** | `tests/design/*`、`tests/runs/*` | SC49–SC53 用例、空输出/表格/成员全名/折叠/单头像证据 | F6/F7 | 二值 PASS；HIGH/CRITICAL=FAIL |
 
 ## 10. 决策状态（v1.1：已决策项 + 仍待决项）
 
@@ -2146,7 +2295,9 @@ interface SubagentAddress {
 10. **UX §4.2 文案表小瑕疵**：i18n 表缺表头且 `task.state.done` 与 `task.state.cancelled` 行之间有空行/错位；实现以本文 §6.9 的 `task.*` 键为准，建议 ux 下版清理。
 11. **P12 交付更正**：P12 已由 UX 建为任务卡帧（v4 `30:1466`；此前 `29:1322` 与「P12=筛选态别名」均已作废；筛选态仍在 P11 右栏）。
 12. **UX v4.1 已升版**：头部已对齐 PRD v0.8/架构 v1.7，§4.5 成员条已按用户要求改为「全部成员、禁止 +N」，P3 已按真实 50 行重导（`51:2325`）。**仍残留**：UX §6 的 @ 补全流程仍写「chip 在输入框上方」「副标题显示状态」，与同文 §7「chips 位于输入框下方」及 PRD v0.8 冲突；实现以 PRD v0.8 + 本文 §6.12–§6.18 为准，建议 ux 下版清理 §6。
-13. **AGENTS.md 同步**：仓库根 `AGENTS.md` 仍引用架构 v1.6.1；v1.7 落盘后需由 Lead 更新 AGENTS.md 版本与 F22–F30 约束（不属于本任务写作用域）。
+13. **AGENTS.md 同步**：仓库根 `AGENTS.md` 已由 Lead 更新到架构 v1.7.1；v1.7.2 落盘后需同步 v1.7.2 与 F31–F35 约束（不属于本任务写作用域）。
+14. **PRD v0.8.1 / UX v4.2 尚未落盘**：仓库当前 PRD 仍 v0.8、UX v4.1；本版 F31–F35 契约按用户 5 个线上问题先冻结，SC49–SC53 为建议编号；pm/ux 落盘后只同步编号/文案，不改语义。
+15. **Figma v4.2 未导出**：P2/P12 需补成员条全名、GFM 表格、任务卡默认折叠/单头像；当前 P12 实际为 v5 `51:2099`（9 变体），P3 为 `51:2325`。
 
 ---
 
@@ -2179,6 +2330,12 @@ interface SubagentAddress {
 | RK13 | 50 行折叠测量不准（代码块行高/字体加载/宽度变化） | 低 | 50/51 行边界抖动 / N 行数字偏差 | 以高度 1100px 为准 + ResizeObserver 防抖 + `data-line-count`；P3 重导后复核；边界单测 50/51 |
 | RK14 | 作用域回溯链异常（缺失 summary/环/跨工作区） | 中 | 频道空白/串团队 | 链回溯≤4 + seen 防环 + 回退当前会话；只读/权限边界不变；SC44 覆盖 lead↔teammate |
 | RK15 | 任务卡操作者/负责人头像缺失渲染为空白（F23） | 中 | `data-card-avatar` 为空 | 组件无条件渲染 Avatar（首字母占位）；SC43 断言非空；空数据 fixture |
+| RK16 | F31 过滤误伤：有工具结果但无文本的轮次被用户视为「没回复」 | 中 | 用户以为 agent 静默失败 | 轨迹侧栏保留该轮与工具数；诊断计数；空输出不伪造提示 |
+| RK17 | F32 表格误判/安全问题 | 高 | 普通 `\|` 文本被误判为表格；链接/HTML 注入；宽表撑破气泡 | 必须分隔行才成表；单元格受控 inline + scheme 白名单；禁 innerHTML；200×20 上限；畸形降级；SC50 安全用例 |
+| RK18 | F33 成员条换行导致头部过高/1280 仍裁切 | 中 | 头部挤压消息区；名字仍被裁 | 换行优先、头部自适应并限制最大行数（极窄才横滚）；禁止裁切/遮罩；SC51 在 1280/1440/768 断言名字完整 |
+| RK19 | F34 展开状态/详情区高度导致列表抖动 | 低 | 展开后锚点跳动/虚拟列表错位 | 只影响本卡；虚拟列表测量更新；不持久化；E50 锚点断言 |
+| RK20 | F35 人物重复/actor 与 owner 混淆 | 中 | 两张 avatar 或把 owner 当操作者 | DOM 断言 `data-card-avatar` 计数=1、无 owner avatar；文案分离「操作者（外层）」/「负责人」；SC53 |
+| RK21 | PRD v0.8.1/UX v4.2 尚未落盘导致 SC49–SC53 编号/文案漂移 | 中 | 实现与最终 PRD 不一致 | 本版契约为准；PM/UX 落盘后只同步编号/文案；§10.3 跟踪 |
 ---
 
 ## 12. 附录
@@ -2220,14 +2377,15 @@ interface SubagentAddress {
 | P9 768 窄屏 | `17:790` | §6.8 窄屏（群头像 + 成员数文本） |
 | **P10 成员加入消息** | **`21:954`**（变体 A `21:966` / B `21:989`） | §6.2/§6.5 `WelcomeNote` + `MemberJoinMessage`（creator SenderLine + CardBody）+ §6.5.1 动作 |
 | **P11 · 只读历史（左）/ 筛选态（右）** | **`25:1221`** | §6.4.4 只读态 + 筛选（D-B）+ §6.9 `readonly.*`/`filter.*`；`group-chat-readonly-banner` / `group-chat-filter-banner` + 频道头 `· 团队已结束` / `· 筛选: scout` |
-| **P12 · 任务卡片消息（v4 重设计）** | **`30:1466`**（9 变体） | §6.18/§6.5.2（状态竖条/任务图标/头像必渲染/去复制 ID） |
+| **P12 · 任务卡片（v5 独立卡片 · 9 变体）** | **`51:2099`**（2880×1560；v1.7.2 将补折叠字段/单头像） | §6.18/§6.5.2（折叠字段/展开/actor 头像唯一/去复制 ID） |
 | **P13 · Agent 轮次轨迹侧栏** | **`50:1972`** | §6.15.2（380px 抽屉/轮次列表/关闭）+ `agent-trajectory-panel` |
+| **P2 · 群聊主界面（v4；v4.2 待重导）** | **`49:1765`** | 成员条全名/表格/任务卡折叠/单头像按 v1.7.2 重绘；导出后复核 |
 | F0 交互流程图 | `25:1170` | §8.3 e2e 路径图（v2 图例） |
 | 设计令牌板 | `10:78` | §6.7 token 表来源 |
 | 基础组件库 | `10:197` | 组件尺寸/样式参照（v1.2 仅复用 Avatar/StatusDot 等基础形，不再用 Badge/Tag） |
 
 > 旧帧（`10:226`/`10:409`/`10:585`/`10:792`/`10:922`/`10:1180`/`10:1281`；以及被重建前的 `17:647`/`10:1126`）已删除，实现与视觉回归只认上表新 ID。**P12 已由 UX 建为任务卡帧 `29:1322`**（此前「P12=筛选态别名」的说法作废；筛选态仍在 P11 右栏）。
-> 复核状态：v1.7 期间 Figma v4 已重绘 P2（`49:1765`：成员条/Markdown/图标/重设计任务卡/单输入器/chips 下方）、P4（`50:1934`）、P12（`30:1466`）、P13（`50:1972`）；实现前由 T2 owner 按 v4 导出 PNG 逐帧核对。**P3 折叠帧仍是旧 8 行版本**，50 行折叠以 §6.17/DOM 为准，待 ux 重导。
+> 复核状态：Figma 实际帧为 P2 `49:1765`、P3 `51:2325`（真实 50 行）、P4 `50:1934`、**P12 `51:2099`（v5 独立任务卡）**、P13 `50:1972`。**v4.2 尚未重导**（需补成员条全名/GFM 表格/任务卡折叠与单头像），实现前由 T2 owner 按导出 PNG 逐帧核对；架构以本版 §6.12/§6.15.1/§6.18 为准。
 
 ### 12.3 复现命令（只读校验用）
 
@@ -2287,6 +2445,10 @@ PY
 | **v1.6.1** | 2026-10-28 | **两处视觉契约修正（数据/发送契约不变）**：① 气泡圆角/内边距按发送者区分——用户 `r20/p10×16`（`--gc-user-bubble-radius/padding`），agent/系统/卡片 `r12/p10×14`（`--gc-bubble-radius/padding`），不再用单一值；② 发送键改为 `state-business-primary` 底 + `bg-base` 箭头（原 `button-primary-fill`/`label-primary-inverted` 行作废）；同步 §6.2/§6.5/§8.4 表述 | §6.7.1、§6.7.2 |
 | **v1.7** | 2026-10-29 | **PRD v0.8 F22–F30 实现契约（数据/发送契约不变）**：① O7/O8/O9 结论（轨迹可行/CSS 隐藏宿主 composer 可行+降级/Markdown 安全子集可行）；② §5.3.1 防重复时序（localBatches/rpcId）；③ §6.12 Markdown、§6.13 单一输入器、§6.14 @ 修订、§6.15 成员条+轨迹侧栏、§6.16 降噪图标、§6.17 折叠 50 行、§6.18 任务卡重设计；④ §4.8.2 Lead 链解析（F27）；⑤ §6.5.2 新增 DOM（member-strip/trajectory-panel/target-chips/gc-md-*/data-card-avatar 等）与 M6 作废；⑥ §6.7/§6.9/§6.10/§6.11 同步；⑦ §8 E37–E46 + SC39–SC48；⑧ §9.5 frontend/backend/tester 拆分；⑨ §10.4 决策、§11 RK9–RK15；⑩ §12.2 v4 帧（P2/P4/P12/P13） | 实现以 v1.7 为准；AGENTS.md 需 Lead 同步升版 |
 | **v1.7.1** | 2026-10-29 | **成员条全显修订（用户要求优先）**：§6.15.1 由「最多 5 + `+N`」改为**全部成员、禁止 `+N`**；换行优先（头部 68→98），>32 横向滚动 + 两端 16px 渐隐；头像响应式 26/24/22（同步 UX v4.1 §4.5）；§6.2/§6.7.2/§6.5.2/§8.4/F3/E40/SC42 同步；新增决策记录 v1.7.1 | §6 / §8 |
+| **v1.7.2** | 2026-10-29 | **线上 5 问题（F31–F35）**：① §4.2/§4.2.3 F31 空 agent 输出过滤（trim 空且无附件 → 无 agent_output/空中断提示；turn/工具数不受影响）；② §6.12 F32 GFM 表格 AST/DOM/安全/上限/折叠计数；③ §6.15.1 F33 成员条全名（头像+全名+状态点，删除 mask/渐隐，单行横向滚动隐藏滚动条）；④ §6.18 F34 任务卡默认折叠字段 + 展开按钮/aria/非持久化；⑤ §6.18 F35 人物一致（外层 sender=actor、avatar 全卡唯一、owner 行文字+可选标签、无 owner 头像）；⑥ §6.5.2 DOM 扩展 table/member-name/task-expanded/expand-task、删除 owner avatar；M6 工具摘要行按用户裁决不渲染；⑦ §8 SC49–SC53/E47–E51；⑧ §11 RK16–RK21；⑨ §12.2 P12 `51:2099`/P2 `49:1765`（v4.2 待重导） | 实现以 v1.7.2 为准；PRD v0.8.1/UX v4.2 待落盘后对齐编号 |
+| **v1.7.3** | 2026-10-29 | **成员条换行优先修订（用户要求/Lead 裁决）**：§6.15.1 由 v1.7.2「单行横向滚动」改为**换行优先（flex-wrap 多行、头部自适应 68+26+4/行，禁用 mask/渐隐与单行裁切）**；仅极端超宽（>32/768 极窄）才横向滚动；§6.2/§6.7.2/§6.5.2/§8.4/E49/SC51/F3/RK18 同步；新增决策记录 v1.7.3 | §6 / §8 |
+
+
 
 
 

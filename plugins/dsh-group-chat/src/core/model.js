@@ -214,6 +214,7 @@
  * @property {number} ignoredSubagentPrompts
  * @property {number} ignoredSystemContext
  * @property {number} ignoredNotices
+ * @property {number} emptyAgentOutput
  * @property {number} duplicatesRemoved
  * @property {number} fanoutMerged
  * @property {number} memberCards

@@ -28,13 +28,16 @@ test('UT-05 turn/end(forked) 的 turn 整体丢弃，不产消息', () => {
   assert.equal(result.diagnostics.forkedTurnsDropped, 1);
 });
 
-test('UT-07 非 completed 轮次追加「本轮中断/失败」系统提示（i18n-neutral：meta.turnEndReason）', () => {
+test('UT-07 有文本的中断保留「气泡 + 提示」（v1.7.2 F31）；空输出才静默', () => {
   const { result } = normalizeFixture('04-assistant-turns');
   const notes = byKind(result.messages, 'system').filter((m) => m.meta?.event === 'turn-interrupted');
-  assert.equal(notes.length, 1);
+  assert.equal(notes.length, 1, '有文本输出 → 中断提示保留');
   assert.equal(notes[0].meta.turnEndReason, 'error');
   assert.equal(notes[0].meta.turn, 2);
-  assert.equal(notes[0].text, '', '文案由 UI i18n 渲染，core 不写中文');
+  const t2 = byKind(result.messages, 'agent_output').find((m) => m.turn === 2);
+  assert.equal(t2.meta.turnEndReason, 'error');
+  assert.equal(t2.isFinal, false);
+  assert.ok(result.messages.every((m) => m.kind !== 'agent_output' || String(m.text).trim() !== ''));
 });
 
 test('UT-47 工具调用计数：挂到 agent_output.toolCallCount，不产生工具正文消息', () => {

@@ -2,7 +2,7 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 版本 | **v4.1**（2026-10-29；对齐 PRD **v0.8** / 架构 **v1.7** / Figma 原型 v5.1；含 D1–D10、M8 入群消息、M9 任务卡 v5、P13 轮次轨迹侧栏、Markdown 渲染、50 行折叠、单输入器 + chips 下方、成员工作/等待状态） |
+| 版本 | **v4.2**（2026-10-29；对齐 PRD **v0.8** / 架构 **v1.7.1** / Figma 原型 v5.2；含 D1–D10、M8 入群消息、M9 任务卡 v5、P13 轮次轨迹侧栏、Markdown 渲染、50 行折叠、单输入器 + chips 下方、成员工作/等待状态） |
 | 作者 | ux（Agent Team teammate） |
 | 上游 | `docs/specs/group-chat-prd.md`（v0.8）、`docs/architecture/group-chat-architecture.md`（v1.7）、Lead 决策 D1–D10 + D-A~D-D + 用户 18 条反馈（v4） |
 | 下游 | Figma 原型（`docs/ux/prototype.md`）、architect、frontend、tester |
@@ -198,9 +198,10 @@
 **结构**
 
 1. **操作者消息头**：头像 32（Lead 用 business-primary，teammate 用 business-tertiary）+ 名字 14/600 + 角色小标签 11（`主 Agent` / `Teammate`）+ 时间 11（贴右）。
-2. **卡片正文**（宽 max 520、`bg-layer-1`、`border-l2`、radius 12、padding 16）：
+2. **卡片正文 v5.2**（宽 max 488–520、`bg-layer-2`、`border-l2`、radius 12、padding 14）：
    - 顶部动作行（v5）：**任务图标 18**（圆角 4）+ 动作标签 11 caption（`创建任务` / `认领任务` / `完成任务` / `重新打开任务` / `改派任务` / `取消任务`）+ **状态 pill**（18 高、999 圆角）+ 右侧 `task-N` 等宽 11 caption；卡片为**独立 surface**（bg-layer-2 + border-l2 + r12 + p14 + 左侧 3px 状态条），无气泡尾巴。
-   - 标题：任务 subject 14/600 `label-primary`（单行，过长省略）。
+   - **默认折叠（v4.2）**：只显示 `目标`（subject 15/600）、`任务 ID`（头部右侧 mono）、`状态 pill`、`负责人`、`依赖`、`完成时间` 六个字段；描述 / 硬性要求 / 验收标准默认隐藏，底部左侧 `展开全部 ⌄`；展开后追加 `描述`（多行）、`硬性要求`（bullet 列表）、`验收标准`（bullet 列表），底部改 `收起 ⌃`。
+   - **人物一致（v4.2）**：外层 sender 头像+名字+角色标签 = **操作者（actor）**；卡内**不再渲染第二个头像/名字**，负责人只作为字段行（可带 `（Teammate）` 小字）。
    - 描述：仅创建卡默认展示，11.5/17 `label-tertiary` **2 行截断 + 「展开」**；后续卡只显示变更说明（有则显示、无则隐藏）。
    - 信息行（label 11 caption / value 11.5 secondary，行高 20）：`负责人`（未指派时显示「未指派」，reopen 后为「未指派（reopen 后丢弃）」）、`依赖`（`blocked_by` 名称或 ID，空则整行隐藏）、`完成时间`（仅完成卡）、`revision`（可选，默认隐藏）。
    - 动作：`复制任务 ID` 文字链（11.5 business-primary）；**不引入「任务详情页」跳转**（v1 无该页面）。
@@ -258,7 +259,7 @@
 
 ## 4.3 Markdown 渲染（v4 · item 1）
 
-agent 气泡正文支持 Markdown：**粗体**（PingFang Semibold）、无序/有序列表（`•` 前缀，行高 22）、行内代码（13px mono + business-primary 文字，不加底色）、代码块（`bg-base` 容器 + 12px mono + radius 8）、链接（business-primary 可点击）。渲染不引入额外卡片或图标，保持气泡单一容器。
+agent 气泡正文支持 Markdown：**粗体**（PingFang Semibold）、无序/有序列表（`•` 前缀，行高 22）、行内代码（13px mono + business-primary 文字，不加底色）、代码块（`bg-base` 容器 + 12px mono + radius 8）、链接（business-primary 可点击）；**表格**：表头 `bg-layer-3` + `label-secondary` 12.5/500，单元格 12.5/400 `label-tertiary`、padding 8×10、边框 1px `border-l2`、数据行斑马纹（`bg-layer-2` 与透明交替）、合并在气泡内不横向滚动（超宽时容器内横滚）。渲染不引入额外卡片或图标，保持气泡单一容器。
 
 ## 4.4 Agent 轮次轨迹侧栏（v4 · item 6 / 10）
 
@@ -271,12 +272,16 @@ agent 气泡正文支持 Markdown：**粗体**（PingFang Semibold）、无序/�
 
 ## 4.5 成员状态（v4 · item 10）
 
-频道头在群头像与团队名之后展示**全部成员**：头像 24–26px（圆角 8）、每个头像右上角 6–7px 状态点（**绿 = 工作中 / 灰 = 等待**）、状态文案 `N 名成员 · M 工作中 · K 等待`；点击头像打开 §4.4 侧栏。状态由 `team/member.phase`（teammate）与 `subagent/descriptor.mode`（subagent）推导。
+频道头在群头像与团队名之后展示**全部成员**：**24px 头像（圆角 8）+ 右侧完整名字（11.5/500，工作中 secondary / 等待 caption）+ 头像右上角 6px 状态点（绿=工作中 / 灰=等待）**；点击头像（或名字）打开 §4.4 侧栏。状态由 `team/member.phase`（teammate）与 `subagent/descriptor.mode`（subagent）推导。
 
 - **禁止 `+N` 聚合**（v4.1）：成员条必须展示全部成员，不得用「+3」折叠。
 - 超宽策略：优先 **换行**（第二行继续，行高 26 + 4 间距，头部高度自适应 68 → 98）；仍超宽（>32 成员）时启用**横向滚动**（隐藏滚动条，滚轮/触控板横滑），并在最左/最右加 16px 渐隐遮罩提示可滚动。
 - 名字/状态不常驻展示，hover/focus 用 tooltip 显示 `名字 · 工作中/等待`；头像可聚焦（`tabindex=0`），Enter 打开侧栏。
 - 上限：架构 A10 的会话上限 32 即成员条上限；32 个 26px 头像 + 6 间距 ≈ 1024px，在 1180 内容宽下需换行 1 次（每行约 18–20 个）。
+
+## 4.5.1 空输出不渲染（v4.2 · 逻辑 bug 记录）
+
+agent 最终输出为空（无 text 块 / 仅空白）时**不渲染任何气泡**——含空气泡、空头像行、空时间分隔；由实现侧在 normalize 阶段丢弃空 assistant 输出，原型不表达该形态（记录于 prototype.md §7t）。
 
 ## 4.6 行为口径（v4 · item 12/15/16）
 

@@ -281,11 +281,15 @@ function gcWelcomeText(message, t) {
 function GcFeedItem(props) {
   const message = props.message
   if (gcIsContextNoise(message) || gcIsSettledNotice(message)) return null
+  if (gcIsEmptyAgentMessage(message)) return null
   if (message.kind === 'system') {
     const isWelcome =
       message.systemReason === 'member-welcome' || (message.meta && message.meta.systemVariant === 'welcome')
     if (isWelcome) return h(GcWelcomeNote, { message: message, text: gcWelcomeText(message, props.t) })
-    return h(GcSystemNote, { message: message, text: gcStr(message.text) })
+    const interrupted = message.meta && message.meta.event === 'turn-interrupted'
+    const text = interrupted ? props.t('system.turnInterrupted') : gcStr(message.text)
+    if (!interrupted && text.trim() === '') return null
+    return h(GcSystemNote, { message: message, text: text })
   }
   if (message.kind === 'member_card') {
     return h(GcMemberJoinMessage, {

@@ -70,6 +70,10 @@ export function renderedLineCount(ast, options = {}) {
     const value = String(ast.value ?? '');
     return value === '' ? 1 : value.split('\n').length;
   }
+  if (ast.type === 'table') {
+    // v1.7.2 §6.12：表格按 1（表头）+ 1（分隔行）+ 数据行 计入 50 行阈值
+    return 2 + (Array.isArray(ast.rows) ? ast.rows.length : 0);
+  }
   if (ast.type === 'list') {
     const items = Array.isArray(ast.items) ? ast.items : [];
     if (items.length === 0) return 0;

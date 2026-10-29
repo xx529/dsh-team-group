@@ -452,6 +452,17 @@ function gcIsContextNoise(message) {
   return false
 }
 
+/** F31：agent 消息正文 trim 为空且无卡片/附件时，不渲染空行（不出现空 bubble + 操作图标）。 */
+function gcIsEmptyAgentMessage(message) {
+  if (!message) return false
+  const kind = message.kind
+  if (kind !== 'agent_output' && kind !== 'agent_to_agent' && kind !== 'delivery') return false
+  if (message.memberCard || message.taskCard) return false
+  if (gcStr(message.text).trim() !== '') return false
+  if (gcAsArray(message.files).length > 0) return false
+  return true
+}
+
 /** subagent-settled 副本（父会话通知）不渲染（F5/§4.3③）。 */
 function gcIsSettledNotice(message) {
   if (!message) return false

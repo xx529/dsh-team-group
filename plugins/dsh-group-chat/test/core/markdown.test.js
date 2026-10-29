@@ -65,13 +65,100 @@ test('链接白名单：http/https/mailto 通过；javascript/data/file 降级�
   }
 });
 
-test('不支持语法降级纯文本：表格/引用/标题/分隔线', () => {
-  const ast = parseMarkdown('# 标题\n> 引用\n| a | b |\n|---|---|');
+test('不支持语法降级纯文本：引用/标题/分隔线', () => {
+  const ast = parseMarkdown('# 标题\n> 引用\n---');
   assert.ok(ast.children.every((b) => b.type === 'paragraph'));
   const plain = markdownToPlainText(ast);
   assert.ok(plain.includes('# 标题'));
   assert.ok(plain.includes('> 引用'));
-  assert.ok(plain.includes('| a | b |'));
+});
+
+test('F32 GFM 表格：基础 AST（header/rows + 单元格 inline）', () => {
+  const ast = parseMarkdown('| 名称 | 状态 |\n|:---|:---:|\n| **a** | `ok` |\n| b | [链接](https://x.test) |');
+  assert.equal(ast.children.length, 1);
+  const table = ast.children[0];
+  assert.equal(table.type, 'table');
+  assert.deepEqual(table.header.align, ['left', 'center']);
+  assert.equal(table.header.cells.length, 2);
+  assert.deepEqual(table.header.cells[0].children.map((n) => n.value), ['名称']);
+  assert.deepEqual(table.header.cells[1].children.map((n) => n.value), ['状态']);
+  assert.equal(table.rows.length, 2);
+  assert.equal(table.rows[0][0].children[0].type, 'strong');
+  assert.equal(table.rows[0][0].children[0].children[0].value, 'a');
+  assert.equal(table.rows[0][1].children[0].type, 'code');
+  assert.equal(table.rows[0][1].children[0].value, 'ok');
+  assert.equal(table.rows[1][1].children[0].type, 'link');
+  assert.equal(table.rows[1][1].children[0].url, 'https://x.test');
+});
+
+test('F32 对齐四态 + 无外层管道', () => {
+  const ast = parseMarkdown('a | b | c | d\n:--- | :---: | ---: | ---\n1 | 2 | 3 | 4');
+  const table = ast.children[0];
+  assert.equal(table.type, 'table');
+  assert.deepEqual(table.header.align, ['left', 'center', 'right', null]);
+  assert.deepEqual(markdownToPlainText(table).split('\n')[0], 'a | b | c | d');
+});
+
+test('F32 管道转义 \\| 与代码 span 内管道不切列', () => {
+  const table = parseMarkdown('| a\\|b | c |\n|---|---|\n| `x|y` | z |').children[0];
+  assert.equal(table.type, 'table');
+  assert.equal(table.header.cells.length, 2);
+  assert.deepEqual(table.header.cells[0].children.map((n) => n.value), ['a|b']);
+  assert.equal(table.rows[0][0].children.length, 1, 'code span 内的 | 不切列');
+  assert.equal(table.rows[0][0].children[0].type, 'code');
+  assert.equal(table.rows[0][0].children[0].value, 'x|y');
+});
+
+test('F32 表格前后空行 / 数据行缺列补空、多列截断', () => {
+  const ast = parseMarkdown('前文\n\n| a | b |\n|---|---|\n| 1 |\n| 1 | 2 | 3 |\n\n后文');
+  assert.deepEqual(ast.children.map((b) => b.type), ['paragraph', 'table', 'paragraph']);
+  const table = ast.children[1];
+  assert.equal(table.rows.length, 2);
+  assert.equal(table.rows[0].length, 2);
+  assert.deepEqual(table.rows[0][1].children, [], '缺列补空单元格（空 inline）');
+  assert.equal(table.rows[1].length, 2, '多列截断到表头列数');
+});
+
+test('F32 非法表格降级段落纯文本（不崩、不产 table）', () => {
+  const cases = [
+    '| a | b |\n| 1 | 2 |', // 无分隔行
+    '| a | b |\n|---|', // 分隔行列数不符
+    '| a | b |\n| == | --- |', // 分隔行非法（非 dash）
+    'a | b\nnot a separator',
+  ];
+  for (const text of cases) {
+    const ast = parseMarkdown(text);
+    assert.ok(ast.children.every((b) => b.type !== 'table'), `不应产 table：${text}`);
+    assert.ok(ast.children.some((b) => b.type === 'paragraph'));
+    assert.ok(markdownToPlainText(ast).includes('|') || markdownToPlainText(ast).includes('not a separator'));
+  }
+});
+
+test('F32 表格上限 200×20：行列截断 + truncated 标记；单 dash 分隔行合法', () => {
+  const header = Array.from({ length: 25 }, (_, i) => `h${i}`).join(' | ');
+  const sep = Array.from({ length: 25 }, () => '-').join('|');
+  const body = Array.from({ length: 210 }, (_, r) => Array.from({ length: 25 }, (_, c) => `r${r}c${c}`).join(' | ')).join('\n');
+  const table = parseMarkdown(`${header}\n${sep}\n${body}`).children[0];
+  assert.equal(table.type, 'table');
+  assert.equal(table.header.cells.length, 20);
+  assert.equal(table.header.align.length, 20);
+  assert.equal(table.rows.length, 200);
+  assert.equal(table.rows[0].length, 20);
+  assert.equal(table.truncated, true);
+  // 单 dash 分隔行（v1.7.2 允许 - 至少 1 个）
+  const small = parseMarkdown('| a | b |\n|-|-|\n| 1 | 2 |').children[0];
+  assert.equal(small.type, 'table');
+});
+
+test('F32 长表格性能（200 行）', () => {
+  const rows = Array.from({ length: 200 }, (_, i) => `| ${i} | **v${i}** | \`c${i}\` |`).join('\n');
+  const text = `| id | v | code |\n|---|---|---|\n${rows}`;
+  const t0 = process.hrtime.bigint();
+  const table = parseMarkdown(text).children[0];
+  const ms = Number(process.hrtime.bigint() - t0) / 1e6;
+  assert.equal(table.type, 'table');
+  assert.equal(table.rows.length, 200);
+  assert.ok(ms < 200, `table 200 行解析太慢：${ms.toFixed(2)}ms`);
 });
 
 test('escapeHtml / markdownToPlainText / 截断', () => {

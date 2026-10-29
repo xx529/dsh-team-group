@@ -140,3 +140,100 @@
 - H1/H2 均已修复且有测试覆盖；`npm test` 303/303、`verify` 34/34、构建 fresh（`9b0d69cb…` / `0.1.0+39821306f18c`）。
 - M2/M5/M8 的降级已写入 README §8，属于明确接受的产品/技术取舍；M1/M3/M4/M6/M7/M9 已落实或基本落实。
 - 建议交付前顺手清 README 前文过时段落与 `member.stripOverflow` locale key（LOW），不阻塞安装与 tester 全量验收。
+
+---
+
+# 复审（task-102 · F31–F35 UI 实现）
+
+| 项 | 内容 |
+| --- | --- |
+| 复审对象 | `lib/client.js` **sha256=79aa992564248ef6f8bce6005e659462f70f81dbbd568cc28280a9ff87546862**（593,645 B，build `0.1.0+6690acda158d`） |
+| 验证 | `npm test` → **322 pass / 0 fail**；`node scripts/verify.mjs` → **34/34 PASS（fresh）** |
+| 结论 | **不可交付：HIGH ×1（F32 真实表格 AST 渲染不出来）**；F31/F33/F34/F35 主路径通过，另有 3 项 MEDIUM、若干 LOW |
+
+## 1. HIGH
+
+### H1 · F32：渲染端与内核表格 AST **形状不一致**，真实 GFM 表格渲染为空表
+
+**证据**：
+
+- 内核 `src/core/markdown.js:323` 产出：`{ type:'table', header:{ cells, align }, rows }`（header 是对象；align 在 header 内）。
+- 渲染端 `src/client/parts/30-primitives.part.js:337-411`（`gcRenderMdTable`）：
+  - 先判断 `Array.isArray(node.header) && Array.isArray(node.rows)`；真实 AST 的 `header` 是对象 → 条件不成立；
+  - 再走 `node.children` 兼容分支，真实 AST 没有 `children` → `allRows = []`；
+  - 结果：`<thead><tr></tr></thead><tbody></tbody>`，**表头/单元格全部为空**（不会抛错，所以视觉上只看到空的表格框）。
+  - `align` 读取的是 `node.align`，真实 AST 在 `node.header.align`，即使 header 判断修好，对齐也丢失。
+- 现有测试 `test/client/render.test.mjs:1233-1268` 用的是**合成 AST**：`header: [[...]]`（数组）+ `align` 顶层，恰好符合渲染端错误假设，因此 322 tests 全绿但覆盖不到真实 parser 输出。
+- DOM 契约（架构 v1.7.2 §6.5.2）要求 `th/td[data-align]`，实现只用内联 `style.textAlign`，**没有 `data-align` 属性**。
+
+**影响**：用户实际发送的 GFM 表格（来自 parser）显示为空表，F32/SC50 直接失败。
+
+**修复**：
+1. `gcRenderMdTable` 支持真实 AST：`const header = node.header && Array.isArray(node.header.cells) ? node.header.cells : (Array.isArray(node.header) ? node.header : [])`；`align = node.header?.align ?? node.align ?? []`；同时保留旧合成形状兼容。
+2. `th/td` 增加 `data-align={align[i]}`（无对齐可省略），保留 `style.textAlign`。
+3. 测试改为调用 `core/markdown.parseMarkdown` 的真实输出再渲染（可附合成变体），断言表头/单元格文本、`data-align`、`<thead>/<tbody>` 与宽表 wrap；补「畸形表格降级 plain」。
+
+## 2. MEDIUM
+
+| ID | 问题 | 证据 | 建议 |
+| --- | --- | --- | --- |
+| **M1** | F34 缺少 `data-task-collapsed` 属性（task-102 明确要求；实现只有 `data-task-expanded`），且 CSS 测试仍断言旧 `data-task-collapsed` 选择器（未被任何元素命中，属死断言） | `40-cards.part.js:424` 只有 `data-task-expanded`；`render.test.mjs:839` 断言 CSS `data-task-collapsed='true'` | 二选一：按 task-102 增加 `data-task-collapsed`（与 expanded 互斥）或更新任务书/测试统一为 `data-task-expanded`；不要保留死 CSS 断言 |
+| **M2（已关闭，非 bug）** | F31/工具摘要：UI `gcIsEmptyAgentMessage` 隐藏空 text 的 `delivery`（内核 `meta.toolSummary`）——**用户第 11 条明确不要工具摘要，此行为正确**；架构 §6.16 已改为「M6 工具摘要行不渲染（用户裁决）」 | `20-store.part.js:456-467`；`50-feed.part.js:284`；架构 §6.16/§4.2.3 | 无代码改动；tester 断言「纯工具轮次无摘要行」即可 |
+| **M3** | F34 的 requirements/acceptance 只从 `task.requirements` 或 `payload.requirements` 读取，但当前 team/task 快照没有这两个字段（PRD v0.8.1 未落盘）；若后续 payload 不带这两个键，展开区只显示 description，可能不符合「要求/验收标准」预期 | `40-cards.part.js:315-318`；架构 §4.1 标 optional/UNVERIFIED | 等 PRD v0.8.1 落盘确认字段来源；无字段时不要伪造，展开区只渲染存在项，补 fixture 测试 |
+| **M4** | F33 头像尺寸：JS 传 `size:24`，CSS `.gc-member-strip .gc-avatar { width:26px; height:26px }` 覆盖/冲突；架构 v1.7.2 要求 26/24/22 响应式，测试只断言名字/无 mask/无 +N | `60-header.part.js:122`；`group-chat.css:1874-1879`；`render.test.mjs:1273-1298` | 统一尺寸来源（去掉 JS size 或去掉 CSS 覆盖），补 1440/1280/768 计算尺寸断言 |
+
+## 3. LOW
+
+1. `40-cards.part.js:386-392` 按钮对象里 **重复 `'aria-expanded'` 键**（后写覆盖前写，值相同但属冗余），建议去重。
+2. `render.test.mjs` 中 F34 用例标题重复出现两次（`:1224` 附近与 `:1295` 附近），建议合并/改名。
+3. `render.test.mjs:839` 对 `data-task-collapsed='true']` 的 CSS 断言是死断言（元素不输出该属性），M1 修复时一并处理。
+4. 架构 §6.16 的「M6 作废」与实现保留 `delivery + meta.toolSummary` 的现状存在文档/实现口径差（M2 修复时同步）。
+5. F32 的 `data-align` 缺属性（与 H1 一并修）；表格折叠计数 `2 + rows` 已正确（`fold.js:73`）。
+
+## 4. 已通过项
+
+- **F31**：空 `agent_output` 不再出空气泡（内核 `emptyAgentOutput` + UI `gcIsEmptyAgentMessage` 双保险）；空文本的中断提示不产；有文本的 error/aborted 保留气泡+提示；turn/工具数不受影响（`empty-output.test.js` + render 测试）。
+- **F33**：成员条每项头像+全名+状态点；无 `+N`；无 `mask-image`/渐隐；单行横向滚动、滚动条隐藏；`data-member-name` 存在；6 名成员全显测试通过。
+- **F34**：默认只渲染目标/ID/状态/负责人/依赖/完成时间；description 默认不渲染；`data-action=expand-task` + `aria-expanded`；按 `messageId` 记忆、其它卡保持折叠；无详情不渲染按钮；测试通过（除 M1/M3/M4 细节）。
+- **F35**：外层 `data-card-avatar` 唯一 actor 头像；卡内无第二头像；`data-task-owner-avatar` 源码中已无；负责人 `data-field=owner` 文字（空→未认领）+ 可选角色；测试断言通过。
+- **回归**：SC47 单气泡/发送四态/任务卡状态动作/成员状态点/@ chips/轨迹侧栏/Markdown 既有语法/50 行折叠相关用例 322 pass、verify 34/34 保持。
+
+## 5. 结论
+
+**不可交付（HIGH=1）**：F32 真实 GFM 表格当前渲染为空表，且现有测试用错误 AST 形状掩盖了该问题；修复 H1（并补 `data-align`/真实 parser 输出测试）后即可进入复验。M1–M4 建议同轮处理，LOW 可顺手清理。
+
+---
+
+# 最终复审（task-102 收尾 · bundle 2e0c72b4）
+
+| 项 | 内容 |
+| --- | --- |
+| 对象 | `lib/client.js` **sha256=2e0c72b4b0559421135e568d8b59349f07efe80192424b3a59c179de3908ca19**（599,529 B，build `0.1.0+691ac300fef5`） |
+| 验证 | `npm test` → **325 pass / 0 fail**；`node scripts/verify.mjs` → **34/34 PASS（fresh）** |
+| 结论 | **HIGH 清零，可交付**（残余 LOW，不阻塞安装与 tester 验收） |
+
+## 1. HIGH 复核
+
+| 项 | 结果 | 证据 |
+| --- | --- | --- |
+| **H1 F32 真实 AST 表格** | ✅ 已修复 | `30-primitives.part.js:350-433` 优先读取 `header:{cells,align}`；`th/td` 输出 `data-align` + `style.textAlign`；`parseMarkdown` 真实文本用例 `render.test.mjs:1404-1429` 渲染出 table/thead/tbody、断言单元格文本、非法表格降级段落；原有合成 AST 兼容保留 |
+
+## 2. MEDIUM 复核
+
+| ID | 结果 | 说明 |
+| --- | --- | --- |
+| M1 `data-task-collapsed` | ✅ 已修 | `40-cards.part.js:424,455` 同时输出 `data-task-expanded` / `data-task-collapsed`；测试断言展开后 collapsed=false、收起后 true（`render.test.mjs:1366-1368`） |
+| M2 M6 工具摘要 | ✅ 已按用户裁决关闭（非 bug） | 架构 §6.16 已标「M6 工具摘要行不渲染（用户裁决）」；UI 隐藏空 text delivery 正确；§4.2.3/E47/SC49/§13 同步 |
+| M3 requirements/acceptance | ✅ 已明确 | 快照无字段时不渲染、不占位、不推断；§6.18.2 写明「禁止伪造」，代码仅 `if (requirements/acceptance)` 才入详情 |
+| M4 成员条头像尺寸 | ✅ 已统一 | JS `size:26` + CSS `.gc-member-strip .gc-avatar` 26，容器查询 1079→24、899→22；测试断言 `data-size=26`；768 全显/全名/无 +N 保持 |
+
+## 3. 残余 LOW
+
+1. F32 真实 AST 用例已断言表格结构与单元格文本，但**未断言 `th/td[data-align]`/`textAlign`**（合成 AST 用例只断言 style）；建议补一行 `data-align` 断言即可。
+2. F32/F33 的 `data-align`/尺寸断言分散在合成 AST 与 CSS 检查中，后续改动需两处同步（维护性）。
+3. 架构 §6.16 的「M6 不渲染」与 §6.5 映射/§6.7 令牌表中残留的历史「ToolCollapseLine 作废」描述属历史记录，不影响实现；README 前文仍有旧 M6 描述（文档清理项，非阻塞）。
+4. PRD v0.8.1/UX v4.2/Figma v4.2 仍未落盘，SC49–SC53 编号为建议值；PM/UX 落盘后仅同步编号/文案。
+
+## 4. 最终结论
+
+**HIGH 清零，可交付。** H1 已用真实 `parseMarkdown` AST 验证；M1/M2/M3/M4 均已落实或按用户裁决关闭；325 tests / verify 34/34 / build fresh（`2e0c72b4…` / `0.1.0+691ac300fef5`）。建议安装后由 tester 做 F31–F35 真机验收（空气泡、GFM 表格、成员条全名、任务卡折叠、单头像）。

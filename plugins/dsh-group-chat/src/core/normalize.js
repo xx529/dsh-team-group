@@ -167,6 +167,7 @@ export function textBlocks(content) {
  * @property {number} ignoredSubagentPrompts
  * @property {number} ignoredSystemContext
  * @property {number} ignoredNotices
+ * @property {number} emptyAgentOutput
  * @property {number} eventsSeen
  */
 
@@ -211,6 +212,7 @@ export function collectSession(session) {
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
     ignoredNotices: 0,
+    emptyAgentOutput: 0,
     eventsSeen: 0,
   };
 
@@ -987,8 +989,13 @@ export function emitSessionMessages(scan, dir, ctx) {
   }
 
   // ── assistant 输出（每 turn 末段，口径 A） ──────────────────────
+  /** @type {Set<number>} */
+  const emittedOutputTurns = new Set();
   for (const [turn, cand] of scan.assistantCandidates) {
     if (scan.forkedTurns.has(turn)) continue;
+    // F31：空/纯空白文本的 agent_output 不产出（纯工具轮次走下方 M6 摘要，主 feed 不得出现空气泡）
+    const outputText = cand.texts.join('\n');
+    if (outputText.trim() === '') continue;
     const id = `a:${sid}:turn:${turn}`;
     const toolCount = scan.toolCounts.get(turn) ?? 0;
     const end = scan.turnEnds.get(turn);
@@ -1001,12 +1008,14 @@ export function emitSessionMessages(scan, dir, ctx) {
       seq: cand.seq,
       turn,
       isFinal: end ? end.reason === 'completed' : false,
-      text: cand.texts.join('\n'),
+      text: outputText,
       toolCallCount: ctx.toolFold === 'delivery' || ctx.toolFold === 'none' ? undefined : toolCount || undefined,
       meta: {
         ...(end ? { turnEndReason: end.reason } : { turnOpen: true }),
       },
     }));
+    emittedOutputTurns.add(turn);
+    // F31/v1.7.2：有文本输出的中断/失败保留「气泡 + 中断提示」；提示文案由 UI i18n 渲染（meta 驱动）
     if (end && end.reason !== 'completed') {
       messages.push(makeMessage({
         id: `s:${sid}:${end.seq}:turn-end`,
@@ -1019,6 +1028,18 @@ export function emitSessionMessages(scan, dir, ctx) {
         meta: { event: 'turn-interrupted', turnEndReason: end.reason, turn },
       }));
     }
+  }
+
+  // F31 诊断：无最终文本输出的 turn（纯工具/空完成/空中断）计数，不受过滤影响轨迹聚合
+  /** @type {Set<number>} */
+  const turnUniverse = new Set([
+    ...scan.assistantCandidates.keys(),
+    ...scan.turnEnds.keys(),
+    ...scan.toolCounts.keys(),
+  ]);
+  for (const turn of turnUniverse) {
+    if (scan.forkedTurns.has(turn)) continue;
+    if (!emittedOutputTurns.has(turn)) scan.emptyAgentOutput += 1;
   }
 
   // ── M6 工具过程：无文本输出的 turn 出独立摘要（Lead 约束 2026-10-28） ──
@@ -1277,6 +1298,7 @@ export function normalizeChannel(sessions, ctx) {
     ignoredSubagentPrompts: 0,
     ignoredSystemContext: 0,
     ignoredNotices: 0,
+    emptyAgentOutput: 0,
     duplicatesRemoved: 0,
     fanoutMerged: 0,
     memberCards: 0,
@@ -1308,6 +1330,7 @@ export function normalizeChannel(sessions, ctx) {
     diagnostics.ignoredSubagentPrompts += scan.ignoredSubagentPrompts;
     diagnostics.ignoredSystemContext += scan.ignoredSystemContext;
     diagnostics.ignoredNotices += scan.ignoredNotices;
+    diagnostics.emptyAgentOutput += scan.emptyAgentOutput;
   }
 
   /** @type {ChannelMessage[]} */

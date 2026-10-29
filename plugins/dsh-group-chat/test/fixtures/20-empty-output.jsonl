@@ -1,0 +1,28 @@
+{"__session": {"id": "session-lead-2001", "name": "lead", "header": {"type": "session", "version": 4, "id": "session-lead-2001", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "turn/start", "seq": 10, "time": 1793158401000, "data": {"turn": 1}}
+{"type": "tool/call", "seq": 11, "time": 1793158401100, "data": {"turn": 1, "step": 1, "callId": "c1", "name": "read", "arguments": "{}"}}
+{"type": "tool/call", "seq": 12, "time": 1793158401200, "data": {"turn": 1, "step": 1, "callId": "c2", "name": "read", "arguments": "{}"}}
+{"type": "assistant/message", "seq": 13, "time": 1793158401300, "data": {"turn": 1, "step": 1, "message": {"role": "assistant", "content": [{"type": "tool-call", "callId": "c1", "name": "read", "arguments": "{}"}]}}}
+{"type": "turn/end", "seq": 14, "time": 1793158401400, "data": {"turn": 1, "reason": {"kind": "error"}}}
+{"type": "turn/start", "seq": 20, "time": 1793158402000, "data": {"turn": 2}}
+{"type": "assistant/message", "seq": 21, "time": 1793158402100, "data": {"turn": 2, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "   \n  "}]}}}
+{"type": "turn/end", "seq": 22, "time": 1793158402200, "data": {"turn": 2, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 30, "time": 1793158403000, "data": {"turn": 3}}
+{"type": "assistant/message", "seq": 31, "time": 1793158403100, "data": {"turn": 3, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "正常输出"}]}}}
+{"type": "turn/end", "seq": 32, "time": 1793158403200, "data": {"turn": 3, "reason": {"kind": "completed"}}}
+{"type": "turn/start", "seq": 40, "time": 1793158404000, "data": {"turn": 4}}
+{"type": "assistant/message", "seq": 41, "time": 1793158404100, "data": {"turn": 4, "step": 1, "message": {"role": "assistant", "content": [{"type": "text", "text": "失败前的输出"}]}}}
+{"type": "turn/end", "seq": 42, "time": 1793158404200, "data": {"turn": 4, "reason": {"kind": "error"}}}
+{"type": "turn/start", "seq": 50, "time": 1793158405000, "data": {"turn": 5}}
+{"type": "tool/call", "seq": 51, "time": 1793158405100, "data": {"turn": 5, "step": 1, "callId": "c5", "name": "read", "arguments": "{}"}}
+{"type": "turn/end", "seq": 52, "time": 1793158405200, "data": {"turn": 5, "reason": {"kind": "aborted"}}}
+{"__session": {"id": "session-beta-2002", "name": "beta", "header": {"type": "session", "version": 4, "id": "session-beta-2002", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "turn/start", "seq": 5001, "time": 1793158450100, "data": {"turn": 1}}
+{"type": "tool/call", "seq": 5002, "time": 1793158450200, "data": {"turn": 1, "step": 1, "callId": "beta-c1", "name": "read", "arguments": "{}"}}
+{"type": "tool/call", "seq": 5003, "time": 1793158450300, "data": {"turn": 1, "step": 1, "callId": "beta-c2", "name": "read", "arguments": "{}"}}
+{"type": "turn/end", "seq": 5004, "time": 1793158450400, "data": {"turn": 1, "reason": {"kind": "completed"}}}
+{"__session": {"id": "session-gamma-2003", "name": "gamma", "header": {"type": "session", "version": 4, "id": "session-gamma-2003", "createdAt": 1793158400000, "cwd": "/Users/lzx/Documents/GitHub/dsh-team-group", "isSeeded": false, "delegationDepth": 0, "agentPreset": "standard"}}}
+{"type": "turn/start", "seq": 6001, "time": 1793158460100, "data": {"turn": 1}}
+{"type": "tool/call", "seq": 6002, "time": 1793158460200, "data": {"turn": 1, "step": 1, "callId": "gamma-c1", "name": "read", "arguments": "{}"}}
+{"type": "tool/call", "seq": 6003, "time": 1793158460300, "data": {"turn": 1, "step": 1, "callId": "gamma-c2", "name": "read", "arguments": "{}"}}
+{"type": "turn/end", "seq": 6004, "time": 1793158460400, "data": {"turn": 1, "reason": {"kind": "completed"}}}

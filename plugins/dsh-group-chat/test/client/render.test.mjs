@@ -287,7 +287,11 @@ test('render: 任务卡（M9）严格映射 action/status，且无「返工/失�
     assert.match(visibleText(create), /待认领/)
     assert.equal(create.props['data-card-accent'], 'pending')
     assert.ok(findAll(create, (node) => node.props && node.props['data-card-avatar']).length > 0, 'actor avatar rendered')
-    assert.ok(findAll(create, (node) => node.props && node.props['data-task-owner-avatar']).length > 0, 'owner avatar rendered')
+    // F35：负责人改为文本字段（不再重复头像）；默认折叠不渲染描述
+    const ownerField = findByAttr(create, 'data-field', 'owner')
+    assert.ok(ownerField, 'owner field row')
+    assert.equal(findAll(create, (node) => node.props && node.props['data-task-owner-avatar']).length, 0, 'no owner avatar')
+    assert.equal(findByAttr(create, 'data-field', 'description'), null, 'description hidden by default (F34)')
     // v1.7：移除「复制任务 ID」
     assert.equal(findAll(create, (node) => node.props && node.props['data-action'] === 'copy-task-id').length, 0)
 
@@ -821,10 +825,21 @@ test('F-01: CSS 契约 — root/shell 满高不溢出，feed 唯一滚动，head
   assert.match(compact, /\.gc-header \{[^}]*flex: 0 0 auto/s)
   assert.match(compact, /\.gc-banners \{[^}]*flex: none/s)
   assert.match(compact, /\.gc-composer-area \{[^}]*flex: 0 0 auto/s)
-  // M1：成员条换行优先 + 26/24/22 响应式 + 16px 渐隐
+  // 用户诉求：成员条换行优先（可两行，头部自适应），全部成员完整显示、不裁切、无遮罩
   assert.match(compact, /\.gc-member-strip \{[^}]*flex-wrap: wrap/s)
-  assert.match(compact, /\.gc-member-strip \{[^}]*mask-image: linear-gradient[^;]*16px/s)
+  assert.match(compact, /\.gc-member-strip \{[^}]*row-gap: 4px/s)
+  assert.ok(!/\.gc-member-strip \{[^}]*overflow-x: auto/s.test(compact), 'no horizontal scroll on member strip')
+  assert.ok(!/\.gc-member-strip \{[^}]*mask-image/s.test(compact), 'no mask on member strip')
+  assert.ok(!/\.gc-member-strip \{[^}]*mask-image/s.test(compact), 'member strip without mask fade')
+  assert.ok(!/\.gc-member-strip \{[^}]*mask-image/s.test(compact))
   assert.match(compact, /\.gc-member-strip \.gc-avatar \{[^}]*width: 26px/s)
+  assert.match(compact, /\.gc-member-name \{[^}]*font-size: 12px/s)
+  // F32：表格样式（表头底色/斑马纹/横向滚动）
+  assert.match(compact, /\.gc-md-table-wrap \{[^}]*overflow-x: auto/s)
+  assert.match(compact, /table\.gc-md-table thead th \{[^}]*background: var\(--dsw-alias-bg-layer-2\)/s)
+  assert.match(compact, /table\.gc-md-table tbody tr:nth-child\(even\)/s)
+  // F34：折叠态紧凑
+  assert.match(compact, /data-task-expanded='false'\] \{[^}]*padding-top: 12px/s)
   // M6 欢迎提示：11.5 tertiary 居中
   assert.match(compact, /\.gc-welcome-note \{[^}]*font-size: 11\.5px/s)
   assert.match(compact, /\.gc-welcome-note \{[^}]*color: var\(--dsw-alias-label-tertiary\)/s)
@@ -1148,7 +1163,7 @@ test('M3: 渲染端二次链接校验 —— javascript:/data: 降级纯文本�
   }
 })
 
-test('M9: 任务卡负责人空回退为中性占位（无「?」文本）', async () => {
+test('M9/F35: 任务卡负责人为文本字段，空回退「未认领」（无「?」文本/无重复头像）', async () => {
   const { mounted, registration, renderer } = mountPreview()
   try {
     renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
@@ -1157,10 +1172,255 @@ test('M9: 任务卡负责人空回退为中性占位（无「?」文本）', asy
     const unassigned = rows.filter((row) => row.props['data-task-owner'] === '')
     assert.ok(unassigned.length > 0, 'unassigned cards present')
     for (const row of unassigned) {
-      const ownerAvatar = findAll(row, (node) => node.props && node.props['data-task-owner-avatar'] === 'true')[0]
-      assert.ok(ownerAvatar, 'owner placeholder avatar exists')
-      assert.equal(visibleText(ownerAvatar), '', 'placeholder must not render "?" text')
+      const ownerField = findByAttr(row, 'data-field', 'owner')
+      assert.ok(ownerField, 'owner field row exists')
+      assert.match(visibleText(ownerField), /未认领/)
+      assert.ok(!/\?/.test(visibleText(ownerField)), 'no "?" placeholder text')
+      assert.equal(findAll(row, (node) => node.props && node.props['data-task-owner-avatar']).length, 0)
+      // F35：每张卡只有外层 1 个头像
+      assert.equal(findAll(row, (node) => node.props && node.props['data-card-avatar'] === 'true').length, 1)
     }
+  } finally {
+    mounted.restore()
+  }
+})
+
+/* ══════════════════════════════════════════════════════════════════════
+ * task-99 线上问题（F31–F35）
+ * ══════════════════════════════════════════════════════════════════════ */
+
+test('F31/用户第11条: 空 text 的 delivery 工具摘要有意抑制（不显示「N 个工具调用」）', async () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    // 纯工具轮次：core 产出 delivery+toolSummary、text 为空 → UI 有意不渲染（用户明确不要工具调用文案）
+    assert.equal(
+      gc.isEmptyAgentMessage({ kind: 'delivery', text: '', meta: { toolSummary: true }, toolCallCount: 5 }),
+      true,
+      'empty tool-summary delivery suppressed intentionally'
+    )
+    assert.equal(
+      gc.isEmptyAgentMessage({ kind: 'delivery', text: '', files: [{ name: 'a.md', path: 'a.md' }] }),
+      false,
+      'delivery with files still renders'
+    )
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F31: trim 为空的 agent 消息不渲染（无空气泡/操作图标）', async () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'agent_output', text: '   ' }), true)
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'agent_output', text: '' }), true)
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'agent_output', text: 'x' }), false)
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'agent_output', text: '', files: [{ name: 'a' }] }), false)
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'delivery', text: '' }), true)
+    assert.equal(gc.isEmptyAgentMessage({ kind: 'system', text: '' }), false)
+
+    // 视图级：构造含空 agent 消息的 feed，不应出现该消息行/气泡
+    const channel = {
+      channelId: 's-lead',
+      lead: { sessionId: 's-lead', name: 'lead', kind: 'lead', status: 'running' },
+      members: [{ sessionId: 's-lead', name: 'lead', kind: 'lead', status: 'running' }],
+      runningCount: 1
+    }
+    const emptyMsg = {
+      id: 'empty-1',
+      kind: 'agent_output',
+      sessionId: 's-lead',
+      sender: { sessionId: 's-lead', name: 'lead', kind: 'lead' },
+      text: '   ',
+      time: 1000,
+      seq: 1,
+      isFinal: true
+    }
+    const items = gc.buildFeed([emptyMsg], 2000)
+    const renderer = runtime.createRenderer()
+    const tree = renderer.render(
+      h(gc.GcFeed, {
+        t: gc.translate,
+        state: { phase: 'ready', messages: [emptyMsg], channel, filter: null },
+        items
+      })
+    )
+    assert.equal(findAll(tree, (node) => node.props && node.props['data-message-id'] === 'empty-1').length, 0)
+    assert.equal(findAll(tree, (node) => node.props && node.props['data-testid'] === 'group-chat-bubble').length, 0)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F32: 表格 AST → table[data-md-table]/thead/tbody/th/td + align（合成 AST）', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const ast = {
+      type: 'document',
+      children: [
+        {
+          type: 'table',
+          align: ['left', 'right'],
+          header: [[{ type: 'text', value: '名称' }], [{ type: 'text', value: '数量' }]],
+          rows: [
+            [[{ type: 'text', value: 'task-a' }], [{ type: 'text', value: '3' }]],
+            [[{ type: 'text', value: 'task-b' }], [{ type: 'text', value: '12' }]]
+          ]
+        }
+      ]
+    }
+    const renderer = runtime.createRenderer()
+    const tree = renderer.render(h('div', { className: 'gc-md' }, gc.renderMdBlocks(ast.children, {})))
+    const table = findAll(tree, (node) => node.type === 'table')[0]
+    assert.ok(table, 'table element')
+    assert.equal(table.props['data-md-table'], 'true')
+    assert.equal(findAll(tree, (node) => node.type === 'thead').length, 1)
+    assert.equal(findAll(tree, (node) => node.type === 'tbody').length, 1)
+    const ths = findAll(tree, (node) => node.type === 'th')
+    assert.equal(ths.length, 2)
+    assert.match(visibleText(ths[0]), /名称/)
+    const tds = findAll(tree, (node) => node.type === 'td')
+    assert.equal(tds.length, 4)
+    assert.match(visibleText(tds[2]), /task-b/)
+    // align 透传
+    assert.ok(ths[0].props.style && ths[0].props.style.textAlign === 'left')
+    assert.ok(ths[1].props.style && ths[1].props.style.textAlign === 'right')
+    assert.ok(findAll(tree, (node) => node.props && node.props.className === 'gc-md-table-wrap').length === 1)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F33: 成员条 = 头像 + 完整名字 + 状态点，无 +N/无遮罩', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const strip = findByTestId(renderer.tree, 'group-chat-member-strip')
+    const items = findAll(strip, (node) => node.props && node.props['data-testid'] === 'group-chat-member-strip-item')
+    assert.equal(items.length, 6, 'all members shown')
+    const names = items.map((item) => {
+      const avatar = findAll(item, (node) => node.props && node.props.className === 'gc-avatar')[0]
+      // M4：JS 头像尺寸与 CSS 成员条尺寸统一为 26（响应式 24/22 由容器查询）
+      assert.equal(avatar.props['data-size'], '26', 'member strip avatar size matches CSS 26')
+      const nameNode = findAll(item, (node) => node.props && node.props.className === 'gc-member-name')[0]
+      return nameNode ? visibleText(nameNode) : ''
+    })
+    for (const expected of ['lead', 'scout', 'ux', 'backend', 'pm', '产品设计']) {
+      assert.ok(names.includes(expected), 'full name rendered: ' + expected + ' / ' + JSON.stringify(names))
+    }
+    for (const item of items) {
+      assert.equal(findAll(item, (node) => node.props && node.props.className === 'gc-member-status-dot').length, 1, 'one status dot')
+      assert.ok(item.props['data-member-name'], 'data-member-name present')
+      assert.match(item.props['aria-label'] || '', /轮次轨迹/)
+    }
+    assert.ok(!/\+\d+/.test(visibleText(strip)), 'no +N')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F34: 任务卡默认折叠（仅目标/ID/状态/负责人/依赖/完成时间），展开/收起按消息记忆', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+
+    const cards = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card')
+    const create = cards.find((card) => card.props['data-task-action'] === 'create')
+    assert.ok(create)
+    assert.equal(create.props['data-card-avatar'], undefined) // 头像在外层 wrap
+    assert.equal(findByAttr(create, 'data-field', 'description'), null, 'description hidden by default')
+    assert.ok(findByAttr(create, 'data-field', 'owner'), 'owner visible')
+    assert.ok(findByAttr(create, 'data-field', 'blocked-by'), 'blocked-by visible')
+    assert.match(visibleText(create), /task-13/)
+    assert.match(visibleText(create), /待认领/)
+
+    const toggle = findAll(create, (node) => node.props && node.props['data-action'] === 'expand-task')[0]
+    assert.ok(toggle, 'expand toggle')
+    assert.equal(toggle.props['aria-expanded'], 'false')
+    assert.match(visibleText(toggle), /展开详情/)
+
+    await renderer.act(() => click(toggle))
+    const expandedCard = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card').find(
+      (card) => card.props['data-task-action'] === 'create'
+    )
+    const desc = findByAttr(expandedCard, 'data-field', 'description')
+    assert.ok(desc, 'description visible when expanded')
+    assert.match(visibleText(desc), /按成员卡语言出任务卡/)
+    const toggle2 = findAll(expandedCard, (node) => node.props && node.props['data-action'] === 'expand-task')[0]
+    assert.equal(toggle2.props['aria-expanded'], 'true')
+    assert.match(visibleText(toggle2), /收起详情/)
+
+    // 其它任务卡仍保持折叠（按消息记忆）
+    const other = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card').find(
+      (card) => card.props['data-task-action'] === 'reopen'
+    )
+    assert.equal(findByAttr(other, 'data-field', 'description'), null, 'other card stays collapsed')
+
+    await renderer.act(() => click(toggle2))
+    const collapsedAgain = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card').find(
+      (card) => card.props['data-task-action'] === 'create'
+    )
+    assert.equal(findByAttr(collapsedAgain, 'data-field', 'description'), null, 'collapse again')
+    // 架构 v1.7.2：data-task-collapsed 与 data-task-expanded 并存
+    assert.equal(collapsedAgain.props['data-task-collapsed'], 'true')
+    assert.equal(collapsedAgain.props['data-task-expanded'], 'false')
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F35: 任务卡人物一致 —— 外层唯一头像，卡内无重复 actar 头像/名字，负责人为文本字段', async () => {
+  const { mounted, registration, renderer } = mountPreview()
+  try {
+    renderer.render(h(registration.component, { sessionId: 'preview-lead-session' }))
+    await renderer.settle()
+    const cards = findAll(renderer.tree, (node) => node.props && node.props['data-kind'] === 'task_card')
+    assert.ok(cards.length >= 4)
+    for (const card of cards) {
+      const avatars = findAll(card, (node) => node.props && node.props['data-card-avatar'] === 'true')
+      assert.equal(avatars.length, 1, 'exactly one actor avatar per task card')
+      assert.equal(findAll(card, (node) => node.props && node.props['data-task-owner-avatar']).length, 0)
+      const senderLine = findAll(card, (node) => node.props && node.props.className === 'gc-sender')[0]
+      assert.ok(senderLine, 'sender line present')
+      assert.match(visibleText(senderLine), new RegExp('^' + card.props['data-sender']), 'sender name matches actor')
+      const ownerField = findByAttr(card, 'data-field', 'owner')
+      assert.ok(ownerField, 'owner is a text field')
+    }
+    // actor 与 owner 不同也不混淆：reopen 卡 actor=lead、owner=''
+    const reopen = cards.find((card) => card.props['data-task-action'] === 'reopen')
+    assert.equal(reopen.props['data-sender'], 'lead')
+    assert.equal(reopen.props['data-task-owner'], '')
+    assert.match(visibleText(findByAttr(reopen, 'data-field', 'owner')), /未认领/)
+    // compact（claim）卡同样只有外层头像
+    const claim = cards.find((card) => card.props['data-task-action'] === 'claim')
+    assert.equal(findAll(claim, (node) => node.props && node.props['data-card-avatar'] === 'true').length, 1)
+  } finally {
+    mounted.restore()
+  }
+})
+
+test('F32: GFM 表格文本 → 真实表格 DOM；非法表格降级段落（core 已支持）', () => {
+  const { mounted } = mountPreview()
+  try {
+    const gc = mounted.module.__internals
+    const renderer = runtime.createRenderer()
+    const text = '| 名称 | 数量 |\n|:---|---:|\n| task-a | 3 |\n| task-b | 12 |'
+    const tree = renderer.render(h(gc.GcMarkdown, { text: text }))
+    assert.equal(findAll(tree, (node) => node.type === 'table').length, 1, 'table rendered')
+    assert.equal(findAll(tree, (node) => node.type === 'thead').length, 1)
+    assert.equal(findAll(tree, (node) => node.type === 'th').length, 2)
+    assert.equal(findAll(tree, (node) => node.type === 'td').length, 4)
+    assert.match(visibleText(tree), /task-a/)
+    assert.match(visibleText(tree), /task-b/)
+
+    // 非法表格（分隔行不合法）→ 段落纯文本，不产生 table
+    const invalid = renderer.render(h(gc.GcMarkdown, { text: '| a | b |\n| -- |\n| 1 | 2 |' }))
+    assert.equal(findAll(invalid, (node) => node.type === 'table').length, 0, 'invalid table degrades')
+    assert.match(visibleText(invalid), /a/)
   } finally {
     mounted.restore()
   }

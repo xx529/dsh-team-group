@@ -375,6 +375,14 @@ function gcPreviewMessages(now, options) {
       ],
       toolCallCount: 12
     }),
+    gcPreviewAgentMessage(m(8), {
+      kind: 'agent_output',
+      sessionId: 'preview-backend',
+      sender: { sessionId: 'preview-backend', name: 'backend', kind: 'teammate' },
+      text:
+        '本轮接口对照：\n\n| 接口 | 状态 | 备注 |\n|:---|:---:|---:|\n| `conversation.view` | 可用 | slot 注册 |\n| `sessions.retain` | 可用 | 引用计数 |\n| `sendChannelBatch` | 可用 | 四态/重试 |',
+      toolCallCount: 4
+    }),
     gcPreviewTaskCard(m(7), 'complete'),
     gcPreviewTaskCard(m(6), 'reopen'),
     gcPreviewAgentMessage(m(5), {

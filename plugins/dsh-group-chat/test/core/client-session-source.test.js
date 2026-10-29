@@ -168,6 +168,7 @@ test('F3：getEvents/getMemberEvents 返回已 retain 窗口的原始事件，�
   assert.equal(win.sessionId, lead);
   assert.equal(win.events.length, events.length);
   assert.ok(win.entryCount >= events.length);
+  assert.equal(typeof win.partial, 'boolean');
   // 未知会话 / 关闭后：安全返回空
   assert.deepEqual(source.getEvents('missing-session'), []);
   source.close();

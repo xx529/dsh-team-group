@@ -371,9 +371,9 @@ const REQUIRED_DATA_ATTRS = [
   // v1.7
   'data-md',
   'data-md-link',
+  'data-md-table',
   'data-card-accent',
   'data-card-avatar',
-  'data-task-owner-avatar',
   'data-member-state',
   'data-turn-index',
   'data-turn-status',

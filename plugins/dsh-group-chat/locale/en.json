@@ -170,5 +170,13 @@
   "msg.expandLines": "Show all ({n} lines)",
   "msg.foldMetaLines": "first {n} lines shown",
   "task.ownerUnassigned": "Unclaimed",
-  "task.blockedByList": "Blocked by {list}"
+  "task.blockedByList": "Blocked by {list}",
+  "task.expandAll": "Show all",
+  "task.expand": "Show details",
+  "task.collapse": "Hide details",
+  "task.field.description": "Description",
+  "task.field.requirements": "Requirements",
+  "task.field.acceptance": "Acceptance",
+  "member.trajectoryAria": "View {name} trajectory ({status})",
+  "system.turnInterrupted": "This turn was interrupted"
 }

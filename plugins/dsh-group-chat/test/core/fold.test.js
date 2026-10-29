@@ -33,6 +33,15 @@ test('M1 长段落软换行计入：40 字符/行时 49/50/51 行阈值成立', 
   assert.equal(foldInfo(Array(50).fill('x').join('\n')).lineCount, 50);
 });
 
+test('F32 表格：折叠行数 = 表头 1 行 + 数据行', () => {
+  const rows = Array.from({ length: 60 }, (_, i) => `| ${i} | v |`).join('\n');
+  const text = `| id | v |\n|---|---|\n${rows}`;
+  const info = foldInfo(text);
+  assert.equal(info.lineCount, 62);
+  assert.equal(info.folded, true);
+  assert.equal(info.hiddenLines, 12);
+});
+
 test('M5 旧折叠 API 不再从 core/index 公开导出', async () => {
   const core = await import('../../src/core/index.js');
   assert.equal(core.shouldFold, undefined);

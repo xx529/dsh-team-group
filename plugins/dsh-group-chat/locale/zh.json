@@ -170,5 +170,13 @@
   "msg.expandLines": "展开全部（共 {n} 行）",
   "msg.foldMetaLines": "显示前 {n} 行",
   "task.ownerUnassigned": "未认领",
-  "task.blockedByList": "被 {list} 阻塞"
+  "task.blockedByList": "被 {list} 阻塞",
+  "task.expandAll": "展开全部",
+  "task.expand": "展开详情",
+  "task.collapse": "收起详情",
+  "task.field.description": "描述",
+  "task.field.requirements": "要求",
+  "task.field.acceptance": "验收标准",
+  "member.trajectoryAria": "查看 {name} 的轮次轨迹（{status}）",
+  "system.turnInterrupted": "本轮已中断"
 }

@@ -333,6 +333,110 @@ function gcRenderMdInline(children, options) {
   return out
 }
 
+/**
+ * F32：GFM 表格渲染（backend 冻结 AST：{type:'table', align[], header:Inline[][], rows:Inline[][][]}）。
+ * 也兼容按行/单元格对象组织的变体；单元格内联走既有 inline 渲染（链接仍 isSafeUrl）。
+ */
+function gcRenderMdCellChildren(cell) {
+  if (!cell) return []
+  if (Array.isArray(cell)) return cell
+  if (Array.isArray(cell.children)) return cell.children
+  if (Array.isArray(cell.inline)) return cell.inline
+  return [cell]
+}
+
+/**
+ * F32/v1.7.2 表格渲染（AST：`header:{cells,align}` + `rows[][{children}]`）。
+ * 兼容旧的 `header:Inline[][]` / `rows:Inline[][][]` 形态；DOM：data-md-table-wrap/table/th[data-align]/td[data-align]。
+ */
+function gcRenderMdTable(node, options, keyPrefix) {
+  let headerCells = []
+  let align = []
+  let rows = []
+
+  const header = node && node.header
+  if (header && !Array.isArray(header) && Array.isArray(header.cells)) {
+    headerCells = header.cells
+    align = gcAsArray(header.align)
+    rows = gcAsArray(node.rows)
+  } else if (Array.isArray(header) && Array.isArray(node.rows)) {
+    headerCells = header
+    align = gcAsArray(node.align)
+    rows = node.rows
+  } else {
+    // 兜底：按行对象（table_row/cells）组织
+    const flattenRows = function (nodes) {
+      const out = []
+      const list = gcAsArray(nodes)
+      for (let i = 0; i < list.length; i += 1) {
+        const item = list[i]
+        if (!item) continue
+        if (item.type === 'thead' || item.type === 'tbody') {
+          out.push.apply(out, flattenRows(item.children))
+          continue
+        }
+        if (item.type === 'table_row' || Array.isArray(item.cells) || Array.isArray(item.children)) {
+          out.push(gcAsArray(item.cells || item.children))
+        }
+      }
+      return out
+    }
+    const allRows = flattenRows(node && node.children)
+    headerCells = allRows[0] || []
+    rows = allRows.slice(1)
+  }
+
+  const alignValue = function (index) {
+    const value = align[index]
+    return value === 'left' || value === 'center' || value === 'right' ? value : undefined
+  }
+  const alignStyle = function (index) {
+    const value = alignValue(index)
+    return value ? { textAlign: value } : undefined
+  }
+
+  const headRow = h(
+    'tr',
+    null,
+    gcAsArray(headerCells).map(function (cell, index) {
+      return h(
+        'th',
+        { key: 'th' + index, 'data-align': alignValue(index), style: alignStyle(index) },
+        gcRenderMdInline(gcRenderMdCellChildren(cell), options)
+      )
+    })
+  )
+  const bodyRows = gcAsArray(rows).map(function (row, rowIndex) {
+    return h(
+      'tr',
+      { key: 'tr' + rowIndex },
+      gcAsArray(row).map(function (cell, cellIndex) {
+        return h(
+          'td',
+          { key: 'td' + cellIndex, 'data-align': alignValue(cellIndex), style: alignStyle(cellIndex) },
+          gcRenderMdInline(gcRenderMdCellChildren(cell), options)
+        )
+      })
+    )
+  })
+
+  return h(
+    'div',
+    {
+      key: keyPrefix,
+      className: 'gc-md-table-wrap',
+      'data-md-table-wrap': 'true',
+      'data-md-truncated': node && node.truncated ? 'true' : undefined
+    },
+    h(
+      'table',
+      { className: 'gc-md-table', 'data-md-table': 'true' },
+      h('thead', null, headRow),
+      h('tbody', null, bodyRows)
+    )
+  )
+}
+
 function gcRenderMdBlocks(blocks, options) {
   const list = gcAsArray(blocks)
   const out = []
@@ -349,6 +453,8 @@ function gcRenderMdBlocks(blocks, options) {
           h('code', null, gcStr(node.value))
         )
       )
+    } else if (node.type === 'table') {
+      out.push(gcRenderMdTable(node, options, 'table' + i))
     } else if (node.type === 'list') {
       const items = gcAsArray(node.items).map(function (item, itemIndex) {
         return h('li', { key: 'li' + i + '-' + itemIndex, className: 'gc-md-li' }, gcRenderMdBlocks(item.children, options))

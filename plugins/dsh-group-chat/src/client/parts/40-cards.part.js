@@ -314,6 +314,9 @@ function GcTaskCardMessage(props) {
   const expanded = !!props.expanded
   const compact = !!payload.compact
   const description = gcStr(task.description)
+  const requirements = gcStr(task.requirements || payload.requirements)
+  const acceptance = gcStr(task.acceptance || payload.acceptance)
+  const ownerRole = gcStr(task.ownerRole || payload.ownerRole)
   const ownerName = gcStr(task.ownerName) || gcStr(task.ownerId)
   const ownerText = ownerName || t('task.ownerUnassigned')
   const blockedBy = gcAsArray(task.blockedBy)
@@ -321,35 +324,28 @@ function GcTaskCardMessage(props) {
   const timeText = gcMessageTimeText(payload.time || message.time)
   const taskId = gcStr(task.id) || gcStr(payload.id)
 
-  const fields = []
-  fields.push(
+  // 默认折叠时只显示：目标（subject）/任务 ID/状态/负责人/依赖/完成时间
+  const fields = [
     h(
       'div',
-      { key: 'owner', className: 'gc-task-owner-row', 'data-field': 'owner' },
-      h('span', { key: 'label', className: 'gc-task-owner-label' }, t('task.owner')),
+      { key: 'owner', className: 'gc-task-field', 'data-field': 'owner' },
+      h('span', { className: 'gc-task-field-label' }, t('task.owner')),
       h(
         'span',
-        { key: 'avatar', className: 'gc-task-owner-avatar', 'data-task-owner-avatar': 'true' },
-        ownerName
-          ? h(GcAvatar, { name: ownerName, kind: actorKind === 'lead' ? 'teammate' : actorKind, size: 20 })
-          : h('span', {
-              className: 'gc-avatar gc-avatar-placeholder',
-              'data-kind': 'teammate',
-              'data-size': '20',
-              'aria-hidden': 'true'
-            })
-      ),
-      h('span', { key: 'name' }, ownerText)
-    )
-  )
-  fields.push(
+        { className: 'gc-task-field-value', 'data-owner-role': ownerRole || undefined },
+        ownerText,
+        ownerRole
+          ? h('span', { className: 'gc-task-owner-role' }, ' · ' + ownerRole)
+          : null
+      )
+    ),
     h(
       'div',
       { key: 'blocked', className: 'gc-task-field', 'data-field': 'blocked-by' },
       h('span', { className: 'gc-task-field-label' }, t('task.blockedBy')),
       h('span', { className: 'gc-task-field-value' }, blockedText)
     )
-  )
+  ]
   if (status === 'completed') {
     fields.push(
       h(
@@ -361,57 +357,51 @@ function GcTaskCardMessage(props) {
     )
   }
 
-  const showDescription = description !== ''
-  const descNode = showDescription
-    ? h(
-        'p',
-        {
-          key: 'desc',
-          className: 'gc-task-desc',
-          'data-clamped': gcStr(payload.action) === 'create' && !expanded ? 'true' : 'false',
-          'data-field': 'description'
-        },
-        description
-      )
-    : null
+  const detailEntries = []
+  if (description) detailEntries.push({ field: 'description', text: description })
+  if (requirements) detailEntries.push({ field: 'requirements', text: requirements })
+  if (acceptance) detailEntries.push({ field: 'acceptance', text: acceptance })
+  const hasDetails = detailEntries.length > 0
+  const detailNodes =
+    expanded && hasDetails
+      ? h(
+          'div',
+          { key: 'details', className: 'gc-task-details' },
+          detailEntries.map(function (entry) {
+            return h(
+              'div',
+              { key: entry.field, className: 'gc-task-detail-block', 'data-field': entry.field },
+              h('span', { className: 'gc-task-detail-label' }, t('task.field.' + entry.field)),
+              h('p', { className: 'gc-task-desc' }, entry.text)
+            )
+          })
+        )
+      : null
 
-  const bodyChildren = [
-    h(
-      'div',
-      { key: 'head', className: 'gc-task-head' },
-      h('span', { key: 'icon', className: 'gc-task-icon', 'aria-hidden': 'true' }, h(GcIconTasks, { size: 16 })),
-      h('span', { className: 'gc-task-action' }, actionLabel),
-      h(GcPill, { status: status, label: statusLabel }),
-      h('span', { key: 'id', className: 'gc-task-id' }, taskId)
-    ),
-    h('h3', { key: 'title', className: 'gc-task-title', title: gcStr(task.subject) }, gcStr(task.subject)),
-    descNode,
-    fields.length > 0 ? h('div', { key: 'fields', className: 'gc-task-fields' }, fields) : null
-  ]
-
-  const actionNodes = []
-  if (gcStr(payload.action) === 'create' && countCodePoints(description) > 100) {
-    actionNodes.push(
+  const actions = []
+  if (hasDetails) {
+    actions.push(
       h(
         'button',
         {
           key: 'expand',
-          type: 'button',
-          className: 'gc-card-action',
-          'data-tone': 'secondary',
-          'data-action': 'expand-task',
-          'data-state': 'enabled',
-          'aria-expanded': expanded ? 'true' : 'false',
-          onClick: function (event) {
-            event.preventDefault()
-            if (props.onAction) props.onAction('expand-task')
-          }
-        },
-        expanded ? t('msg.collapse') : t('msg.expandLines', { n: countCodePoints(description) })
+        type: 'button',
+        className: 'gc-card-action',
+        'data-action': 'expand-task',
+        'data-state': 'enabled',
+        'aria-expanded': expanded ? 'true' : 'false',
+        disabled: !hasDetails,
+        'aria-expanded': expanded ? 'true' : 'false',
+        onClick: function (event) {
+          event.preventDefault()
+          if (hasDetails && props.onAction) props.onAction('expand-task')
+        }
+      },
+        expanded ? t('task.collapse') : t('task.expand')
       )
     )
   }
-  actionNodes.push(
+  actions.push(
     h(GcRowActions, {
       key: 'icon-actions',
       t: t,
@@ -423,7 +413,29 @@ function GcTaskCardMessage(props) {
       }
     })
   )
-  bodyChildren.push(h('div', { key: 'actions', className: 'gc-task-actions' }, actionNodes))
+
+  const card = h(
+    'div',
+    {
+      className: 'gc-card',
+      'data-card': 'task',
+      'data-card-accent': status,
+      'data-compact': compact ? 'true' : 'false',
+      'data-task-expanded': expanded ? 'true' : 'false', 'data-task-collapsed': expanded ? 'false' : 'true'
+    },
+    h(
+      'div',
+      { className: 'gc-task-head' },
+      h('span', { className: 'gc-task-icon', 'aria-hidden': 'true' }, h(GcIconTasks, { size: 16 })),
+      h('span', { className: 'gc-task-action' }, actionLabel),
+      h(GcPill, { status: status, label: statusLabel }),
+      h('span', { className: 'gc-task-id', title: taskId }, taskId)
+    ),
+    h('h3', { className: 'gc-task-title', title: gcStr(task.subject) }, gcStr(task.subject)),
+    detailNodes,
+    h('div', { className: 'gc-task-fields' }, fields),
+    h('div', { className: 'gc-task-actions' }, actions)
+  )
 
   const rowAttrs = {
     className: 'gc-card-row',
@@ -440,46 +452,19 @@ function GcTaskCardMessage(props) {
     'data-task-actor': actorName,
     'data-task-blocked-by': blockedBy.join(','),
     'data-replay': payload.replay ? 'true' : 'false',
+    'data-task-expanded': expanded ? 'true' : 'false', 'data-task-collapsed': expanded ? 'false' : 'true',
     role: 'article',
     'aria-label': t('a11y.taskCard', { action: actionLabel, id: taskId })
   }
 
-  const card = h(
-    'div',
-    { className: 'gc-card', 'data-card': 'task', 'data-card-accent': status, 'data-compact': compact ? 'true' : 'false' },
-    bodyChildren
-  )
-
-  if (compact) {
-    return h(
-      'div',
-      rowAttrs,
-      h(
-        'span',
-        { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
-        h(GcAvatar, { name: actorName, kind: actorKind, size: 24 })
-      ),
-      h(
-        'div',
-        { className: 'gc-row-main' },
-        h(
-          'div',
-          { className: 'gc-sender' },
-          h('span', { className: 'gc-sender-sub' }, '· ' + actorName),
-          h('span', { className: 'gc-sender-time' }, timeText)
-        ),
-        card
-      )
-    )
-  }
-
+  // F35：人物一致 —— 外层 sender = 操作者（唯一头像 + 名字），卡内不再重复头像/名字
   return h(
     'div',
     rowAttrs,
     h(
       'span',
       { className: 'gc-card-avatar-wrap', 'data-card-avatar': 'true' },
-      h(GcAvatar, { name: actorName, kind: actorKind, size: 32 })
+      h(GcAvatar, { name: actorName, kind: actorKind, size: compact ? 24 : 32 })
     ),
     h(
       'div',

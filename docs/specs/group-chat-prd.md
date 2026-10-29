@@ -2,16 +2,16 @@
 
 | 项目 | 内容 |
 | --- | --- |
-| 文档版本 | **v0.8**（用户 18 条反馈：Markdown / 任务卡重设计 / 单一输入器 / @ 交互 / 成员状态与轨迹侧栏 / 作用域修正 / 降噪 / 50 行折叠 / 防重复 / 欢迎居中；F22–F30 + SC39–SC48） |
-| 状态 | 规格先定（v0.8 与 ux Figma v4 并行，最终以用户确认的原型为准修订）；F/SC 编号只增不改 |
+| 文档版本 | **v0.8.1**（v0.8 + 用户 5 条线上问题：空输出抑制 / Markdown 表格 / 成员全名去遮罩 / 任务卡默认折叠 / 任务卡人物一致；F31–F35 + SC49–SC53） |
+| 状态 | 规格先定（v0.8.1 基于线上问题修订，最终以用户确认的原型为准）；F/SC 编号只增不改 |
 | 作者 | pm（Agent Team teammate） |
 | 任务 | task-3（v0.1/v0.2）、task-7（v0.3）、task-16（v0.4）、task-22（v0.5）、task-29（v0.6）、task-32（v0.6.1）、task-34（v0.6.2）、task-44（v0.7）、task-76（v0.8，shared task board） |
-| 上游输入 | 用户需求原文（R1–R6，§1.1）；Lead 数据范围假设（§1.5 A1–A3）；Lead 决策 D1–D10（§1.5）；架构审查决策 D-ARCH-01b/02/03/04/07/10（§12.4）；**用户 18 条反馈（§1.6）** |
+| 上游输入 | 用户需求原文（R1–R6，§1.1）；Lead 数据范围假设（§1.5 A1–A3）；Lead 决策 D1–D10（§1.5）；架构审查决策 D-ARCH-01b/02/03/04/07/10（§12.4）；**用户 18 条反馈（§1.6）+ 5 条线上问题（§1.6 追加行 19–23）** |
 | 调研依据 | `docs/research/api-feasibility.md`（scout-api，task-1）；`docs/research/event-model.md`（scout-events，task-2）；`docs/research/member-card-fields.md`（scout-events，task-20 成员卡字段取证）；`docs/research/task-card-fields.md`（scout-events，task-42 任务卡字段/操作者/动作取证） |
 | 架构依据 | `docs/architecture/group-chat-architecture.md` v1.4（协议/状态/范围/成员加入消息与卡片字段来源逐字对齐，见 §12.4） |
 | 视觉依据 | `docs/ux/group-chat-ux.md` v3.1「钉钉式气泡流」+ `docs/ux/prototype/01–09` 新 PNG + `11-member-join.png`（P10 `21:954` 成员加入消息）+ Figma 新帧 |
 | 下游消费者 | ux（Figma 原型）、architect（技术方案）、frontend（实现）、tester（验收走查） |
-| 编号规则 | F/SC 编号只增不改；v0.2 保留 v0.1 的 F1–F18、SC1–SC26，新增 F19、SC27–SC31；v0.3 不新增编号；v0.4 不动编号仅更新视觉；v0.5 新增 F20、SC32–SC34；v0.6 不动编号，仅纠正 F20/M8 语义与展示；v0.6.1 仅更新架构版本注记；v0.6.2 只冻结 4 项口径（D-A~D-D）；v0.7 新增 F21、SC35–SC38；v0.7.1 移除失败/返工口径；v0.8 新增 F22–F30、SC39–SC48 并修订受影响旧条目 |
+| 编号规则 | F/SC 编号只增不改；v0.2 保留 v0.1 的 F1–F18、SC1–SC26，新增 F19、SC27–SC31；v0.3 不新增编号；v0.4 不动编号仅更新视觉；v0.5 新增 F20、SC32–SC34；v0.6 不动编号，仅纠正 F20/M8 语义与展示；v0.6.1 仅更新架构版本注记；v0.6.2 只冻结 4 项口径（D-A~D-D）；v0.7 新增 F21、SC35–SC38；v0.7.1 移除失败/返工口径；v0.8 新增 F22–F30、SC39–SC48；v0.8.1 新增 F31–F35、SC49–SC53 并修订受影响旧条目 |
 
 ## 变更记录
 
@@ -26,6 +26,7 @@
 | v0.7 | 2026-10-28 | 新增 F21「任务卡片消息」+ M9 + SC35–SC38：① 触发=`team_task_create`（create）与 `team_task_update`（claim/complete/reopen/reassign/release/delete/edit/set_dependencies）每次成功 revision 一张卡；② sender=操作者（创建/认领/完成/重新打开/改派可能不同人；消息头=操作者头像/名字/角色小标签/时间）；③ 卡片=动作标签+状态 pill+task id+subject+description（create 2 行+展开）+负责人+依赖+复制任务 ID；④ 平台限制：DSH 任务状态只有 pending/in_progress/completed/deleted，**无 failed**；状态 pill 只允许这四个真实枚举值，reopen 显示动作「重新打开」+ 真实状态 pending，不引入失败/返工概念，禁止伪造 failed；delete=取消、release=放回任务、edit=编辑、set_dependencies=依赖变更；⑤ 去重 `${teamId}:${taskId}:${revision}`、fork/seeded 用 ownEvents 过滤、历史按 revision 升序回放；⑥ journal 只写 Lead 会话，操作者靠 `(taskId, revision)` 配对 tool/result，配对失败回退「系统操作者」；delete/release 无真实样例标 🔶 按状态机推导 |
 | v0.7.1 | 2026-10-28 | 用户拍板修正（不改 F/SC 编号）：① 删除「失败语义 / 返工」章节与全部相关措辞；② 任务卡状态严格映射 DSH 真实枚举 `pending/in_progress/completed/deleted`，状态 pill 只允许「待认领 / 进行中 / 已完成 / 已取消」四值；③ 动作严格映射 `team_task_update` 的 action：创建/认领/完成/重新打开/改派/编辑/依赖变更/取消/放回；④ `reopen` 卡显示动作「重新打开」+ 真实状态「待认领」，不得出现「返工/失败」字样；⑤ SC38 改为断言「重新打开」+ pending + 无 failed/返工 字样；F21/M9/A12/§7.16/§11/§12.3/§17 措辞同步 |
 | v0.8 | 2026-10-29 | 用户 18 条反馈落地：新增 F22 Markdown 渲染、F23 任务卡重设计（去复制任务 ID/必须渲染头像/与气泡明显区分）、F24 单一输入器（隐藏宿主 composer，Enter 发送）、F25 @ 交互修订（仅 @ 触发/chip 移输入框下方彩色白字/描述小字/弹层不透明）、F26 成员状态与轮次轨迹侧栏、F27 作用域（member session 打开=lead 全量）、F28 降噪（去工具摘要+操作图标化）、F29 折叠改前 50 行、F30 防重复气泡；欢迎提示改居中（M4/M20 同步）；修订 F5/F6/F7/F8/F16/F20/F21 与 M6（作废）/M9；新增 SC39–SC48；§1.6 18 条映射、§11、§12.3、§13（O7–O9）、§17（U16–U18）同步 |
+| v0.8.1 | 2026-10-29 | 用户 5 条线上问题：新增 F31 空输出抑制（无有效文本不渲染空气泡）、F32 Markdown 表格（GFM 表头/对齐/单元格，禁 HTML，原「表格降级纯文本」作废）、F33 成员条全名（头像+完整名字+状态点，去两端遮罩，全显禁 +N）、F34 任务卡默认折叠（目标/任务ID/状态/负责人/依赖/完成时间，描述等隐藏可展开、临时记忆）、F35 任务卡人物一致（外发送者=actor，卡内不重复 actor 头像，「负责人」字段行可不同人）；修订 F3/F5/F6/F20/F21/F22/F23/F26/F29/F30 与 M3/M9；新增 SC49–SC53；§1.6 追加 5 行、§9/§10/§11/§17 同步 |
 | v0.6.1 | 2026-10-28 | 架构 v1.4（task-30）已落盘并核对：① §12.4 注记由「架构当前 v1.3」更新为「v1.4 已落盘、PRD/UX/架构三方一致」；② 全文 grep 核对，正文无「系统提示 + 名片卡」旧结构残留（仅 v0.5 历史变更记录保留原文），F20/M8/M4/SC32–SC34 均为「欢迎提示 M4② + creator 带卡消息 M8」；③ 不新增 F/SC，语义无实质差异 |
 | v0.6.2 | 2026-10-28 | 按 Lead 决策关闭 tester 指出的口径：**D-A** @ 可寻址=Lead 恒可寻址、teammate 恒可寻址（inactive 可冷唤醒）、subagent 仅 running/provisioning、one-shot 完成不可寻址（F6/SC7）；**D-B** 筛选=sender 命中或 targets 命中，子体归入父成员，单选、不做多选/时间/类型组合（F11/SC14）；**D-C** 无团队会话允许发送，发送即该会话普通用户消息（F13/SC15）；**D-D** 模型继承文案：spawn_teammate→「（继承 Lead）」、subagent→「（继承 <creator>）」、无继承信息只显示模型名（F20/SC32/SC33）。同时在 §10 引用 `tests/design/test-plan.md` §13 的 DOM 契约（data-testid/data-*）；不新增 F/SC |
 
@@ -92,7 +93,7 @@
   - 状态：只有 `pending|in_progress|completed|deleted`（`failed` 仅存在于团队成员相位，不属于任务）；任务卡**只使用这四个真实枚举**，动作只映射真实 action，不引入失败/返工概念；
   - 去重：`${teamId}:${taskId}:${revision}`；fork/seeded 复制的事件须 `ownEvents()` 过滤。详见 F21。
 
-### 1.6 用户 18 条反馈 → F/SC 映射（v0.8 追溯基线）
+### 1.6 用户反馈 → F/SC 映射（v0.8 18 条 + v0.8.1 5 条线上问题）
 
 | # | 反馈（用户原话要点） | 落点 |
 | --- | --- | --- |
@@ -114,8 +115,13 @@
 | 16 | 修复偶发重复发送/重复气泡（echo 与权威消息去重） | F30、SC47 |
 | 17 | @ chip 移到输入框下方（彩色底 + 白字） | F25、SC41 |
 | 18 | 任务卡发送者头像必须渲染 | F23、SC43 |
+| 19 | 线上：agent 空输出渲染了空气泡 | F31、SC49 |
+| 20 | 线上：Markdown 表格不渲染 | F32、SC50 |
+| 21 | 线上：成员条只显示头像/名字不全，两端黑色遮罩难看 | F33、SC51 |
+| 22 | 线上：任务卡信息太满，应默认折叠 | F34、SC52 |
+| 23 | 线上：任务卡出现两个操作者头像/人物不一致 | F35、SC53 |
 
-> 编号规则：F22–F30 / SC39–SC48 为 v0.8 新增，**只增不改**；旧 F/SC 仅同步展示描述，不重编号。
+> 编号规则：F22–F30 / SC39–SC48 为 v0.8 新增，F31–F35 / SC49–SC53 为 v0.8.1 新增，**只增不改**；旧 F/SC 仅同步展示描述，不重编号。
 
 ---
 
@@ -167,7 +173,7 @@
 
 页面结构（自上而下）：视图 tab 条 → 频道头 → 消息流 → 底部输入区。
 
-- **频道头**：群头像 32×32（2×2 拼贴）+ 标题「群聊」+ 竖线 + 团队名 + **成员头像条（每个成员 24px 头像 + 「工作中（绿点）/ 等待（灰点）」状态，实时更新；点击头像打开该 agent 轮次轨迹侧栏，见 F26）** + 右侧筛选图标按钮。**无团队时不渲染成员区/筛选**（D10）。
+- **频道头**：群头像 32×32（2×2 拼贴）+ 标题「群聊」+ 竖线 + 团队名 + **成员条（每个成员 24px 头像 + 完整名字 + 「工作中（绿点）/ 等待（灰点）」状态，实时更新；全部成员显示、禁止 `+N`；超宽横向滚动或换行，**不得使用两端渐变/黑色遮罩**；点击头像打开该 agent 轮次轨迹侧栏，见 F26/F33）** + 右侧筛选图标按钮。**无团队时不渲染成员区/筛选**（D10）。
 - **消息流**：居中时间分隔、居中系统提示（含欢迎提示，v0.8 居中）、creator 带卡消息（M8）、任务卡消息（M9，独立卡片形态）、头像+名字行+气泡；按 §7.2 排序。
 - **输入区（单一输入器，F24）**：**群聊视图激活时隐藏宿主原生 composer**，仅保留插件 composer：发送目标区（默认「@Lead」+ 已选 @ chips，位于输入框下方，彩色底+白字）→ 文本输入 → 发送按钮；Enter 发送、Shift+Enter 换行。
 - 🔶 假设：不做左侧常驻成员侧栏（轨迹侧栏为右侧抽屉，F26）。
@@ -188,13 +194,13 @@
 | --- | --- | --- | --- |
 | M1 | 用户消息 | `user/message`（`source.kind='user'` + `rpcId`）或群聊输入框发送 | R4、R5 |
 | M2 | agent→agent 消息 | 接收方会话 `agent/inbox/spliced`（`source.kind='agent-message'`，旧构建 `team-message`），正文前缀 `Team message from X:` | R3、R5 |
-| M3 | agent 最终输出 | 该 agent 会话每个 `turn` 内最后一个非空 `assistant/message` 的 text 块 | R5 |
+| M3 | agent 最终输出 | 该 agent 会话每个 `turn` 内最后一个非空 `assistant/message` 的 text 块；**文本全空白且无卡片/附件时不渲染气泡（F31）** | R5 |
 | M4 | 系统提示 | ① 一般事件（团队/成员/子会话生命周期、turn 失败、发送失败）：居中 tertiary 纯文本；② 欢迎提示（成员加入）：**居中** tertiary 纯文本「欢迎 @<name> 加入群聊」（v0.8 由右对齐改为居中） | R6 |
 | M5 | 交付说明 | 产物/文件类事件（`deliverables/presented` 或本轮文本中的文件引用，🔶 解析可靠性待实现确认） | R6、R5 |
 | M6 | ~~工具/过程摘要~~ | **v0.8 作废**：不再渲染「N 个工具调用」摘要行（用户反馈 11） | — |
 | M7 | 筛选/只读提示条 | 视图级提示（「正在只看 scout」「历史只读」「N 条新消息」），不进入消息流合并 | R6 |
 | M8 | 成员加入消息（creator 带卡） | 创建成员（`spawn_teammate` / `subagent` / `subagent_fork`）时，由 **creator 发出的一条消息**（sender = 创建者），消息正文即成员卡；此前插入一条欢迎提示（M4②） | R2、R6 |
-| M9 | 任务卡片消息（操作者带卡） | `team_task_create` / `team_task_update` 每次成功 revision：由**操作者**发出的带卡消息（sender=操作者），正文=任务卡；`team/task` journal 只写 Lead 会话，操作者靠配对得到 | R6 |
+| M9 | 任务卡片消息（操作者带卡） | `team_task_create` / `team_task_update` 每次成功 revision：由**操作者**发出的带卡消息（sender=操作者），正文=任务卡；**卡内不再重复操作者头像**；默认折叠（F34/F35） | R6 |
 
 > R5 三类 = M1 / M2 / M3；M4–M9 为 R6 惯例补齐（M8 另满足 R2）。M6 = 工具/过程摘要（UX「M6 工具/过程」），M7 = 视图级提示条，M8 = 成员加入消息（对应 UX v3.1 的「M8 成员加入消息」；UX 迭代中曾编号 M7，PRD 稳定为 M8）。**M8 的 sender 是 creator，不是系统**：`spawn_teammate` 恒为 Lead；`subagent`/`subagent_fork` 为调用方成员。M9 = 任务卡片消息，**sender 是操作者**（谁操作谁发话，创建/认领/完成/重新打开可能不同人）；**v0.8 任务卡改为与气泡明显区分的独立卡片（F23）**。M6 自 v0.8 作废，不再渲染工具过程摘要。
 
@@ -222,13 +228,13 @@
 | --- | --- |
 | M1 | 右对齐气泡；气泡下 11/400 `label-secondary` 单行「已同时发送给 Lead、@X、@Y」（**无绿勾、无底色、无药丸**） |
 | M2 | 与普通 agent 气泡同构；`@目标` **内联正文首行**（`state-business-primary` 蓝）；**无「→ 发送给 @x」独立 chip 行** |
-| M3 | 就是普通 agent 气泡；**无「最终输出 · 回复群聊」徽标** |
+| M3 | 就是普通 agent 气泡；**无「最终输出 · 回复群聊」徽标**；**无有效文本不发泡（F31，空输出抑制）** |
 | M4 | ① 一般事件：居中 11.5/400 `label-tertiary` 纯文本，**无背景药丸**；② 欢迎提示（v0.8）：**居中** 11.5/400 `label-tertiary` 纯文本，**无背景/无药丸**（`欢迎 @scout 加入群聊`） |
 | M5 | 气泡内文件行（文件名 + 路径 + 「打开」），不展示文件内容 |
 | M6 | **v0.8 作废**（不渲染工具过程摘要行；见 F28） |
 | M7 | 视图级提示（筛选/只读/未读）——置顶细提示条，不参与消息合并 |
 | M8 | **creator 发出的一条消息**（非系统卡）：① creator 消息头（头像 32 圆角 8 + 名字 14/600 + 角色小标签 11 `主 Agent`/`Teammate` + 时间 11 同行贴右；不做气泡）；② 卡片正文（宽 max 520、`bg-layer-1`、`border-l2`、radius 12、padding 16）：标题 13/500「@<name>」加入群聊、描述 12/19、label+value 信息行（label 11 caption / value 12 secondary，行高 22）、初始任务 11/17 tertiary 2 行截断 +「展开」文字链、动作为文字链；卡内不重复头像/名字；不参与长文折叠、不用弹窗/大图/动效。角色小标签为 11px caption 文本（无底色/无边框），不等同于 v0.4 删除的角色徽标 |
-| M9 | **操作者发出的一条消息 + 独立任务卡片（F23，与普通气泡明显区分）**：① 操作者消息头（头像 32 **必须渲染**，缺失时用首字母占位 + 名字 14/600 + 角色小标签 11 + 时间 11）；② 卡片正文（宽 max 520、`bg-layer-1`、radius 12、padding 16）：**左侧 3px 状态色竖条 + 顶部任务图标 + 动作标签 13/500 + 状态 pill（11）**、subject 14/500、task id（mono 11 `label-caption`）、description（create 卡 2 行截断+「展开」；其它卡 1 行）、**负责人头像 20 + 名字**/依赖 信息行；**无「复制任务 ID」动作**；**状态 pill 只允许 DSH 四枚举（待认领/进行中/已完成/已取消），不得出现 failed/返工 等第五种状态或红色警示 pill**；不参与长文折叠、不用弹窗/大图/动效 |
+| M9 | **操作者发出的一条消息 + 独立任务卡片（F23/F34/F35，与普通气泡明显区分）**：① 消息头=操作者（头像 32 **必须渲染** + 名字 + 角色小标签 + 时间）；**卡内不再出现第二个操作者头像/名字**；② 卡片默认折叠：仅显示 目标（subject）、任务 ID、状态 pill、负责人（字段行：头像 20 + 名字，可与操作者不同）、依赖、完成时间；描述/硬性要求/验收标准默认隐藏，提供「展开全部/收起」；③ 展开后显示描述等全文；展开状态可临时记忆（会话内）；**无「复制任务 ID」动作**；状态 pill 严格四枚举；卡片不参与长文折叠、不用弹窗/大图/动效 |
 
 ### 4.3 事件 → 消息映射（按调研定稿，✅ 实现基线）
 
@@ -248,7 +254,7 @@
 | M5 交付说明 | `deliverables/presented` 或文本内产物引用 | 🔶 解析可靠性待实现确认 | 文件卡片（路径 + 打开） |
 | M6 工具/过程摘要（v0.8 作废） | — | — | **不产出/不渲染**（用户反馈 11；工具过程只用侧栏轨迹承载，见 F26） |
 | M8 成员加入消息（creator 带卡） | 创建方 `tool/call`（name=`spawn_teammate`/`subagent`/`subagent_fork`）+ `tool/result.member`；teammate 用 `team/member`(phase=active)、subagent 用 `subagent/catalog`；子会话 `subagent/descriptor` | sender 解析：`tool/call` 所在会话的 agent（`sessionId==teamId` → Lead；否则 roster/descriptor 名）；关联键 `tool/call.callId ↔ tool/result.message.toolCallId`、`member.name ↔ team/member.member.name`、`member.id == catalog.childId == 子会话 id`；fork/seeded 用 `ownEvents()` 过滤 | 欢迎提示（M4②）+ creator 消息（消息头 sender=creator，正文=1 张卡）；字段优先级见 A11/F20；空值回退；不参与长文折叠 |
-| M9 任务卡片消息（操作者带卡，v0.8 重设计 F23） | `team/task` journal（Lead 会话，每次成功 revision 一条整快照）+ 操作者会话的 `tool/call`（`team_task_create`/`team_task_update`）与同 `callId` 的 `tool/result`（TASK_VIEW_SCHEMA 含 id/revision/ownerName/ready） | 配对键 `(taskId, revision)`（journal 写于 result 之前，不能用时间先后判断）；动作=arguments.action（create=工具名）→ diff 兜底；actor=tool/call 所在会话 memberOf() → 配对失败回退「系统操作者」；fork/seeded 用 `ownEvents()` 过滤 | 1 张卡；独立卡片（状态色竖条/任务图标/状态 pill/负责人头像）；头像必须渲染；去重 `${teamId}:${taskId}:${revision}`；状态映射见 F21；delete/release 按状态机推导（🔶 无真实样例）；不得伪造 failed |
+| M9 任务卡片消息（操作者带卡，v0.8 重设计 F23，v0.8.1 折叠/人物一致 F34/F35） | `team/task` journal（Lead 会话，每次成功 revision 一条整快照）+ 操作者会话的 `tool/call`（`team_task_create`/`team_task_update`）与同 `callId` 的 `tool/result`（TASK_VIEW_SCHEMA 含 id/revision/ownerName/ready） | 配对键 `(taskId, revision)`（journal 写于 result 之前，不能用时间先后判断）；动作=arguments.action（create=工具名）→ diff 兜底；actor=tool/call 所在会话 memberOf() → 配对失败回退「系统操作者」；fork/seeded 用 `ownEvents()` 过滤 | 1 张卡；独立卡片（状态色竖条/任务图标/状态 pill）；**外发送者=actor（头像+名字），卡内不重复 actor 头像**；**默认折叠仅目标/任务 ID/状态/负责人/依赖/完成时间，描述可展开**；负责人字段行可与 actor 不同；头像必须渲染；去重 `${teamId}:${taskId}:${revision}`；不得伪造 failed |
 | 不产出消息 | `agent/inbox/spliced` 的 `removedCount>0 && inserted=[]`（消费/取消）、`session/end-seed`、`turn/end(reason=forked)` | — | 丢弃，不得渲染 |
 | 兜底 | 旧构建 `team/message/queued`（存在则用） | — | 补齐 senderName/targetId/messageId；不存在不报错 |
 
@@ -262,7 +268,7 @@
 
 ---
 
-## 5. 功能清单（F1–F30）
+## 5. 功能清单（F1–F35）
 
 | ID | 功能 | 追溯 | 验收场景 |
 | --- | --- | --- | --- |
@@ -296,6 +302,11 @@
 | F28 | 降噪与图标操作（去工具摘要、复制/打开图标化） | R6 | SC45 |
 | F29 | 折叠阈值修订（默认前 50 行，超过才折叠） | R3、F5 | SC46 |
 | F30 | 防重复气泡（echo 与权威消息去重，一次发送 1 条） | R6、F9 | SC47 |
+| F31 | 空输出抑制（无有效文本不渲染空气泡） | R5、R6 | SC49 |
+| F32 | Markdown 表格（GFM 表头/对齐/单元格，禁 HTML） | R6、F22 | SC50 |
+| F33 | 成员条全名与去遮罩（全显禁 +N，无两端遮罩） | R6、R2、F26 | SC51 |
+| F34 | 任务卡默认折叠（目标/ID/状态/负责人/依赖/完成时间，描述可展开） | R6、A12、F21/F23 | SC52 |
+| F35 | 任务卡人物一致（外发送者=actor，卡内不重复 actor 头像，负责人字段行） | R6、A12、F21/F23 | SC53 |
 
 ### F1 群聊 tab 入口（R1、D7）
 
@@ -321,7 +332,7 @@
 | --- | --- |
 | M1 用户消息 | 右对齐气泡；多目标时气泡下方 **11/400 `label-secondary` 单行**「已同时发送给 Lead、@X、@Y」（无绿勾/无底色/无药丸；D2，F19） |
 | M2 agent→agent | 与普通 agent 气泡同构（头像 + 名字行 + 气泡，**无角色徽标**）；`@目标` **内联正文首行**（`state-business-primary` 蓝），多接收者 `@a @b` 依次排列；**无「→ 发送给 @x」独立 chip 行**；原文协议前缀已剥除（D9） |
-| M3 agent 最终输出 | 就是普通 agent 气泡，**不加「最终输出 · 回复群聊」徽标**；hover 可「打开所属会话」；非 completed 轮次在名字行状态位显示而非额外徽标 |
+| M3 agent 最终输出 | 就是普通 agent 气泡，**不加「最终输出 · 回复群聊」徽标**；hover 可「打开所属会话」；非 completed 轮次在名字行状态位显示而非额外徽标；**无有效文本（空白）不渲染气泡（F31）** |
 | M4 系统提示 | 居中 11.5/400 `label-tertiary` 纯文本，**无背景药丸**；欢迎提示（「欢迎 @scout 加入群聊」）v0.8 也居中；如「团队已组建 · 8 名成员」「scout 创建了 subagent：数据校验」「向 backend 发送失败」 |
 | M5 交付说明 | 气泡内文件行：文件名 + 路径 + 「打开」；不展示文件内容；🔵 打开方式（预览/新窗口/系统打开）为未决项（§13 O4） |
 | M6 工具/过程摘要 | **v0.8 作废**：不渲染任何工具过程摘要行（F28） |
@@ -340,6 +351,7 @@
 
 - ✅ 阈值（v0.8 由 F29 修订）：正文**超过 50 行**才折叠（**默认展示前 50 行**）；原 8 行/400 字符规则作废；系统提示、欢迎提示、同发说明行永不折叠。
 - 折叠态展示前 50 行 + 渐变遮罩 + **12px 文本链接**「展开全部（共 N 行）」（`state-business-primary`，非按钮胶囊）；展开后变「收起 ⌃」；展开/收起保持被展开消息顶部位置稳定（±4px），不改变其它消息折叠状态。
+- 空输出（无有效文本）不产生可折叠气泡（F31）；卡片消息的折叠自成一套（M8/M9，见 F34）。
 - 代码块、表格、文件卡片折叠时整体截断；展开后完整渲染，代码块不折叠内部行。
 - 键盘可操作（Tab + Enter/Space），`aria-expanded` 正确反映状态。
 
@@ -351,6 +363,7 @@
 - ✅（F25）选中生成 chip（整体删除），chip 显示在**输入框下方**的发送目标区：彩色底（business-primary/tertiary）+ **白色文字**（如 `@ux`）；默认目标显示 `@Lead`。
 - subagent 在列表与 chip 中显示 `<label>` + 后缀「<父名> 的子体」（D5）。
 - 补全列表按上述集合过滤：成员从 running 变为已完成（one-shot subagent）后从列表移除；inactive teammate 仍在列表并可被选中；输入框中残留的失效提及在发送前提示并剔除（🔶 具体提示形态实现定）。
+- 成员显示名一致（F33）：成员条显示**完整名字**，@ 补全/弹层/chip 使用同一名字（不截断、不缩写、不加 `…`）。
 - 不阻塞中文输入法组合输入；无匹配显示「无匹配成员」并允许继续打字。
 
 ### F7 无 @ 默认发送给 lead（R4、D1 已定）
@@ -478,7 +491,7 @@
 - ✅ **动作**：`查看会话`（`team/member.member.id` / `catalog.childId` → 打开成员 Session）；`查看任务`（仅 teammate，`team/task.ownerId === member.id`）；`展开初始任务`。无权限时「查看会话」置灰并提示；只读历史中动作按只读态隐藏/置灰（🔶 实现确认）。
 - ✅ **去重与回放**：同一成员（`member.id` / `catalog.childId`）只出现 **1 条**入群消息（欢迎提示 + creator 带卡消息为一组，不重复）；以 `team/member` 的 phase 迁移为幂等键；成员重建（同名新会话）视为新成员再次出卡。`fork/seeded` 子会话复制的父会话 `tool/call`/`team/member` 必须用 `ownEvents()`/归属会话过滤；历史加载（分页/重进视图/刷新）按同一规则回放，不新增、不丢卡。
 - ✅ **状态与去留**：成员失败/离开**不删消息**，状态区更新（运行中→已完成/失败）；`team/member` 当前未观测到 failed/removed 相位，先以 `list_agents.status` 兜底（§17 U11）；v1 不做「退群提示」。
-- ✅ **与消息流关系**：creator 带卡消息是消息流中的**普通成员消息**（按 `(time, sessionIdRank, seq)` 归位），cards 不参与长文折叠；初始任务在卡内独立折叠；不新增弹窗/大图/动效。
+- ✅ **与消息流关系**：creator 带卡消息是消息流中的**普通成员消息**（按 `(time, sessionIdRank, seq)` 归位），cards 不参与长文折叠；初始任务在卡内独立折叠；不新增弹窗/大图/动效。带卡消息始终有卡片正文，不适用空输出抑制（F31）；欢迎提示为独立系统行（M4②）。
 
 ---
 
@@ -490,22 +503,23 @@
 - ✅ **动作标签映射（严格映射真实 action）**：`create→创建`、`claim→认领`、`complete→完成`、`reopen→重新打开`、`reassign→改派`、`edit→编辑`、`set_dependencies→依赖变更`、`delete→取消`、`release→放回`。不新增平台不存在的动作。
 - ✅ **状态 pill 映射（只允许四个真实值）**：`pending` → 「待认领」；`in_progress` → 「进行中」；`completed` → 「已完成」；`deleted` → 「已取消」。**不存在第五种状态**：不出现「返工」「失败」等派生/警示状态；`reopen` 的任务真实状态就是 `pending`。
 - ✅ **状态/动作严格映射（用户拍板）**：DSH 任务状态枚举仅 `pending | in_progress | completed | deleted`，平台**没有 failed**；任务卡只使用这四个真实状态与 `team_task_update` 的真实 action，**不引入失败/返工概念**。`reopen`（completed→pending，owner 清空）显示动作「重新打开」+ 状态「待认领」；`delete` 显示「取消」+「已取消」；`release` 显示「放回」+「待认领」；任何情况下不得伪造 `failed` 或「返工」等平台不存在的状态。
-- ✅ **卡片字段（v0.8，F23 重设计）**：动作标签 + 状态 pill、task id（`task-N`，mono）、subject、description（`create` 卡 2 行截断 +「展开」，其余卡 1 行；上限 16KB）、**负责人头像 20 + 名字**（无 owner 显示「未认领」）、依赖（`blockedBy` → 「被 task-1、task-2 阻塞」，无则「无」）、时间（消息头）；**移除「复制任务 ID」动作**；**操作者头像必须渲染**（缺失时首字母占位）；卡片与普通气泡明显区分（左侧 3px 状态色竖条 + 顶部任务图标 + 状态 pill）。
+- ✅ **卡片字段（v0.8.1，F23/F34/F35）**：**默认折叠**仅显示 目标（subject）、任务 ID、状态 pill、负责人（字段行：头像 20 + 名字；无 owner「未认领」）、依赖（`blockedBy` → 任务 ID/标题，无则「无」）、完成时间（completed 时显示；非完成隐藏或「—」）；**描述/硬性要求/验收标准默认隐藏**，「展开全部/收起」可展开（展开状态会话内临时记忆）；动作标签仍在顶部；**移除「复制任务 ID」**；**外消息头=操作者（头像必须渲染，缺失首字母占位），卡内不重复操作者头像**；卡片与普通气泡明显区分（左侧 3px 状态色竖条 + 顶部任务图标 + 状态 pill）。
 - ✅ **去重与回放**：键 `${teamId}:${taskId}:${revision}`，同一 revision 只 1 张卡；历史按 revision 升序回放（`revision===1` 为 create）；`fork/seeded` 复制的 `team/task`/`tool/call` 必须 `ownEvents()`/`isOwnSeq()` 过滤；同毫秒排序按 `(time, sessionIdRank, seq)`。
 - ✅ **边界**：`delete`/`release` 在真实日志零出现 → 卡片按状态机推导（🔶 UNVERIFIED，见 §17 U13）；`reassign` 目标成员已 failed 时的工具报错提示未取证（U15）；`edit`/`set_dependencies` 也出卡，但可作为次要动作弱化；`deleted` 为墓碑状态，`list()` 会过滤，卡片仍按 journal 事件渲染。
 
 ### F22 Markdown 渲染（R6，用户反馈 1）
 
-- ✅ 消息正文（M1/M2/M3 气泡、M8/M9 卡片描述）支持 Markdown：**粗体/斜体、无序/有序列表、行内代码、代码块（等宽 + 语言标识）、链接**；表格/引用按实现能力降级为纯文本，不报错。
+- ✅ 消息正文（M1/M2/M3 气泡、M8/M9 卡片描述）支持 Markdown：**粗体/斜体、无序/有序列表、行内代码、代码块（等宽 + 语言标识）、链接、GFM 表格（F32）**；引用/任务列表等未支持语法降级为纯文本，不报错。
 - ✅ 代码块使用等宽字体 + 语言标签（如 ```ts），超宽横向滚动；行内代码使用 caption 背景。
 - ✅ **安全降级**：不执行不可信 HTML（`<script>`/`<img onerror>` 等一律按纯文本转义）；解析失败/未知语法时整段按纯文本渲染，不丢内容。
 - ✅ 链接只允许 http(s)/mailto；点击外部链接走宿主默认行为并提示离开会话（🔶 具体确认交互由 UX 原型定）。
 
-### F23 任务卡重设计（R6、A12、F21 修订，用户反馈 2/4/18）
+### F23 任务卡重设计（R6、A12、F21 修订，用户反馈 2/4/18 + 线上 22/23）
 
 - ✅ **与普通气泡明显区分**：独立卡片形态（不是气泡）——`bg-layer-1` + radius 12 + padding 16 + **左侧 3px 状态色竖条**（待认领=neutral/进行中=business/已完成=success/已取消=dimmed）+ **顶部任务图标** + 动作标签 + 状态 pill。
-- ✅ **头部**：操作者头像 32 **必须渲染**（不得空白/缺头像；数据缺失时用首字母色块占位）+ 名字 14/600 + 角色小标签 11 + 时间 11。
-- ✅ **正文**：subject 14/600、task id（mono 11）、description（create 卡 2 行 + 展开；其它 1 行）、**负责人头像 20 + 名字**（无 owner 显示「未认领」）、依赖（blocked_by → 任务 ID/标题）。
+- ✅ **人物一致（F35）**：外消息头 = 操作者（actor，头像 32 + 名字 + 角色小标签 + 时间）；**卡内不再出现第二个操作者头像/名字**；「负责人」只作为字段行（头像 20 + 名字）显示，**可与 actor 不同**（改派场景）。
+- ✅ **默认折叠（F34）**：默认仅显示 目标（subject）、任务 ID、状态、负责人、依赖、完成时间；**描述/硬性要求/验收标准默认隐藏**，提供「展开全部/收起」；展开状态可临时记忆（会话内，不写库）。
+- ✅ **头像必须渲染**：actor 头像缺失时用首字母色块占位（不得空白）；负责人无值时显示「未认领」且不渲染空头像框。
 - ✅ **移除「复制任务 ID」动作**（用户反馈 2）；卡片不引入其它平台不存在的任务详情页跳转。
 - ✅ 状态色与 pill 仍严格四枚举（F21），不得出现 failed/返工。
 - 不参与长文折叠；不用弹窗/大图/动效。
@@ -528,7 +542,7 @@
 
 ### F26 成员状态与轮次轨迹侧栏（R6、R2，用户反馈 6/10）
 
-- ✅ **频道头成员条**：展示当前成员头像（24px）+ 状态「**工作中**（绿点）/ **等待**（灰点）」，随成员 running/inactive 实时更新；点击头像打开该 agent 的**轮次轨迹侧栏**。
+- ✅ **频道头成员条（F33）**：每成员 = 头像 24px + **完整名字**（不截断）+ 状态「**工作中**（绿点）/ **等待**（灰点）」，随 running/inactive 实时更新；**全部成员显示、禁止 `+N`**；超宽横向滚动或换行，**不得使用两端渐变/黑色遮罩**；点击头像打开该 agent 的**轮次轨迹侧栏**。
 - ✅ **轮次轨迹侧栏**（右侧抽屉，可关闭）：顶部 agent 名 + 状态 + 模型；列表按轮次（**时间、该轮最终输出摘要、工具数、轮次状态**）；点击某轮可定位/展开摘要（不新增页面跳转）。
 - ✅ 侧栏数据来源：该 agent 会话的 `turn/start`–`turn/end` 区间 + 末段 `assistant/message` 文本 + `tool/call` 计数；数据缺失时该轮显示「无输出摘要」（O7）。
 - ✅ 侧栏不阻塞消息流（抽屉覆盖，可按 Esc/点遮罩关闭）；窄屏全屏抽屉。
@@ -550,7 +564,7 @@
 
 - ✅ **默认显示前 50 行**；正文**超过 50 行**才出现折叠链接（原 8 行/400 字符规则作废）。
 - ✅ 折叠态 = 前 50 行 + 渐变遮罩 + 12px 文本链「展开全部（共 N 行）」；展开后「收起 ⌃」；锚点稳定（F5）。
-- ✅ 行数按渲染后行数计（含代码块内行）；系统提示/欢迎提示/同发说明行永不折叠；卡片（M8/M9）不参与长文折叠。
+- ✅ 行数按渲染后行数计（含代码块内行）；系统提示/欢迎提示/同发说明行永不折叠；卡片（M8/M9）不参与长文折叠；任务卡默认折叠走 F34（不是 50 行规则）；空输出不产生气泡（F31）。
 - 🔶 50 行与视口高度的关系（超长行、代码块）由 UX/实现确认折行口径。
 
 ### F30 防重复气泡（R6、F9 补充，用户反馈 16）
@@ -558,6 +572,43 @@
 - ✅ 同一次发送只渲染 **1 条**用户气泡：本地 echo（`local:<batchId>`）与权威 `user/message` 按 `clientBatchId`/`requestId` 去重，权威到达后替换 echo，不新增第二条。
 - ✅ 修复偶发重复发送：发送中禁用重复提交；重试幂等（F9/§7.9）；刷新/重进视图后仍只 1 条。
 - ✅ 去重失败时以权威消息为准（本地 echo 不得残留）；`data-message-id` 唯一。
+- ✅ 与 F31 配合：空输出不生成占位气泡，也不参与去重计数。
+
+### F31 空输出抑制（R5、R6，线上问题 19）
+
+- ✅ agent 输出（M3）**无有效文本**（`text` 为空或仅空白/换行；`reasoning`/`tool-call` 不算正文）且无卡片/附件时，**不渲染气泡**，也不生成空占位。
+- ✅ 运行中状态由成员条状态点/轨迹侧栏承担（F26），不靠空气泡表达「正在回复」。
+- ✅ 历史回放同样抑制（旧轮次空输出不补泡）；`turn/end` 非 completed 且空输出时只保留系统状态提示（M4），不出泡。
+- ✅ 与 F30 配合：空输出不参与去重计数；`data-message-id` 不产生。
+
+### F32 Markdown 表格（R6，线上问题 20）
+
+- ✅ 支持 **GFM 表格**：表头行、对齐标记（`:--`/`:-:`/`--:`）、单元格内行内 Markdown（粗体/行内代码/链接）；表格宽度自适应，超宽时横向滚动。
+- ✅ 样式：表头加粗 + 底部 1px border、单元格 padding 6×10、斑马纹（偶数行 `bg-layer-2` 弱底）、边框 `border-l3`；字号与正文一致 14/22（窄屏可 13/20）。
+- ✅ **禁 HTML**（同 F22）：表格内 HTML 一律转义；不执行脚本/事件属性。
+- ✅ 降级：非法表格语法（缺分隔行/列数不齐）按纯文本或按行渲染，不吞内容；**原 v0.8「表格降级纯文本」作废**。
+- ✅ 表格不参与长文 50 行折叠的「行」计算例外：按渲染后行数计（F29）。
+
+### F33 成员条全名与去遮罩（R6、R2，线上问题 21）
+
+- ✅ 成员条每项 = 头像 24px + **完整名字**（不截断、不加 `…`）+ 状态点（工作中绿/等待灰）；名字与成员条/发送者/`@` 补全使用同一显示名。
+- ✅ **全部成员显示、禁止 `+N`**（不再折叠为「+N」）；成员多时**换行优先**，仍超宽则横向滚动。
+- ✅ **删除两端渐变/黑色遮罩**（用户反馈像黑色遮罩）；不得用遮罩掩盖溢出；滚动条/边缘处理由 UX 定但不许黑色渐隐。
+- ✅ 点击头像仍打开轨迹侧栏（F26）；状态点语义不变。
+
+### F34 任务卡默认折叠（R6、A12，线上问题 22）
+
+- ✅ 默认显示 6 项：**目标（subject）、任务 ID、状态、负责人、依赖、完成时间**（completed 时显示；非完成显示「—」或隐藏）。
+- ✅ 默认隐藏：**描述、硬性要求、验收标准**（如字段存在）；提供「展开全部/收起」文字链（12px）。
+- ✅ 展开状态**可临时记忆**（会话内 UI 态，不写库）；刷新/重进恢复默认折叠。
+- ✅ 折叠不影响卡片的动作标签/状态色/任务图标；卡片本身不参与 50 行折叠（F29）。
+
+### F35 任务卡人物一致（R6、A12，线上问题 23）
+
+- ✅ **外发送者 = 操作者（actor）**：消息头显示 actor 头像 32 + 名字 + 角色小标签 + 时间；actor 由 F21 配对确定。
+- ✅ **卡内不重复操作者头像/名字**：卡片 body 不再渲染第二个 actor 头像；「负责人」只作为字段行（头像 20 + 名字），可与 actor 不同（如 Lead 改派给 ux 时 actor=Lead、owner=ux）。
+- ✅ 单个发送者的视觉关系清晰：卡内其他人物仅出现在「负责人」字段行；不出现两个相同头像并排。
+- ✅ 头像缺失时首字母占位（F23），不得空白。
 
 ## 6. 发送与触发契约（D1–D5，✅ 已冻结）
 
@@ -735,7 +786,7 @@
 | 阶段 | 产物 | 门禁 |
 | --- | --- | --- |
 | 阶段 1 调研 | `docs/research/api-feasibility.md`、`event-model.md` | ✅ 已落盘（v0.2 已吸收） |
-| 阶段 2 原型 | Figma v4（Markdown、单输入器、@ 弹层、成员状态条、轨迹侧栏 P13、任务卡重设计、50 行折叠、欢迎居中） | 覆盖 F1–F30 主路径 + SC1–SC48 可演示 |
+| 阶段 2 原型 | Figma v4（+ v0.8.1 修订：空输出抑制/表格/成员全名/任务卡折叠与人物一致） | 覆盖 F1–F35 主路径 + SC1–SC53 可演示 |
 | 阶段 3 确认 | 用户确认原型 | **确认后才进入实现**；未确认不得写代码 |
 | 阶段 4 实现/验收 | 代码 + 走查 | 按 §10 场景验收 |
 
@@ -747,7 +798,7 @@
 
 > 每条场景末尾 `# 可观测证据` 给出 tester 可独立验证的观察点。中文 Gherkin 用 假定/当/那么/并且。
 >
-> **DOM 证据基线**：选择器以 `tests/design/test-plan.md` §13 的 `data-testid` / `data-*` 契约为准（架构 v1.4 §6.5 已冻结：`group-chat-feed`、`data-kind`、`data-message-id`、`data-status`、`data-sender`、`data-creation-id`、`data-pair-order`、`data-system-variant`、`data-card`、`data-member-id`、`data-action` 等；仍缺项见该表）。**任务卡**按 task-42 §8 建议：`data-task-id` / `data-task-revision` / `data-task-action` / `data-task-status` / `data-task-owner` / `data-task-actor` / `data-task-blocked-by` / `data-replay`，容器 `data-kind="task_card"` + `data-card="task"`；**v0.8 新增**：`group-chat-target-chips`（输入框下方 chip 区）、`data-member-state=working|waiting`（成员条）、`group-chat-member-strip`、`group-chat-trajectory-panel` + `data-turn-index`、`data-card-avatar`、Markdown 内容节点（strong/ul/code/pre）。实现若改选择器，必须同时更新 test-plan §13 与本 PRD 证据，不得只改一处。
+> **DOM 证据基线**：选择器以 `tests/design/test-plan.md` §13 的 `data-testid` / `data-*` 契约为准（架构 v1.4 §6.5 已冻结：`group-chat-feed`、`data-kind`、`data-message-id`、`data-status`、`data-sender`、`data-creation-id`、`data-pair-order`、`data-system-variant`、`data-card`、`data-member-id`、`data-action` 等；仍缺项见该表）。**任务卡**按 task-42 §8 建议：`data-task-id` / `data-task-revision` / `data-task-action` / `data-task-status` / `data-task-owner` / `data-task-actor` / `data-task-blocked-by` / `data-replay`，容器 `data-kind="task_card"` + `data-card="task"`；**v0.8 新增**：`group-chat-target-chips`（输入框下方 chip 区）、`data-member-state=working|waiting`（成员条）、`group-chat-member-strip`、`group-chat-trajectory-panel` + `data-turn-index`、`data-card-avatar`、Markdown 内容节点（strong/ul/code/pre/table）。**v0.8.1 新增**：`data-member-name`（完整名字）、`data-task-collapsed=true|false`（任务卡折叠）；成员条**不得存在 mask/黑色渐隐节点**。实现若改选择器，必须同时更新 test-plan §13 与本 PRD 证据，不得只改一处。
 
 ### SC1 群聊 tab 作为并列视图出现（R1、F1、D7）
 
@@ -1270,12 +1321,12 @@
 ```gherkin
 场景 SC42：频道头成员状态可点开轨迹侧栏
   假定 频道中有运行中与等待中的成员
-  那么 频道头成员条显示头像 + 绿点「工作中」/灰点「等待」
+  那么 频道头成员条显示 每成员头像 + **完整名字** + 绿点「工作中」/灰点「等待」，且全部成员显示（无 `+N`、无两端黑色遮罩）
   当我点击某成员头像
   那么 右侧打开该 agent 的轮次轨迹侧栏：agent 名/状态/模型 + 轮次列表（时间、最终输出摘要、工具数、状态）
   当我按 Esc 或点遮罩
   那么 侧栏关闭，消息流恢复
-  # 可观测证据：group-chat-member-strip 含 data-member-state=working|waiting；点击后 group-chat-trajectory-panel 可见，含 data-turn-index 行；Esc 关闭；截图
+  # 可观测证据：group-chat-member-strip 含 data-member-state=working|waiting 与 data-member-name（完整名字）；无 +N 节点、无 mask 元素（无黑色渐变覆盖）；点击后 group-chat-trajectory-panel 可见，含 data-turn-index 行；Esc 关闭；截图
 ```
 
 ### SC43 任务卡重设计（F23，反馈 2/4/18）
@@ -1285,10 +1336,10 @@
   假定 群聊中有一条任务创建卡
   当我查看
   那么 卡片与普通气泡形态明显不同（独立卡片 + 左侧状态色竖条 + 任务图标 + 状态 pill）
-  并且 操作者头像 32 已渲染（非空白/非缺省占位）
-  并且 负责人处显示头像 + 名字
+  并且 默认只显示 目标/任务 ID/状态/负责人/依赖/完成时间，描述等默认隐藏
+  并且 消息头只有 1 个操作者头像，卡片内不重复第二个操作者头像；负责人以字段行显示
   并且 卡片不存在「复制任务 ID」动作
-  # 可观测证据：data-card=task 容器带状态色边框/图标；data-card-avatar 非空；不存在 data-action=copy-task-id；与同屏 bubble 节点样式不同（背景/圆角/边框）；截图
+  # 可观测证据：data-card=task 容器带状态色边框/图标；data-card-avatar 非空且页面同一 actor 头像仅消息头 1 处；data-task-collapsed=true；描述节点不可见；不存在 data-action=copy-task-id；与同屏 bubble 节点样式不同；截图
 ```
 
 ### SC44 群聊作用域（F27，反馈 12）
@@ -1350,7 +1401,70 @@
   # 可观测证据：data-kind=system + data-system-variant=welcome；节点水平居中（与内容列中心对齐）；无 business-primary 蓝字右对齐样式；截图
 ```
 
-> 场景总数：**SC1–SC48（48 条）**。v0.2–v0.7.1 历史见各版变更记录；v0.8 新增 SC39–SC48（Markdown/单输入器/@ 交互/成员轨迹/任务卡重设计/作用域/降噪/50 行折叠/防重复/欢迎居中），并改写 SC5/SC6/SC32/SC33/SC35 的旧口径。
+### SC49 空输出抑制（F31，线上 19）
+
+```gherkin
+场景 SC49：agent 空输出不渲染空气泡
+  假定 某 agent 一轮结束但其末段文本为空（仅有 reasoning/tool-call），且无卡片/附件
+  当我查看群聊
+  那么 该轮不出现任何 agent 气泡（无空占位）
+  并且 该 agent 的运行状态只体现在成员条状态点/轨迹侧栏
+  并且 刷新/历史回放后仍无空气泡
+  # 可观测证据：feed 中该 turn 无 data-kind=agent_output 节点；无空文本气泡节点；成员条/轨迹侧栏状态可见；截图
+```
+
+### SC50 Markdown 表格（F32，线上 20）
+
+```gherkin
+场景 SC50：GFM 表格按表格渲染
+  假定 一条 agent 消息正文含 GFM 表格（表头 + 对齐 + 2 行数据）
+  当我查看该消息
+  那么 渲染为 table（thead/tbody/tr/td），对齐生效
+  并且 表头加粗、单元格有 padding 与边框、斑马纹生效
+  并且 表格内 HTML 被转义、不执行；超宽横向滚动
+  # 可观测证据：气泡内 table 节点存在且 thead/tbody/td 数量正确；computed padding/border 非零；无原始 `|---|` 文本；窄屏表格可横向滚动；截图
+```
+
+### SC51 成员条全名与去遮罩（F33，线上 21）
+
+```gherkin
+场景 SC51：成员条显示完整名字、无 `+N`、无遮罩
+  假定 团队有 8 名成员
+  当我查看频道头
+  那么 每名成员显示 头像 + 完整名字 + 状态点（工作中/等待）
+  并且 8 名成员全部可见（无 `+N` 折叠）
+  并且 成员条两端不存在黑色/渐变遮罩（不遮挡名字）
+  并且 超宽时可横向滚动或换行
+  # 可观测证据：group-chat-member-strip 子项数=8 且各含 data-member-name 完整文本；无 +N 文本节点；无 mask 元素/无黑色渐隐层；scrollWidth>clientWidth 时仍可滚动查看；截图
+```
+
+### SC52 任务卡默认折叠（F34，线上 22）
+
+```gherkin
+场景 SC52：任务卡默认仅显示关键字段，可展开
+  假定 群聊中有一条任务卡（含描述/硬性要求/验收标准）
+  当我查看
+  那么 默认只显示 目标、任务 ID、状态、负责人、依赖、完成时间
+  并且 描述/硬性要求/验收标准默认隐藏，提供「展开全部」
+  当我点击「展开全部」
+  那么 显示完整描述等字段，链接变「收起」
+  并且 切换会话再返回，展开状态按临时记忆恢复（或按实现说明恢复到默认）
+  # 可观测证据：data-task-collapsed=true；description 节点不可见；点击后 data-task-collapsed=false 且描述可见；卡片高度变化；截图
+```
+
+### SC53 任务卡人物一致（F35，线上 23）
+
+```gherkin
+场景 SC53：任务卡只有 1 个操作者头像，负责人为字段行
+  假定 Lead 改派 task-3 给 ux（actor=Lead，owner=ux）
+  当 群聊出现该任务卡
+  那么 消息头显示 Lead 头像 + 名字（仅 1 处操作者头像）
+  并且 卡内不出现第二个 Lead 头像/名字
+  并且 「负责人」字段行显示 ux 头像 + 名字（与 actor 不同）
+  # 可观测证据：data-sender=lead；页面同 actor 头像计数=1；data-task-owner=ux 且负责人行有头像；卡内无 actor 头像节点；截图
+```
+
+> 场景总数：**SC1–SC53（53 条）**。v0.2–v0.7.1 历史见各版变更记录；v0.8 新增 SC39–SC48；v0.8.1 新增 SC49–SC53（空输出抑制/Markdown 表格/成员全名去遮罩/任务卡默认折叠/任务卡人物一致），并改写 SC42/SC43 的旧口径。
 
 ---
 
@@ -1363,12 +1477,13 @@
 | R3 A 对 B 以 @ 展示；过长收起可看全部 | F3、F4、F5 | SC4、SC5、SC6 |
 | R4 输入框；无 @ 默认 lead；@ 多个同时发送并说明接收者 | F6、F7、F8、F9、F19、F24、F25 | SC7–SC10、SC27–SC30、SC40、SC41 |
 | R5 我的消息 + agent→agent + agent 最终输出 | F2、F3、F10、F14 | SC3、SC13、SC16 |
-| R6 其它群聊惯例逻辑 | F2、F9–F18、F20、F21、F22–F30 | SC11、SC12、SC14、SC18–SC26、SC32–SC48 |
-| 备注：先 Figma 原型确认再实现 | §9 阶段门禁 | 原型演示 F1–F30 主路径（阶段 3 人工确认） |
+| R6 其它群聊惯例逻辑 | F2、F9–F18、F20、F21、F22–F35 | SC11、SC12、SC14、SC18–SC26、SC32–SC53 |
+| 备注：先 Figma 原型确认再实现 | §9 阶段门禁 | 原型演示 F1–F35 主路径（阶段 3 人工确认） |
 
-**反向检查**：R1–R6 每条 ≥1 功能 + ≥1 场景；F1–F30 每条 ≥1 场景；每个场景有可观测证据；无孤立功能。
+**反向检查**：R1–R6 每条 ≥1 功能 + ≥1 场景；F1–F35 每条 ≥1 场景；每个场景有可观测证据；无孤立功能。
 
-**v0.8 变更行**：F22 Markdown、F23 任务卡重设计、F24 单一输入器、F25 @ 交互、F26 成员状态/轨迹侧栏、F27 作用域、F28 降噪/图标、F29 50 行折叠、F30 防重复；受影响旧条目：F5/F6/F7/F8/F16/F20/F21（M4/M6/M9 同步），SC5/SC6/SC32/SC33/SC35 改写；新增 SC39–SC48。
+**v0.8 变更行**：F22–F30（见 v0.8 变更记录）；SC39–SC48。
+**v0.8.1 变更行**：F31 空输出抑制、F32 Markdown 表格、F33 成员条全名/去遮罩、F34 任务卡默认折叠、F35 任务卡人物一致；受影响 F3/F5/F6/F20/F21/F22/F23/F26/F29/F30 与 M3/M9；SC42/SC43 改写，新增 SC49–SC53；§1.6 追加 5 行。
 
 **v0.3 变更行**：F1（未读降级）、F9（四态 + clientBatchId）、F19（canonical 前缀）；SC9/SC10、SC27、SC30。
 **v0.4 变更行**：F3/F4/F5/F6/F14/F18（视觉口径）、SC4/SC15/SC16/SC17/SC25/SC26/SC31（去掉徽标/chip 行/缩进连接线，改名字后缀/状态行/居中分隔/12px 折叠链接）。
@@ -1512,7 +1627,7 @@
 | U13 | `delete` / `release` 在真实日志零出现（1176 条 revision） | 其任务卡的文案/视觉/状态映射未经真实数据验证（F21） | 构造一次 delete/release 走查；无样例时按状态机推导并标 `data-task-action` | task-card-fields §9.1 |
 | U14 | 任务卡时间与操作者 `tool/call.time` 的跨会话时钟一致性未单独验证 | 极端并发下卡片排序可能与动作先后不一致 | 压测同毫秒多成员同时操作；排序用 journal time + sessionRank/seq | task-card-fields §9.2 |
 | U15 | `reassign` 目标成员已 failed 时 `TEAM_MEMBER_NOT_FOUND` 的工具报错未取证 | 该报错是否需要卡片/提示 | 构造目标 failed 的 reassign 实测；v1 先按工具报错提示、不出卡 | task-card-fields §9.5 |
-| U16 | Markdown 渲染器选型与 XSS 边界未验证（宿主是否提供 markdown 组件/是否需自带 sanitizer） | F22/SC39 安全降级 | 首日 spike：用恶意 HTML 样本验证转义；优先复用宿主既有渲染能力 | 本 PRD F22 |
+| U16 | Markdown 渲染器选型与 XSS 边界未验证（宿主是否提供 markdown 组件/是否需自带 sanitizer；含 GFM 表格） | F22/F32/SC39/SC50 安全降级 | 首日 spike：用恶意 HTML 样本验证转义；优先复用宿主既有渲染能力 | 本 PRD F22/F32 |
 | U17 | 轨迹侧栏所需轮次数据在客户端是否可得（`useTrajectory` 或 ownEvents 的 turn 边界/工具计数） | F26/SC42 数据来源 | 读会话语义或 spike 验证；缺失时降级为「最近 N 轮摘要」 | 本 PRD F26/O7 |
 | U18 | 「隐藏宿主 composer」在 DSH 各版本的选择器/结构稳定性未验证 | F24/SC40 跨版本回归 | 冒烟：group-chat 视图内断言仅 1 个 composer；升级 DSH 后回归 | 本 PRD F24/O8 |
 

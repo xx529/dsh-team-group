@@ -251,7 +251,7 @@ function renderComposedState(gc, mode) {
 }
 
 export async function renderPreviewHtml(options = {}) {
-  const bundle = buildBundleSource({ modules: 'none' })
+  const bundle = buildBundleSource()
   const code = bundle.code
   const mounted = mountBundle(code, runtime, {
     search: options.search || '?gc-preview=1',

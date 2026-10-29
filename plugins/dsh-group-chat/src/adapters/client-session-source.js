@@ -315,11 +315,11 @@ export class ClientSessionSource {
   /**
    * UI 便捷（只读）：窗口元信息 + 原始事件（轨迹侧栏可据此缓存/分页）
    * @param {string} [sessionId]
-   * @returns {{sessionId: string, events: any[], entryCount: number, revision: number, hasMore: boolean}}
+   * @returns {{sessionId: string, events: any[], entryCount: number, revision: number, hasMore: boolean, partial: boolean}}
    */
   getWindow(sessionId = this.channelId) {
     const sid = String(sessionId ?? this.channelId ?? '');
-    if (!sid) return { sessionId: '', events: [], entryCount: 0, revision: 0, hasMore: false };
+    if (!sid) return { sessionId: '', events: [], entryCount: 0, revision: 0, hasMore: false, partial: true };
     const stored = this.store.get(sid);
     const win = this._windowOf(sid);
     return {
@@ -328,6 +328,7 @@ export class ClientSessionSource {
       entryCount: win.entries.length,
       revision: Number(stored?.revision ?? win.revision ?? 0),
       hasMore: win.hasMore === true,
+      partial: win.hasMore === true,
     };
   }
 

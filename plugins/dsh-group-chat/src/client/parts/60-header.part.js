@@ -112,14 +112,23 @@ function GcChannelHeader(props) {
             'data-member-id': gcStr(member.sessionId),
             'data-member-state': state,
             'data-action': 'open-trajectory',
-            title: member.name,
-            'aria-label': member.name + ' · ' + t('member.status.' + state),
+            'data-member-name': gcStr(member.name),
+            title: member.name + ' · ' + t('member.status.' + state),
+            'aria-label': t('member.trajectoryAria', { name: member.name, status: t('member.status.' + state) }),
             onClick: function (event) {
               event.preventDefault()
               props.onOpenTrajectory(member)
+            },
+            onFocus: function (event) {
+              try {
+                if (event && event.currentTarget && typeof event.currentTarget.scrollIntoView === 'function') {
+                  event.currentTarget.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+                }
+              } catch {}
             }
           },
-          h(GcAvatar, { name: member.name, kind: member.kind, size: 24 }),
+          h(GcAvatar, { name: member.name, kind: member.kind, size: 26 }),
+          h('span', { className: 'gc-member-name' }, member.name),
           h('span', { className: 'gc-member-status-dot', 'data-state': state, 'aria-hidden': 'true' })
         )
       })
@@ -233,7 +242,7 @@ function GcFilterMenu(props) {
             if (props.onSelect) props.onSelect(member.name)
           }
         },
-        h(GcAvatar, { name: member.name, kind: member.kind, size: 24 }),
+        h(GcAvatar, { name: member.name, kind: member.kind, size: 26 }),
         h(
           'span',
           { className: 'gc-filter-item-main' },

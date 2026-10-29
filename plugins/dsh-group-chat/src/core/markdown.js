@@ -4,14 +4,15 @@
  *
  * 纯函数、零依赖、**无 DOM / Node API / innerHTML**。
  * 支持：段落/换行、粗体 `**x**`、斜体 `*x*`、行内代码 `` `x` ``、围栏代码块 ```lang、
- *       无序/有序列表、链接 `[t](url)`（仅 http/https/mailto）。
- * 不支持：原始 HTML、图片、表格、引用、任务列表、脚注 → **降级为纯文本**（内容不丢、不报错）。
+ *       无序/有序列表、GFM 表格、链接 `[t](url)`（仅 http/https/mailto）。
+ * 不支持：原始 HTML、图片、引用、任务列表、脚注 → **降级为纯文本**（内容不丢、不报错）。
  * 解析异常时整段退回纯文本 `plain:true`。
  *
  * AST：
  *  document { children: MdBlock[] }
  *  inline: text{value} | strong{children} | em{children} | code{value} | link{url,children} | break
  *  block : paragraph{children} | code_block{lang,value} | list{ordered,start?,items} | list_item{children}
+ *          | table{header:{cells,align}, rows:[[{children}]]}（GFM；v1.7.2：单元格 = {children:Inline[]}）
  */
 
 import { LIMITS } from './constants.js';
@@ -83,7 +84,11 @@ const FENCE_RE = /^```([A-Za-z0-9_+.-]*)\s*$/;
 const UL_RE = /^(\s*)([-*+])\s+(.*)$/;
 const OL_RE = /^(\s*)(\d+)[.)]\s+(.*)$/;
 const BLOCKQUOTE_RE = /^\s*>/;
-const TABLE_RE = /^\s*\|/;
+/** 表格上限（v1.7.2 §6.12）：200 行 × 20 列 */
+export const TABLE_MAX_ROWS = 200;
+export const TABLE_MAX_COLS = 20;
+const TABLE_SEP_CELL_RE = /^:?-+:?$/;
+const TABLE_SEP_ROW_RE = /^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$/;
 const HEADING_RE = /^\s{0,3}#{1,6}\s+/;
 const HR_RE = /^\s{0,3}([-*_])(?:\s*\1){2,}\s*$/;
 
@@ -119,8 +124,16 @@ function parseBlocks(lines) {
       continue;
     }
 
-    // 引用/表格/标题/分隔线：不支持 → 纯文本段落（内容不丢）
-    if (BLOCKQUOTE_RE.test(line) || TABLE_RE.test(line) || HEADING_RE.test(line) || HR_RE.test(line)) {
+    // GFM 表格（表头 + 分隔行 + 数据行）；非法表格自然落回段落纯文本
+    const table = tryParseTable(lines, i);
+    if (table) {
+      blocks.push(table.node);
+      i = table.next;
+      continue;
+    }
+
+    // 引用/标题/分隔线：不支持 → 纯文本段落（内容不丢）
+    if (BLOCKQUOTE_RE.test(line) || HEADING_RE.test(line) || HR_RE.test(line)) {
       blocks.push(paragraphFromLines([line]));
       i += 1;
       continue;
@@ -155,12 +168,159 @@ function parseBlocks(lines) {
       if (cur.trim() === '') break;
       if (FENCE_RE.test(cur)) break;
       if (UL_RE.test(cur) || OL_RE.test(cur)) break;
+      if (looksLikeTableStart(lines, i)) break;
       para.push(cur);
       i += 1;
     }
     if (para.length > 0) blocks.push(paragraphFromLines(para));
   }
   return blocks;
+}
+
+/**
+ * 该行能否作为表格起始（表头 + 下一行分隔行）
+ * @param {string[]} lines
+ * @param {number} i
+ * @returns {boolean}
+ */
+function looksLikeTableStart(lines, i) {
+  const header = lines[i];
+  const sep = lines[i + 1];
+  if (typeof header !== 'string' || typeof sep !== 'string') return false;
+  if (!hasUnescapedPipe(header)) return false;
+  if (!TABLE_SEP_ROW_RE.test(sep)) return false;
+  if (countColumns(header) !== countColumns(sep)) return false;
+  return splitTableRow(sep).every((cell) => TABLE_SEP_CELL_RE.test(cell));
+}
+
+/**
+ * @param {string} line
+ * @returns {boolean}
+ */
+function hasUnescapedPipe(line) {
+  const s = String(line);
+  for (let i = 0; i < s.length; i += 1) {
+    if (s[i] === '\\') {
+      i += 1;
+      continue;
+    }
+    if (s[i] === '|') return true;
+  }
+  return false;
+}
+
+/**
+ * 列数（按未转义管道切分；用于表头/分隔行列数对齐校验）
+ * @param {string} line
+ * @returns {number}
+ */
+function countColumns(line) {
+  const s = String(line).trim();
+  let start = s.startsWith('|') ? 1 : 0;
+  let end = s.length;
+  if (end > start && s.endsWith('|') && s[end - 2] !== '\\') end -= 1;
+  let count = 1;
+  let inCode = false;
+  for (let i = start; i < end; i += 1) {
+    const ch = s[i];
+    if (ch === '\\') {
+      i += 1;
+      continue;
+    }
+    if (ch === '`') inCode = !inCode;
+    if (ch === '|' && !inCode) count += 1;
+  }
+  return count;
+}
+
+/**
+ * 切表格行：外层管道可省、`\|` 转义为字面管道、代码 span 内管道不切、单元格 trim
+ * @param {string} line
+ * @returns {string[]}
+ */
+function splitTableRow(line) {
+  const s = String(line).trim();
+  const cells = [];
+  let buf = '';
+  let i = s.startsWith('|') ? 1 : 0;
+  const end = s.endsWith('|') && s[s.length - 2] !== '\\' ? s.length - 1 : s.length;
+  let inCode = false;
+  for (; i < end; i += 1) {
+    const ch = s[i];
+    if (ch === '\\' && s[i + 1] === '|') {
+      buf += '|';
+      i += 1;
+      continue;
+    }
+    if (ch === '`') inCode = !inCode;
+    if (ch === '|' && !inCode) {
+      cells.push(buf.trim());
+      buf = '';
+      continue;
+    }
+    buf += ch;
+  }
+  cells.push(buf.trim());
+  return cells;
+}
+
+/**
+ * 解析对齐行 → ['left'|'center'|'right'|null]
+ * @param {string[]} sepCells
+ * @returns {Array<'left'|'center'|'right'|null>}
+ */
+function parseTableAlign(sepCells) {
+  return sepCells.map((cell) => {
+    const c = cell.trim();
+    const left = c.startsWith(':');
+    const right = c.endsWith(':');
+    if (left && right) return 'center';
+    if (left) return 'left';
+    if (right) return 'right';
+    return null;
+  });
+}
+
+/**
+ * GFM 表格解析（合法才返回；非法 → null，调用方按段落纯文本降级）
+ * @param {string[]} lines
+ * @param {number} i
+ * @returns {{node: MdNode, next: number}|null}
+ */
+function tryParseTable(lines, i) {
+  if (!looksLikeTableStart(lines, i)) return null;
+  const rawHeader = splitTableRow(lines[i]);
+  const rawSep = splitTableRow(lines[i + 1]);
+  if (rawHeader.length === 0 || rawHeader.length !== rawSep.length) return null;
+  const cols = Math.min(rawHeader.length, TABLE_MAX_COLS);
+  const align = parseTableAlign(rawSep).slice(0, cols);
+  let truncated = rawHeader.length > TABLE_MAX_COLS;
+
+  /** @type {Array<{children: MdNode[]}>} */
+  const header = rawHeader.slice(0, cols).map((cell) => ({ children: parseInline(cell) }));
+  /** @type {Array<Array<{children: MdNode[]}>>} */
+  const rows = [];
+  let j = i + 2;
+  let seenRows = 0;
+  while (j < lines.length) {
+    const line = lines[j];
+    if (line.trim() === '') break;
+    if (FENCE_RE.test(line) || UL_RE.test(line) || OL_RE.test(line)) break;
+    if (!hasUnescapedPipe(line)) break;
+    if (seenRows >= TABLE_MAX_ROWS) {
+      truncated = true;
+      j += 1;
+      continue;
+    }
+    const cells = splitTableRow(line);
+    /** @type {Array<{children: MdNode[]}>} */
+    const rowCells = [];
+    for (let c = 0; c < cols; c += 1) rowCells.push({ children: parseInline(cells[c] ?? '') });
+    rows.push(rowCells);
+    seenRows += 1;
+    j += 1;
+  }
+  return { node: { type: 'table', header: { cells: header, align }, rows, ...(truncated ? { truncated: true } : {}) }, next: j };
 }
 
 /**
@@ -309,6 +469,13 @@ function astToPlainText(node) {
       return String(node.value ?? '');
     case 'list':
       return (node.items ?? []).map(astToPlainText).join('\n');
+    case 'table': {
+      const headerCells = node.header?.cells ?? [];
+      const lines = [headerCells, ...(node.rows ?? [])].map((cells) =>
+        (cells ?? []).map((cell) => astToPlainText(cell?.children ?? cell).trim()).join(' | '),
+      );
+      return lines.join('\n');
+    }
     case 'list_item':
       return (node.children ?? []).map(astToPlainText).join('\n');
     default:

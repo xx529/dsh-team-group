@@ -86,16 +86,16 @@ UI 只消费架构 §4.1 的 `ChannelSnapshot` / `ChannelMessage` 字段，不�
 ## 5. 已实现的行为（PRD v0.8 F1–F30 / SC1–SC48 · 架构 v1.7.1 · Figma v4.1）
 
 - 频道头（`min-height 56px` 自适应两行：群头像 2×2 + 群聊 + 团队名 + 状态行 `{n} 名成员 · {m} 工作中 · {k} 等待` + **成员条（全部成员、禁止 +N）** + 筛选按钮 + 新消息提示 + 截断提示）
-- 消息流：居中时间分隔（日期变化或 ≥5 分钟）、SenderLine、自适应气泡、BubbleCaption、
+- 消息流：居中时间分隔（日期变化或 ≥5 分钟）、SenderLine、自适应气泡、BubbleCaption；**空文本 agent 消息不渲染**（无空气泡/操作图标，F31）、**纯工具轮次的 delivery 工具摘要也按用户要求有意抑制**（不显示「N 个工具调用」，非缺陷；工具过程仅可在轨迹侧栏查看）、
   居中系统提示、**居中欢迎提示（11.5px label-tertiary）**、M5 文件行、subagent 名字后缀「· 父名 的子体」；
   **M6 工具摘要行已作废**（工具过程只在轨迹侧栏查看）
-- **Markdown 安全子集渲染**：气泡正文走 `core/markdown` 受控 AST（粗体/斜体/行内码/围栏代码块[语言标签]/有序无序列表/安全链接/段落换行），`data-md="rich|plain"`、`.gc-md-*`；**禁止 innerHTML**；链接仅 `http/https/mailto`（渲染端二次 `isSafeUrl` 防御），其它 scheme 降级纯文本；解析异常整段纯文本，内容不丢
+- **Markdown 安全子集渲染**：气泡正文走 `core/markdown` 受控 AST（粗体/斜体/行内码/围栏代码块[语言标签]/有序无序列表/**GFM 表格**/安全链接/段落换行），`data-md="rich|plain"`、`.gc-md-*`；表格 `table[data-md-table]`（thead/tbody/th/td、align、边框/表头底色/斑马纹/横向滚动，非法表格降级段落）；**禁止 innerHTML**；链接仅 `http/https/mailto`（渲染端二次 `isSafeUrl` 防御），其它 scheme 降级纯文本；解析异常整段纯文本，内容不丢
 - 卡片消息：入群消息（creator SenderLine + 成员卡：标题/描述/模型/上下文/创建方式/父成员/初始任务折叠/查看会话/查看任务）
   与**任务卡 v5**（独立卡片：左侧 3px 状态色条 + 任务图标 + 动作标签 + 状态 pill + task id + subject + 描述折叠 + 负责人头像/依赖/完成时间；**无「复制任务 ID」**；正常与紧凑版**都渲染操作者头像**）
 - 折叠：默认展示**前 50 行**（1100px）+ 56px 渐隐遮罩 + 12px 文本链「显示前 50 行 · 展开全部（共 N 行）/收起」；系统/欢迎/同发说明/卡片不折叠；展开锚点稳定
 - **单一输入器**：视图激活期隐藏宿主 composer（`body.gc-view-group-chat` + `[data-conversation-region="composer"]`/`[data-composer-seat]`）；2×rAF 自检失败自动降级为「兼容模式」提示并恢复宿主输入器（不丢消息）；Enter 发送 / Shift+Enter 换行 / IME 组合期不发送；发送后清空不回填
 - `@` 交互：**仅键入 `@` 触发**；380px 实底浮层贴输入卡上沿（↑↓/Enter/Tab/Esc、IME 不拦截）；条目 = 头像 + 名字 + **角色描述**（不显示运行状态）；**chips 在输入框下方**（默认 `@Lead` business 实底白字、mention chip business-tertiary 底、整块删除）
-- 成员条 + 轨迹侧栏：频道头 **全部成员**（禁止 +N；换行优先、超宽横向滚动 + 两端 16px 渐隐；头像 26/24/22 响应式；绿=工作中/灰=等待；768 也全显）；点头像开右侧 380px `agent-trajectory-panel`（窄屏全屏，`role=dialog aria-modal`），轮次来自 `core/turns.aggregateTurns(source.getEvents(sessionId))`（最新在前、状态/摘要/工具数），Esc/遮罩/× 关闭并还原焦点
+- 成员条 + 轨迹侧栏：频道头 **全部成员**（禁止 +N；每项 = 26px 头像（CSS/JS 统一，窄屏 24/22）+ **完整名字 12px** + 状态点；**换行优先**（可两行，row-gap 4，头部 `height:auto; min-height:56` 随行数增长），**无 overflow-x 横向滚动、无 mask 渐隐、不裁切首尾**；绿=工作中/灰=等待；768 也全显）；点头像开右侧 380px `agent-trajectory-panel`（窄屏全屏，`role=dialog aria-modal`），轮次来自 `core/turns.aggregateTurns(source.getEvents(sessionId))`（最新在前、状态/摘要/工具数），Esc/遮罩/× 关闭并还原焦点
 - 发送：一条乐观气泡 + 四态（sending/sent/partial/failed）+ 「已同时发送给 …」+ 「已送达 X/Y · 失败：…」+ 重试/复制；**本地 echo 在权威消息到达时由 UI 替换（clientBatchId / meta.rpcId → 删除 `local:<batchId>`），同一次发送始终 1 条气泡**
 - 未读：仅视图内表达（频道头「N 条新消息」+ 消息区「↓ N 条新消息」浮标），tab 无装饰
 - 状态：首次加载骨架、无团队空态（输入可用）、无消息空态、加载失败/断线横幅、只读历史（输入 40% 禁用）
