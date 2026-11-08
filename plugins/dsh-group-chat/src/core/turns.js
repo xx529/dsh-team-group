@@ -100,11 +100,12 @@ export function aggregateTurns(events, options = {}) {
     if (!event || typeof event.type !== 'string') continue;
     raw.push(event);
   }
-  // seeded/fork cutoff：显式传入优先，否则取 session/end-seed 的最大 seq
+  // seeded/fork cutoff：显式传入优先，否则取「fork 种子」session/end-seed（data.inherited === true）的最大 seq。
+  // 普通 end-seed 是同一会话恢复/续写的边界，不是父会话继承前缀，不能当 cutoff（否则重开会话后轮次全丢）。
   let cutoff = Number.isFinite(options.cutoffSeq) ? Number(options.cutoffSeq) : -1;
   if (!Number.isFinite(options.cutoffSeq)) {
     for (const e of raw) {
-      if (e.type === 'session/end-seed' && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
+      if (e.type === 'session/end-seed' && e.data && e.data.inherited === true && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
     }
   }
 

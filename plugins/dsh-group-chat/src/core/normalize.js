@@ -181,8 +181,14 @@ export function collectSession(session) {
   const header = session.header ?? {};
   let cutoff = typeof session.cutoff === 'number' ? session.cutoff : -1;
   // fork/seed：客户端没有 ownEvents() → 用 session/end-seed 的 seq 作继承边界（§4.3.3 ②）
+  //
+  // 只认 fork 种子标记 `data.inherited === true`。DSH 0.2.x 在「恢复/继续同一会话」时也会在
+  // 持久化日志尾部追加一个普通 `session/end-seed`（data 为 {}），它是同一会话的续写边界，
+  // 不是来自父会话的继承前缀；若把它当 cutoff，冷启动/重开后的历史会被整段丢弃（群聊空态）。
   for (const e of events) {
-    if (e && e.type === EVENT_TYPES.endSeed && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
+    if (e && e.type === EVENT_TYPES.endSeed && e.data && e.data.inherited === true && typeof e.seq === 'number' && e.seq > cutoff) {
+      cutoff = e.seq;
+    }
   }
   /** @type {SessionScan} */
   const scan = {

@@ -22,8 +22,8 @@ window.__ModuleLoader__.load({
     var __GC_BUILD = {
   "id": "@local/dsh-group-chat",
   "version": "0.1.0",
-  "hash": "4f076e5111d2",
-  "build": "0.1.0+4f076e5111d2",
+  "hash": "fbbb20ff471e",
+  "build": "0.1.0+fbbb20ff471e",
   "modules": [
     "src/adapters/client-session-source.js",
     "src/adapters/index.js",
@@ -347,6 +347,10 @@ class ClientSessionSource {
     this.listeners.add(onChange);
     this._ensureRetained(this.channelId);
     for (const [sessionId, ref] of this.refs) this._subscribeWindow(sessionId, ref);
+    // 0.2.2：follow 的首个 snapshot 可能为空，会话激活后的完整窗口稍后以 replace 帧到达；
+    // 该通知可能早于 UI 订阅（source.open() resolve 与 subscribe() 之间）。订阅后主动补一次
+    // append，让新订阅者立即按当前窗口 sync，避免停在空态。
+    this._schedule('append');
     return () => {
       this.listeners.delete(onChange);
     };
@@ -3417,8 +3421,14 @@ function collectSession(session) {
   const header = session.header ?? {};
   let cutoff = typeof session.cutoff === 'number' ? session.cutoff : -1;
   // fork/seed：客户端没有 ownEvents() → 用 session/end-seed 的 seq 作继承边界（§4.3.3 ②）
+  //
+  // 只认 fork 种子标记 `data.inherited === true`。DSH 0.2.x 在「恢复/继续同一会话」时也会在
+  // 持久化日志尾部追加一个普通 `session/end-seed`（data 为 {}），它是同一会话的续写边界，
+  // 不是来自父会话的继承前缀；若把它当 cutoff，冷启动/重开后的历史会被整段丢弃（群聊空态）。
   for (const e of events) {
-    if (e && e.type === EVENT_TYPES.endSeed && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
+    if (e && e.type === EVENT_TYPES.endSeed && e.data && e.data.inherited === true && typeof e.seq === 'number' && e.seq > cutoff) {
+      cutoff = e.seq;
+    }
   }
   /** @type {SessionScan} */
   const scan = {
@@ -6252,11 +6262,12 @@ function aggregateTurns(events, options = {}) {
     if (!event || typeof event.type !== 'string') continue;
     raw.push(event);
   }
-  // seeded/fork cutoff：显式传入优先，否则取 session/end-seed 的最大 seq
+  // seeded/fork cutoff：显式传入优先，否则取「fork 种子」session/end-seed（data.inherited === true）的最大 seq。
+  // 普通 end-seed 是同一会话恢复/续写的边界，不是父会话继承前缀，不能当 cutoff（否则重开会话后轮次全丢）。
   let cutoff = Number.isFinite(options.cutoffSeq) ? Number(options.cutoffSeq) : -1;
   if (!Number.isFinite(options.cutoffSeq)) {
     for (const e of raw) {
-      if (e.type === 'session/end-seed' && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
+      if (e.type === 'session/end-seed' && e.data && e.data.inherited === true && typeof e.seq === 'number' && e.seq > cutoff) cutoff = e.seq;
     }
   }
 

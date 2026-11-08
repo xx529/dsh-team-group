@@ -411,7 +411,7 @@ dsh-context/
       ],
       "platform": "web"
     },
-    "compatibility": { "dshReleases": { "0.2.0-rc.2": "compatible", "0.2.1-rc.2": "compatible" } }
+    "compatibility": { "dshReleases": { "0.2.0-rc.2": "compatible", "0.2.1-rc.2": "compatible", "0.2.2-rc.1": "compatible" } }
   },
   "peerDependencies": { "@deepseek-ai/cordis": "^4.0.4" }
 }

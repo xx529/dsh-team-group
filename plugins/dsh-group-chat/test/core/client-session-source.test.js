@@ -336,3 +336,35 @@ test('cold-start 降级：ready reject / 超时都不崩，返回可用空页', 
   assert.deepEqual(timed.messages, []);
   source2.close();
 });
+
+test('0.2.2 适配：open 时窗口为空、随后 replace 到达；subscribe 后自动补一次通知并 sync 出历史', async () => {
+  // DSH 0.2.2 的 follow 带 activate:true：普通会话先回空 snapshot，激活后的完整窗口
+  // 以第二个 replace 帧到达，且可能早于 UI 订阅（open() resolve 与 subscribe() 之间）。
+  const host = createReplaySessionHost([{ sessionId: 'lead', header: { id: 'lead' }, events: [] }]);
+  const source = createClientSessionSource({ ctx: { sessions: host }, channelId: 'lead', sessionId: 'lead' });
+  const page = await source.open('lead');
+  assert.equal(page.messages.length, 0, 'open 时窗口为空');
+  host.setEvents('lead', [
+    ev('turn/start', 1, T, { turn: 1 }),
+    ev('user/message', 2, T + 1, {
+      id: 'msg-late',
+      role: 'user',
+      content: [{ type: 'text', text: '晚到的历史' }],
+      source: { kind: 'user', rpcId: 'rpc-late' },
+    }),
+    ev('assistant/message', 3, T + 2, {
+      turn: 1,
+      step: 1,
+      message: { role: 'assistant', content: [{ type: 'text', text: '晚到的回答' }] },
+    }),
+    ev('turn/end', 4, T + 3, { turn: 1, reason: { kind: 'completed' } }),
+  ]);
+  const kinds = [];
+  source.subscribe((kind) => kinds.push(kind));
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.deepEqual(kinds, ['append'], '订阅后主动补一次 append，UI 立即按当前窗口 sync');
+  const synced = await source.sync(page.cursor);
+  assert.ok(synced.messages.some((m) => m.text === '晚到的历史'), 'sync 返回晚到窗口里的历史');
+  source.close();
+});

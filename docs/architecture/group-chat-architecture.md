@@ -2,9 +2,9 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 文档版本 | **v1.7.3**（v1.7.2 + **成员条改回换行优先**：多行、头部自适应；超宽才横向滚动；修复 1280 下两端名字被裁切；数据/发送契约不变） |
+| 文档版本 | **v1.7.4**（v1.7.3 + **DSH 0.2.2-rc.1 适配**：end-seed 只认 `data.inherited:true` 作继承 cutoff；窗口延迟时订阅后补通知；数据/发送契约不变） |
 | 作者 | architect（Agent Team teammate） |
-| 任务 | task-6（v1.0）→ task-9（v1.1）→ task-17（v1.2 气泡流）→ task-23（v1.3 成员卡）→ task-30（v1.4 creator 消息 + 欢迎提示）→ task-35（v1.5 四项裁决 + DOM 契约冻结）→ task-45（v1.6 任务卡片消息）→ task-49（v1.6.1 视觉修正）→ task-77（v1.7 F22–F30 实现契约）→ task-86（v1.7.1 成员条全显修订）→ task-97（v1.7.2 线上 5 问题）→ task-102 收尾（v1.7.3 成员条换行） |
+| 任务 | task-6（v1.0）→ task-9（v1.1）→ task-17（v1.2 气泡流）→ task-23（v1.3 成员卡）→ task-30（v1.4 creator 消息 + 欢迎提示）→ task-35（v1.5 四项裁决 + DOM 契约冻结）→ task-45（v1.6 任务卡片消息）→ task-49（v1.6.1 视觉修正）→ task-77（v1.7 F22–F30 实现契约）→ task-86（v1.7.1 成员条全显修订）→ task-97（v1.7.2 线上 5 问题）→ task-102 收尾（v1.7.3 成员条换行）→ 2026-11-08（v1.7.4 DSH 0.2.2-rc.1 适配） |
 | 阶段 | 阶段 2–3 之间：**只做设计，不写生产代码**；代码实现以用户确认 Figma 原型为门禁（PRD §9） |
 | 上游输入 | `docs/research/api-feasibility.md`（624 行，简称 **API**）<br>`docs/research/event-model.md`（658 行，简称 **EVT**）<br>`docs/research/member-card-fields.md`（**341 行**，task-20 成员卡片字段取证，简称 **MCF**）<br>`docs/research/task-card-fields.md`（**399 行**，task-42 任务卡字段/操作者/动作取证，简称 **TCF**）<br>`docs/specs/group-chat-prd.md` **v0.8**（1537 行，F22–F30/SC39–SC48；**PRD v0.8.1 的 F31–F35 尚未落盘**，本版 F31–F35 契约先按用户 5 个线上问题冻结，待 pm 补 PRD 后对齐 SC49–SC53，简称 **PRD**）<br>`docs/ux/group-chat-ux.md` **v4.1**（468 行，简称 **UX**；v4.2 将补 F31–F35）<br>`docs/ux/prototype.md`（347 行）+ `docs/ux/prototype/01-tabs.png … 14-agent-trajectory.png`（Figma 实际帧：**P12 v5 `51:2099`**、P2 `49:1765`、P3 `51:2325`、P4 `50:1934`、P13 `50:1972`；v4.2 导出待 ux 更新）<br>`tests/design/test-plan.md` §13（tester DOM 契约建议）+ `tests/design/prototype-review.md`<br>Figma 文档 `team-group` · Page `0:1`（**当前帧**：P1 `16:151` / P2 `49:1765` / P3 `51:2325` / P4 `50:1934` / P5 `17:436` / P6 `17:528` / P7 `10:1411` / P8 `17:703` / P9 `17:790` / P10 `21:954` / P11 `25:1221` / **P12 `51:2099`（v5）** / P13 `50:1972` / F0 `25:1170`，令牌板 `10:78`，组件库 `10:197`；旧帧已删除） |
 | 下游消费者 | frontend / backend（实现拆分 §9）、tester（验收 §8.6）、Lead（决策记录见顶部） |
@@ -12,6 +12,17 @@
 | 写作用域 | 仅写 `docs/architecture/**`；未安装插件、未改配置、未写生产代码、未对 Figma 做写操作 |
 
 ---
+
+## 决策记录 v1.7.4（DSH 0.2.2-rc.1 适配：end-seed 语义 + 激活后窗口延迟）
+
+- 触发：DSH Desktop 升级到 **0.2.2-rc.1**（2026-11-08）。按内置包 asar 对比（0.2.1-rc.3 vs 0.2.2-rc.1）与真机验证结果，本插件在 0.2.2 出现两类问题，均已修复并回归：
+  1. **`session/end-seed` 语义混淆（空 feed）**：0.2.2 的 `follow` 增加 `activate: true`，普通会话被 resume/续写时会在日志尾部追加 `session/end-seed`（`data: {}`），它不是父会话继承前缀。旧逻辑把所有 `session/end-seed` 都当 cutoff，把本会话历史整段丢弃 → 冷会话/重开会话群聊显示「团队还没有发言」。
+     **新契约**：只有 **fork 种子标记 `data.inherited === true`**（`dsh-session` 的 `buildForkSeed()` 唯一写法）才是继承边界；普通 `session/end-seed`（`data: {}`）是同一会话的续写边界，**不产生 cutoff**。`normalize.js` 与 `turns.js` 两处同步修改。
+  2. **激活后的窗口延迟（空 feed）**：0.2.2 的 `retain().ready` 早于完整事件窗口就绪；空窗口 + 会话激活后的完整窗口以第二个 `replace` 帧稍后到达，且可能早于 UI 订阅（`open()` resolve 与 `subscribe()` 之间），通知丢失后 feed 停在空态。
+     **新契约**：`ClientSessionSource.subscribe()` 注册监听后立即 `_schedule('append')` 补一次通知；UI 收到后按当前窗口 `sync()`，晚到历史不再丢失。
+- 兼容性结论（0.2.1-rc.3 / 0.2.2-rc.1 双版本 asar 对比）：`conversation.view` slot 契约（registerOptions/ownerProps）不变（standardProps 仅新增 `useContextMenu`，插件不依赖）；`ISessions` / `SessionBinding` / `SessionEventSource` / `SessionEventWindow` / `SessionListState` / `SessionSnapshot` / `prompt()` 签名不变；`agentTeam` wire projection schema 逐字节相同；locale `register/getSnapshot` 不变；`window.__ModuleLoader__.load({id,factory})` 与 `dsh.client` 声明不变；主题 token 无删除（仅新增 illustration/violet 等）；宿主 composer 标记 `[data-conversation-region="composer"]` / `[data-composer-seat]` 与 `viewArea` 类名保留。
+- 未覆盖：**真机端到端发送**（测试环境无模型 API Key；`prompt()` 签名不变，且插件走本地 echo + `requestId` 去重，不依赖 0.2.2 的 accept-gated `pendingSubmissions`），多目标同发仍由单测覆盖。
+- 证据：`tests/runs/2026-11-08-dsh-022-compat.md`、`tests/artifacts/dsh022-groupchat-history.png`、`test/core/end-seed.test.js`、`test/core/client-session-source.test.js`（0.2.2 适配用例）。
 
 ## 决策记录 v1.7.3（成员条改回换行优先 · 用户要求优先）
 
@@ -449,7 +460,7 @@ plugins/dsh-group-chat/
         "@deepseek-ai/dsh-client-ui-conversation"
       ]
     },
-    "compatibility": { "dshReleases": { "0.2.0-rc.2": "compatible", "0.2.1-rc.2": "compatible" } }
+    "compatibility": { "dshReleases": { "0.2.0-rc.2": "compatible", "0.2.1-rc.2": "compatible", "0.2.2-rc.1": "compatible" } }
   },
   "peerDependencies": { "@deepseek-ai/cordis": "^4.0.4" }
 }
@@ -843,9 +854,11 @@ order(m):
 ① 同会话双写：agent/inbox/spliced.inserted[i].id 与 user/message.data.id 相同 → 只保留 user/message，
    把 spliced 的 target/投递时间并入 meta。（EVT 实测：spliced-only = 0）
 ② fork/seed：会话头 isSeeded:true 时，继承前缀事件原样复制（同 id/seq/time）。
-   client 侧无 Session.ownEvents()，改用窗口内「session/end-seed」事件 seq 作为继承边界：
-     cutoff = max(seq of 'session/end-seed')  // 找不到则 0
+   client 侧无 Session.ownEvents()，改用窗口内「fork 种子」`session/end-seed`（data.inherited === true）的 seq 作为继承边界：
+     cutoff = max(seq of 'session/end-seed' where data.inherited === true)  // 找不到则 0
      丢弃 seq <= cutoff 的事件；并按消息 id 全局去重兜底。
+   ⚠️ 语义边界（v1.7.4 / DSH 0.2.x）：resume/续写同一会话时追加的普通 `session/end-seed`（data 为 {}）
+   是同一会话的续写边界，**不得**当 cutoff；否则重开/冷启动后的历史整段消失。
 ③ 通知副本：subagent-settled 的 closing message == 子会话 agent_output 文本 → 保留子会话那条；
    send_message 接收侧副本 == 发送侧 tool/call 参数 → 不产消息（只作为投递证据）；
    team/message/queued（旧构建）→ 作为权威账本补 senderName/messageId，不额外产消息。
@@ -2447,6 +2460,7 @@ PY
 | **v1.7.1** | 2026-10-29 | **成员条全显修订（用户要求优先）**：§6.15.1 由「最多 5 + `+N`」改为**全部成员、禁止 `+N`**；换行优先（头部 68→98），>32 横向滚动 + 两端 16px 渐隐；头像响应式 26/24/22（同步 UX v4.1 §4.5）；§6.2/§6.7.2/§6.5.2/§8.4/F3/E40/SC42 同步；新增决策记录 v1.7.1 | §6 / §8 |
 | **v1.7.2** | 2026-10-29 | **线上 5 问题（F31–F35）**：① §4.2/§4.2.3 F31 空 agent 输出过滤（trim 空且无附件 → 无 agent_output/空中断提示；turn/工具数不受影响）；② §6.12 F32 GFM 表格 AST/DOM/安全/上限/折叠计数；③ §6.15.1 F33 成员条全名（头像+全名+状态点，删除 mask/渐隐，单行横向滚动隐藏滚动条）；④ §6.18 F34 任务卡默认折叠字段 + 展开按钮/aria/非持久化；⑤ §6.18 F35 人物一致（外层 sender=actor、avatar 全卡唯一、owner 行文字+可选标签、无 owner 头像）；⑥ §6.5.2 DOM 扩展 table/member-name/task-expanded/expand-task、删除 owner avatar；M6 工具摘要行按用户裁决不渲染；⑦ §8 SC49–SC53/E47–E51；⑧ §11 RK16–RK21；⑨ §12.2 P12 `51:2099`/P2 `49:1765`（v4.2 待重导） | 实现以 v1.7.2 为准；PRD v0.8.1/UX v4.2 待落盘后对齐编号 |
 | **v1.7.3** | 2026-10-29 | **成员条换行优先修订（用户要求/Lead 裁决）**：§6.15.1 由 v1.7.2「单行横向滚动」改为**换行优先（flex-wrap 多行、头部自适应 68+26+4/行，禁用 mask/渐隐与单行裁切）**；仅极端超宽（>32/768 极窄）才横向滚动；§6.2/§6.7.2/§6.5.2/§8.4/E49/SC51/F3/RK18 同步；新增决策记录 v1.7.3 | §6 / §8 |
+| **v1.7.4** | 2026-11-08 | **DSH 0.2.2-rc.1 适配**：① §4.3.3 ② fork cutoff 只认 `session/end-seed`（`data.inherited === true`），普通 resume 续写标记（`data:{}`）不再隐藏历史（normalize + turns 双路径）；② `ClientSessionSource.subscribe()` 注册后补一次 append 通知，覆盖 0.2.2「activate 后完整窗口以第二个 replace 帧晚到」的时序；③ `dsh.compatibility.dshReleases` 补 `0.2.2-rc.1`；④ 真机隔离 profile 复验（历史/成员条/任务卡/轨迹）；新增决策记录 v1.7.4 | §4.3.3 / §3.5 / §11 |
 
 
 

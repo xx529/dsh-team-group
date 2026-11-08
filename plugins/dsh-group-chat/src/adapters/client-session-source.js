@@ -238,6 +238,10 @@ export class ClientSessionSource {
     this.listeners.add(onChange);
     this._ensureRetained(this.channelId);
     for (const [sessionId, ref] of this.refs) this._subscribeWindow(sessionId, ref);
+    // 0.2.2：follow 的首个 snapshot 可能为空，会话激活后的完整窗口稍后以 replace 帧到达；
+    // 该通知可能早于 UI 订阅（source.open() resolve 与 subscribe() 之间）。订阅后主动补一次
+    // append，让新订阅者立即按当前窗口 sync，避免停在空态。
+    this._schedule('append');
     return () => {
       this.listeners.delete(onChange);
     };
