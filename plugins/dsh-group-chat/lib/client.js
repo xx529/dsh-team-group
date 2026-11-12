@@ -22,8 +22,8 @@ window.__ModuleLoader__.load({
     var __GC_BUILD = {
   "id": "@local/dsh-group-chat",
   "version": "0.1.0",
-  "hash": "fbbb20ff471e",
-  "build": "0.1.0+fbbb20ff471e",
+  "hash": "c59927edca90",
+  "build": "0.1.0+c59927edca90",
   "modules": [
     "src/adapters/client-session-source.js",
     "src/adapters/index.js",
@@ -3580,6 +3580,9 @@ function collectSession(session) {
           scan.catalogs.push({
             childId,
             label: typeof data.label === 'string' ? data.label : undefined,
+            // DSH 0.2.2-rc.2 的 catalog v3 新增 name（父会话内唯一的 agent 名）：
+            // 成员条/发送 @ 用短名，label 仅作角色描述（F33/F25）。
+            name: typeof data.name === 'string' && data.name !== '' ? data.name : undefined,
             mode: data.mode,
             childCreatedAt: Number(data.childCreatedAt ?? e.time ?? 0),
             time: Number(e.time ?? 0),
@@ -5584,7 +5587,7 @@ function deriveRoster(sources) {
   }
 
   // subagent：catalog 为主（可自 member 会话递归），sessions.list 的 parentSessionId 补漏
-  /** @type {Array<{childId:string,label?:string,mode?:string,createdAt:number,parentSessionId:string}>} */
+  /** @type {Array<{childId:string,label?:string,name?:string,mode?:string,createdAt:number,parentSessionId:string}>} */
   const subCandidates = [];
   for (const c of Array.isArray(sources.catalogEntries) ? sources.catalogEntries : []) {
     if (!c) continue;
@@ -5594,6 +5597,8 @@ function deriveRoster(sources) {
     subCandidates.push({
       childId,
       label: c.label,
+      // DSH 0.2.2-rc.2：catalog v3 的 name 是父会话内唯一短名（成员条/`@` 使用）。
+      name: typeof c.name === 'string' && c.name.trim() !== '' ? c.name.trim() : undefined,
       mode: c.mode,
       createdAt: Number(c.childCreatedAt ?? c.createdAt ?? 0),
       parentSessionId,
@@ -5611,6 +5616,7 @@ function deriveRoster(sources) {
     subCandidates.push({
       childId: sid,
       label: s.subagent?.label ?? s.label,
+      name: typeof s.subagent?.name === 'string' && s.subagent.name.trim() !== '' ? s.subagent.name.trim() : undefined,
       mode: s.subagent?.mode ?? s.mode,
       createdAt: Number(s.createdAt ?? s.subagent?.createdAt ?? 0),
       parentSessionId: parentId,
@@ -5646,8 +5652,9 @@ function deriveRoster(sources) {
     const desc = sources.descriptors?.[cand.childId];
     const status = deriveSubagentStatus(cand, sources);
     const label = cand.label ?? desc?.label;
-    const name = label ? shortenLabel(label) : MEMBER_FALLBACK_NAME;
-    const displayName = `${label ? shortenLabel(label) : MEMBER_FALLBACK_NAME} · ${cand.parent.displayName} 的子体`;
+    // DSH 0.2.2-rc.2：catalog v3 的 name 优先（短名/`@` 可读）；历史记录无 name 时退回 label。
+    const name = cand.name || (label ? shortenLabel(label) : MEMBER_FALLBACK_NAME);
+    const displayName = `${name} · ${cand.parent.displayName} 的子体`;
     const member = {
       sessionId: cand.childId,
       name,
@@ -8723,6 +8730,15 @@ function gcStr(value) {
   return String(value)
 }
 
+/** 名字是否只是 sessionId 的截断（禁止把 id 当显示名；与 core/normalize 同名规则）。 */
+function gcIdLikeName(name, sessionId) {
+  const n = gcStr(name).trim()
+  if (!n) return true
+  if (sessionId && n === String(sessionId)) return true
+  if (sessionId && n.length >= 6 && String(sessionId).startsWith(n)) return true
+  return /^[0-9a-f]{8,}$/i.test(n)
+}
+
 /* ── 本地发送批次注册表（F-07：本地 echo 与权威消息去重） ───────────────
  * core 的 normalize 用 `ctx.localBatches[clientBatchId]` 通过 rpcId/targets/sessionIds
  * 反查批次，并给权威 user 消息打上 clientBatchId；这里维护一个**活对象**（引用共享），
@@ -9756,24 +9772,62 @@ function gcNormalizeRosterStatus(raw) {
   }
 }
 
-/** `values.agentTeam` 可能是 `{members:[...]}` 或数组。 */
-function gcRosterMembersFrom(agentTeam) {
-  if (!agentTeam) return []
-  if (Array.isArray(agentTeam)) return agentTeam
-  if (Array.isArray(agentTeam.members)) return agentTeam.members
-  return []
+/**
+ * `values.agentTeam` 可能是 `{members:[...]}` 或数组。
+ * DSH 0.2.2-rc.2 起 Agent Teams 的成员目录迁到 `values.subagentCatalog`（agentTeam 仅剩任务板），
+ * 这里把两种来源合成同一 authority 名册：team 成员在前，catalog 独有条目以 `kind:'subagent'` 补入。
+ * @param {any} agentTeam
+ * @param {any[]} [subagentCatalog] `projectionsBySession[lead].values.subagentCatalog`
+ * @param {string} [leadSessionId] catalog 条目的父会话（catalog 投影挂在 lead 上）
+ */
+function gcRosterMembersFrom(agentTeam, subagentCatalog, leadSessionId) {
+  let fromTeam = []
+  if (Array.isArray(agentTeam)) fromTeam = agentTeam
+  else if (agentTeam && Array.isArray(agentTeam.members)) fromTeam = agentTeam.members
+  const fromCatalog = Array.isArray(subagentCatalog) ? subagentCatalog : []
+  if (fromCatalog.length === 0) return fromTeam
+
+  const merged = fromTeam.slice()
+  const seen = new Set()
+  for (let i = 0; i < fromTeam.length; i += 1) {
+    const raw = fromTeam[i]
+    const id = gcStr(raw && (raw.id || raw.sessionId || raw.target))
+    if (id) seen.add(id)
+  }
+  for (let i = 0; i < fromCatalog.length; i += 1) {
+    const entry = fromCatalog[i]
+    if (!entry) continue
+    const id = gcStr(entry.id || entry.sessionId)
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    merged.push({
+      id: id,
+      // catalog v3 的 name 是成员短名；label 是创建描述（角色小字），不可取而代之。
+      name: gcStr(entry.name) || gcStr(entry.label) || id,
+      role: 'subagent',
+      kind: 'subagent',
+      parentSessionId: leadSessionId || undefined,
+      mode: gcStr(entry.mode) || undefined,
+      description: gcStr(entry.label) || undefined
+    })
+  }
+  return merged
 }
 
 /**
- * 用 `agentTeam` 投影修正频道成员状态与 running 数（事件名册会把 active 的 teammate 高估为 running）。
- * 只改 status/model/description，不删成员（subagent 仍由适配器从事件/目录补充）。
+ * 用 authority 投影修正频道成员目录、状态与 running 数。
+ *  - rc1：`values.agentTeam.members`（teammate 相位 / 名字 / 状态）；
+ *  - rc2：`values.subagentCatalog`（Agent Teams 成员转为 continuable subagent；agentTeam 只剩任务板）。
+ * 只改/补成员，不删事件名册成员；状态优先投影，其次 `sessions.list.byId` 的 running。
  * @param {object|null} channel
  * @param {any} agentTeam `projectionsBySession[lead].values.agentTeam`
  * @param {string} leadSessionId
+ * @param {Record<string, any>} [summariesById] `sessions.list.byId`（补 catalog 成员运行态）
+ * @param {any[]} [subagentCatalog] `projectionsBySession[lead].values.subagentCatalog`
  */
-function gcMergeRosterChannel(channel, agentTeam, leadSessionId) {
+function gcMergeRosterChannel(channel, agentTeam, leadSessionId, summariesById, subagentCatalog) {
   if (!channel) return channel
-  const rawMembers = gcRosterMembersFrom(agentTeam)
+  const rawMembers = gcRosterMembersFrom(agentTeam, subagentCatalog)
   if (rawMembers.length === 0) return channel
 
   const rawById = new Map()
@@ -9784,6 +9838,28 @@ function gcMergeRosterChannel(channel, agentTeam, leadSessionId) {
     if (id) rawById.set(id, raw)
   }
   if (rawById.size === 0) return channel
+
+  const summaryOf = function (id) {
+    return summariesById && summariesById[id] ? summariesById[id] : undefined
+  }
+  const runStatus = function (id, rawStatus) {
+    if (rawStatus) return rawStatus
+    const summary = summaryOf(id)
+    if (summary && typeof summary.running === 'boolean') return summary.running ? 'running' : 'inactive'
+    return ''
+  }
+  const rename = function (member, name) {
+    const next = Object.assign({}, member, { name: name })
+    if (member.kind === 'subagent') {
+      // 保留「· {父名} 的子体」后缀（F33 全名规则），只替换前缀
+      const current = gcStr(member.displayName)
+      const idx = current.indexOf(' · ')
+      next.displayName = name + (idx >= 0 ? current.slice(idx) : '')
+    } else {
+      next.displayName = name
+    }
+    return next
+  }
 
   const current = gcAsArray(channel.members)
   let changed = false
@@ -9798,40 +9874,61 @@ function gcMergeRosterChannel(channel, agentTeam, leadSessionId) {
       members.push(member)
       continue
     }
-    const rawStatus = gcNormalizeRosterStatus(raw.status)
-    const next = Object.assign({}, member)
-    if (rawStatus && rawStatus !== member.status) {
-      next.status = rawStatus
+    const nextStatus = runStatus(member.sessionId, gcNormalizeRosterStatus(raw.status))
+    let next = member
+    if (nextStatus && nextStatus !== member.status) {
+      next = Object.assign({}, next, { status: nextStatus })
       changed = true
     }
-    if (!member.model && gcStr(raw.model)) next.model = gcStr(raw.model)
-    if (!member.description && gcStr(raw.description)) next.description = gcStr(raw.description)
-    if (member.kind === 'teammate' && gcStr(raw.name) && gcStr(raw.name) !== member.name) {
-      next.name = gcStr(raw.name)
-      next.displayName = gcStr(raw.name)
+    if (!next.model && gcStr(raw.model)) next = Object.assign({}, next, { model: gcStr(raw.model) })
+    if (!next.description && gcStr(raw.description)) next = Object.assign({}, next, { description: gcStr(raw.description) })
+    // rc2：continuable subagent 的名字由 catalog v3 name 提供；事件名册可能只有 label
+    if (gcStr(raw.name) && gcStr(raw.name) !== next.name && !gcIdLikeName(gcStr(raw.name), member.sessionId)) {
+      next = rename(next, gcStr(raw.name))
       changed = true
     }
     members.push(next)
   }
 
-  // 投影里存在、事件名册里缺的 teammate 补进来（lead 不重复）
+  // 投影里存在、事件名册里缺的成员补进来（lead 不重复）；kind 由投影条目决定
   rawById.forEach(function (raw, id) {
     if (seen.has(id) || id === leadSessionId) return
     if (raw.role === 'lead' || raw.name === 'lead') return
-    const status = gcNormalizeRosterStatus(raw.status) || 'unknown'
-    members.push({
-      sessionId: id,
-      name: gcStr(raw.name) || id.slice(0, 8),
-      displayName: gcStr(raw.name) || id.slice(0, 8),
-      kind: 'teammate',
-      parentSessionId: leadSessionId,
-      depth: 1,
-      status: status,
-      description: gcStr(raw.description) || undefined,
-      model: gcStr(raw.model) || undefined,
-      addressable: true,
-      badge: 'teammate'
-    })
+    const rawStatus = runStatus(id, gcNormalizeRosterStatus(raw.status))
+    const name = gcStr(raw.name) || id.slice(0, 8)
+    const subagent = raw.kind === 'subagent' || raw.role === 'subagent'
+    if (subagent) {
+      const status = rawStatus || 'unknown'
+      const member = {
+        sessionId: id,
+        name: name,
+        displayName: name,
+        kind: 'subagent',
+        parentSessionId: leadSessionId,
+        depth: 2,
+        status: status,
+        description: gcStr(raw.description) || undefined,
+        model: gcStr(raw.model) || undefined,
+        addressable: false,
+        badge: 'subagent'
+      }
+      member.addressable = gcIsAddressable(member)
+      members.push(member)
+    } else {
+      members.push({
+        sessionId: id,
+        name: name,
+        displayName: name,
+        kind: 'teammate',
+        parentSessionId: leadSessionId,
+        depth: 1,
+        status: rawStatus || 'unknown',
+        description: gcStr(raw.description) || undefined,
+        model: gcStr(raw.model) || undefined,
+        addressable: true,
+        badge: 'teammate'
+      })
+    }
     changed = true
   })
 
@@ -13298,7 +13395,15 @@ function gcCreateController(options) {
 
   function withRoster(channel) {
     if (!options.getRoster) return channel
-    return gcMergeRosterChannel(channel, options.getRoster(), options.leadSessionId)
+    const roster = options.getRoster()
+    if (!roster) return channel
+    return gcMergeRosterChannel(
+      channel,
+      roster.agentTeam,
+      options.leadSessionId,
+      options.getSummaries ? options.getSummaries() : undefined,
+      roster.subagentCatalog
+    )
   }
 
   let firstBatchTimer = null
@@ -13930,17 +14035,22 @@ function GroupChatView(props) {
   )
   const leadSessionId = leadScope.leadSessionId
 
-  // 权威名册：useSessions 的 agentTeam 投影（D-03；缺投影时退回事件名册）
-  const agentTeam =
+  // 权威名册：useSessions 的投影（D-03）。
+  // rc1 为 `values.agentTeam.members`；DSH 0.2.2-rc.2 起 Agent Teams 成员目录迁到
+  // `values.subagentCatalog`（agentTeam 仅剩任务板），因此两者一起订阅。
+  const rosterProjection =
     props && typeof props.useSessions === 'function'
       ? props.useSessions(function (sessionsState) {
           if (!sessionsState || !sessionsState.projectionsBySession) return undefined
           const projection = sessionsState.projectionsBySession[leadSessionId]
-          return projection && projection.values ? projection.values.agentTeam : undefined
+          if (!projection || !projection.values) return undefined
+          return { agentTeam: projection.values.agentTeam, subagentCatalog: projection.values.subagentCatalog }
         })
       : undefined
-  const rosterRef = React.useRef(agentTeam)
-  rosterRef.current = agentTeam
+  const rosterRef = React.useRef(rosterProjection)
+  rosterRef.current = rosterProjection
+  const sessionsByIdRef = React.useRef(sessionsById)
+  sessionsByIdRef.current = sessionsById
 
   const limits = gcLimits()
   const channel = state.channel
@@ -13997,7 +14107,12 @@ function GroupChatView(props) {
           return rosterRef.current
         },
         getMembers: function () {
-          return gcRosterMembersFrom(rosterRef.current)
+          const roster = rosterRef.current
+          if (!roster) return []
+          return gcRosterMembersFrom(roster.agentTeam, roster.subagentCatalog, leadSessionId)
+        },
+        getSummaries: function () {
+          return sessionsByIdRef.current
         },
         restoredDraft: restored,
         onAppend: function () {

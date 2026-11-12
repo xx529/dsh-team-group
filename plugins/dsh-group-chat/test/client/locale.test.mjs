@@ -288,6 +288,41 @@ test('D-03: agentTeam 投影把 inactive 成员纠正，running 数不再高估'
   }
 })
 
+test('D-03 rc2: subagentCatalog 作为成员目录（agentTeam 无 members）', () => {
+  const { mounted } = mountWithLocale(null)
+  try {
+    const gc = mounted.module.__internals
+    const channel = {
+      channelId: 'lead',
+      lead: { sessionId: 'lead', name: 'lead', kind: 'lead', status: 'running' },
+      members: [{ sessionId: 'lead', name: 'lead', kind: 'lead', status: 'running' }],
+      runningCount: 1
+    }
+    const merged = gc.mergeRosterChannel(
+      channel,
+      { enabled: true, tasks: [] },
+      'lead',
+      { c1: { id: 'c1', running: true }, c2: { id: 'c2', running: false } },
+      [
+        { id: 'c1', name: 'backend', label: '负责后端接口', mode: 'continuable', createdAt: 1 },
+        { id: 'c2', name: 'pm', label: '负责产品', mode: 'one-shot', createdAt: 2 }
+      ]
+    )
+    assert.equal(merged.members.length, 3, 'catalog 成员补入成员条（含 lead）')
+    const backend = merged.members.find((m) => m.sessionId === 'c1')
+    assert.equal(backend.name, 'backend', 'catalog.name 作短名')
+    assert.equal(backend.description, '负责后端接口', 'catalog.label 作角色描述')
+    assert.equal(backend.kind, 'subagent')
+    assert.equal(backend.status, 'running', 'byId.running 补运行态')
+    assert.equal(backend.addressable, true)
+    const pm = merged.members.find((m) => m.sessionId === 'c2')
+    assert.equal(pm.status, 'inactive')
+    assert.equal(merged.runningCount, 2, 'lead + backend')
+  } finally {
+    mounted.restore()
+  }
+})
+
 test('D-03: mergeRosterChannel 纯函数（补成员 / 改状态 / 重算 runningCount / 保序）', () => {
   const { mounted } = mountWithLocale(null)
   try {

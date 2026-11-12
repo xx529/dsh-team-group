@@ -2,7 +2,7 @@
 
 | 项 | 内容 |
 | --- | --- |
-| 文档版本 | **v1.7.4**（v1.7.3 + **DSH 0.2.2-rc.1 适配**：end-seed 只认 `data.inherited:true` 作继承 cutoff；窗口延迟时订阅后补通知；数据/发送契约不变） |
+| 文档版本 | **v1.7.5**（v1.7.4 + **DSH 0.2.2-rc.2 适配**：`agentTeam.members` 移除，成员目录改由 `subagentCatalog` 提供；`subagent/catalog` v3 `name` 作成员短名；其余数据/发送契约不变） |
 | 作者 | architect（Agent Team teammate） |
 | 任务 | task-6（v1.0）→ task-9（v1.1）→ task-17（v1.2 气泡流）→ task-23（v1.3 成员卡）→ task-30（v1.4 creator 消息 + 欢迎提示）→ task-35（v1.5 四项裁决 + DOM 契约冻结）→ task-45（v1.6 任务卡片消息）→ task-49（v1.6.1 视觉修正）→ task-77（v1.7 F22–F30 实现契约）→ task-86（v1.7.1 成员条全显修订）→ task-97（v1.7.2 线上 5 问题）→ task-102 收尾（v1.7.3 成员条换行）→ 2026-11-08（v1.7.4 DSH 0.2.2-rc.1 适配） |
 | 阶段 | 阶段 2–3 之间：**只做设计，不写生产代码**；代码实现以用户确认 Figma 原型为门禁（PRD §9） |
@@ -12,6 +12,17 @@
 | 写作用域 | 仅写 `docs/architecture/**`；未安装插件、未改配置、未写生产代码、未对 Figma 做写操作 |
 
 ---
+
+## 决策记录 v1.7.5（DSH 0.2.2-rc.2 适配：成员目录迁移到 subagentCatalog）
+
+- 触发：DSH Desktop 升级到 **0.2.2-rc.2**（2026-11-13）。按 8 个关键子包的 rc.1/rc.2 tarball 逐包 diff + 真机隔离验证，发现 1 个破坏性变化，已修复并回归。
+- **破坏性变化**：`agentTeam` 投影从 `{members,tasks,failure}` 变为 `{enabled,tasks,failure}`（**members 移除**）；Agent Teams 成员（teammate 改为 continuable subagent 承载）由 **`subagentCatalog`** 投影提供（`SubagentCatalogEntry[]`：`id/createdAt/mode/label/name`）。
+- 新契约：
+  1. **成员目录权威来源** = `values.agentTeam.members`（rc1 兼容）∪ `values.subagentCatalog`（rc2）；catalog 独有条目 `kind='subagent'`、`parentSessionId=lead`，状态由 `sessions.list.byId[*].running` 补，保留「· {父名} 的子体」后缀。
+  2. **`subagent/catalog` v3 的 `name`** 是父会话内唯一短名（成员条 / `@` / 发送目标）；`label` 仅作 `description`（角色小字）；历史无 `name` 退回 label，**禁止把 id 当名字**。
+  3. 其余契约不变：`conversation.view`、`ISessions/binding/retain/SessionReference.ready`、`SessionEventWindow`、`prompt()`、`session/end-seed` 语义、locale `register`、`window.__ModuleLoader__` 协议、主题 token（32 个使用，仅既有 `scrollbar-bg-hover-l1` fallback 缺失）；`loadOlder` 新增可选 `{deferConsumption}` + `consumeOlder()`，插件无参调用兼容。
+- 未覆盖：真机端到端发送（测试环境无模型 API Key，`test/send/*` 覆盖）；rc2 新格式（catalog v3 name）真机会话无法在无 Key 环境产生，由核心/client 测试覆盖。
+- 证据：`docs/research/dsh-0.2.2-rc2-compat.md`、`tests/runs/2026-11-13-dsh-022rc2-compat.md`、`tests/artifacts/dsh022rc2-groupchat.png` / `dsh022rc2-groupchat-1440.png`、`test/core/rc2-subagent-catalog.test.js`、`test/client/locale.test.mjs`。
 
 ## 决策记录 v1.7.4（DSH 0.2.2-rc.1 适配：end-seed 语义 + 激活后窗口延迟）
 
@@ -2461,6 +2472,7 @@ PY
 | **v1.7.2** | 2026-10-29 | **线上 5 问题（F31–F35）**：① §4.2/§4.2.3 F31 空 agent 输出过滤（trim 空且无附件 → 无 agent_output/空中断提示；turn/工具数不受影响）；② §6.12 F32 GFM 表格 AST/DOM/安全/上限/折叠计数；③ §6.15.1 F33 成员条全名（头像+全名+状态点，删除 mask/渐隐，单行横向滚动隐藏滚动条）；④ §6.18 F34 任务卡默认折叠字段 + 展开按钮/aria/非持久化；⑤ §6.18 F35 人物一致（外层 sender=actor、avatar 全卡唯一、owner 行文字+可选标签、无 owner 头像）；⑥ §6.5.2 DOM 扩展 table/member-name/task-expanded/expand-task、删除 owner avatar；M6 工具摘要行按用户裁决不渲染；⑦ §8 SC49–SC53/E47–E51；⑧ §11 RK16–RK21；⑨ §12.2 P12 `51:2099`/P2 `49:1765`（v4.2 待重导） | 实现以 v1.7.2 为准；PRD v0.8.1/UX v4.2 待落盘后对齐编号 |
 | **v1.7.3** | 2026-10-29 | **成员条换行优先修订（用户要求/Lead 裁决）**：§6.15.1 由 v1.7.2「单行横向滚动」改为**换行优先（flex-wrap 多行、头部自适应 68+26+4/行，禁用 mask/渐隐与单行裁切）**；仅极端超宽（>32/768 极窄）才横向滚动；§6.2/§6.7.2/§6.5.2/§8.4/E49/SC51/F3/RK18 同步；新增决策记录 v1.7.3 | §6 / §8 |
 | **v1.7.4** | 2026-11-08 | **DSH 0.2.2-rc.1 适配**：① §4.3.3 ② fork cutoff 只认 `session/end-seed`（`data.inherited === true`），普通 resume 续写标记（`data:{}`）不再隐藏历史（normalize + turns 双路径）；② `ClientSessionSource.subscribe()` 注册后补一次 append 通知，覆盖 0.2.2「activate 后完整窗口以第二个 replace 帧晚到」的时序；③ `dsh.compatibility.dshReleases` 补 `0.2.2-rc.1`；④ 真机隔离 profile 复验（历史/成员条/任务卡/轨迹）；新增决策记录 v1.7.4 | §4.3.3 / §3.5 / §11 |
+| **v1.7.5** | 2026-11-13 | **DSH 0.2.2-rc.2 适配**：`agentTeam` 投影移除 `members`（teammate 改为 continuable subagent），成员目录改由 `subagentCatalog` 提供；`subagent/catalog` v3 新增 `name` 作成员短名、`label` 作角色描述；client 侧同时订阅两种来源并保留 rc1 兼容；新增决策记录 v1.7.5 | §4.8 / §6.15 / §11 |
 
 
 

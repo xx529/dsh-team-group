@@ -245,7 +245,15 @@ function gcCreateController(options) {
 
   function withRoster(channel) {
     if (!options.getRoster) return channel
-    return gcMergeRosterChannel(channel, options.getRoster(), options.leadSessionId)
+    const roster = options.getRoster()
+    if (!roster) return channel
+    return gcMergeRosterChannel(
+      channel,
+      roster.agentTeam,
+      options.leadSessionId,
+      options.getSummaries ? options.getSummaries() : undefined,
+      roster.subagentCatalog
+    )
   }
 
   let firstBatchTimer = null
@@ -877,17 +885,22 @@ function GroupChatView(props) {
   )
   const leadSessionId = leadScope.leadSessionId
 
-  // 权威名册：useSessions 的 agentTeam 投影（D-03；缺投影时退回事件名册）
-  const agentTeam =
+  // 权威名册：useSessions 的投影（D-03）。
+  // rc1 为 `values.agentTeam.members`；DSH 0.2.2-rc.2 起 Agent Teams 成员目录迁到
+  // `values.subagentCatalog`（agentTeam 仅剩任务板），因此两者一起订阅。
+  const rosterProjection =
     props && typeof props.useSessions === 'function'
       ? props.useSessions(function (sessionsState) {
           if (!sessionsState || !sessionsState.projectionsBySession) return undefined
           const projection = sessionsState.projectionsBySession[leadSessionId]
-          return projection && projection.values ? projection.values.agentTeam : undefined
+          if (!projection || !projection.values) return undefined
+          return { agentTeam: projection.values.agentTeam, subagentCatalog: projection.values.subagentCatalog }
         })
       : undefined
-  const rosterRef = React.useRef(agentTeam)
-  rosterRef.current = agentTeam
+  const rosterRef = React.useRef(rosterProjection)
+  rosterRef.current = rosterProjection
+  const sessionsByIdRef = React.useRef(sessionsById)
+  sessionsByIdRef.current = sessionsById
 
   const limits = gcLimits()
   const channel = state.channel
@@ -944,7 +957,12 @@ function GroupChatView(props) {
           return rosterRef.current
         },
         getMembers: function () {
-          return gcRosterMembersFrom(rosterRef.current)
+          const roster = rosterRef.current
+          if (!roster) return []
+          return gcRosterMembersFrom(roster.agentTeam, roster.subagentCatalog, leadSessionId)
+        },
+        getSummaries: function () {
+          return sessionsByIdRef.current
         },
         restoredDraft: restored,
         onAppend: function () {

@@ -1,5 +1,7 @@
 # DSH 0.2.2-rc.1 适配取证与修复记录
 
+> **rc.2 续篇**：DSH 0.2.2-rc.2 的契约变化（`agentTeam.members` 移除、`subagentCatalog` 承接成员目录、`catalog v3 name`）与修复见 `docs/research/dsh-0.2.2-rc2-compat.md`；本文的 end-seed/窗口延迟修复在 rc2 继续有效。
+
 - 任务：DSH 升级到 **0.2.2-rc.1** 后，检查 `@local/dsh-group-chat` 插件的适配情况并修复未适配点。
 - 日期：2026-11-08
 - 环境：DSH Desktop **0.2.2-rc.1**（`Contents/Info.plist` `CFBundleShortVersionString=0.2.2-rc.1`；`dsh/package.json` `version=0.2.2-rc.1`，`dsh-cordis-client-runner` 等同版本）；macOS · profile=desktop。

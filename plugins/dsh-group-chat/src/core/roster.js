@@ -200,7 +200,7 @@ export function deriveRoster(sources) {
   }
 
   // subagent：catalog 为主（可自 member 会话递归），sessions.list 的 parentSessionId 补漏
-  /** @type {Array<{childId:string,label?:string,mode?:string,createdAt:number,parentSessionId:string}>} */
+  /** @type {Array<{childId:string,label?:string,name?:string,mode?:string,createdAt:number,parentSessionId:string}>} */
   const subCandidates = [];
   for (const c of Array.isArray(sources.catalogEntries) ? sources.catalogEntries : []) {
     if (!c) continue;
@@ -210,6 +210,8 @@ export function deriveRoster(sources) {
     subCandidates.push({
       childId,
       label: c.label,
+      // DSH 0.2.2-rc.2：catalog v3 的 name 是父会话内唯一短名（成员条/`@` 使用）。
+      name: typeof c.name === 'string' && c.name.trim() !== '' ? c.name.trim() : undefined,
       mode: c.mode,
       createdAt: Number(c.childCreatedAt ?? c.createdAt ?? 0),
       parentSessionId,
@@ -227,6 +229,7 @@ export function deriveRoster(sources) {
     subCandidates.push({
       childId: sid,
       label: s.subagent?.label ?? s.label,
+      name: typeof s.subagent?.name === 'string' && s.subagent.name.trim() !== '' ? s.subagent.name.trim() : undefined,
       mode: s.subagent?.mode ?? s.mode,
       createdAt: Number(s.createdAt ?? s.subagent?.createdAt ?? 0),
       parentSessionId: parentId,
@@ -262,8 +265,9 @@ export function deriveRoster(sources) {
     const desc = sources.descriptors?.[cand.childId];
     const status = deriveSubagentStatus(cand, sources);
     const label = cand.label ?? desc?.label;
-    const name = label ? shortenLabel(label) : MEMBER_FALLBACK_NAME;
-    const displayName = `${label ? shortenLabel(label) : MEMBER_FALLBACK_NAME} · ${cand.parent.displayName} 的子体`;
+    // DSH 0.2.2-rc.2：catalog v3 的 name 优先（短名/`@` 可读）；历史记录无 name 时退回 label。
+    const name = cand.name || (label ? shortenLabel(label) : MEMBER_FALLBACK_NAME);
+    const displayName = `${name} · ${cand.parent.displayName} 的子体`;
     const member = {
       sessionId: cand.childId,
       name,

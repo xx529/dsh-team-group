@@ -1,6 +1,6 @@
 # AGENTS.md · DSH 群聊插件（@local/dsh-group-chat）
 
-> 项目级 agent 指南。任何 agent 在本仓库动手前先读本文件；与 `docs/architecture/group-chat-architecture.md`（下称「架构」）冲突时，以架构 v1.7.4 为准，并同步修订本文件。
+> 项目级 agent 指南。任何 agent 在本仓库动手前先读本文件；与 `docs/architecture/group-chat-architecture.md`（下称「架构」）冲突时，以架构 v1.7.5 为准，并同步修订本文件。
 
 ## 1. 项目一句话
 
@@ -8,7 +8,7 @@ DSH Web GUI 对话页的并列视图 **「群聊」** 插件：把 **Lead 主会
 
 - 包名：`@local/dsh-group-chat`，版本 `0.1.0`
 - 视图：`conversation.view`，`id=group-chat`，`order=5`（紧邻「对话」）
-- 上游文档：PRD `docs/specs/group-chat-prd.md` v0.8.1（F1–F35 / SC1–SC53）；架构 `docs/architecture/group-chat-architecture.md` v1.7.4；UX `docs/ux/group-chat-ux.md` v4.2；原型 `docs/ux/prototype.md`（Figma `team-group` P1–P13，v4.2 PNG 已重导）
+- 上游文档：PRD `docs/specs/group-chat-prd.md` v0.8.1（F1–F35 / SC1–SC53）；架构 `docs/architecture/group-chat-architecture.md` v1.7.5；UX `docs/ux/group-chat-ux.md` v4.2；原型 `docs/ux/prototype.md`（Figma `team-group` P1–P13，v4.2 PNG 已重导）
 
 ## 2. 目录结构
 
@@ -54,11 +54,11 @@ cd plugins/dsh-group-chat
 node scripts/build.mjs           # 生成 lib/client.js（唯一入口：src/client/entry.js + parts + locale + css）
 node scripts/build.mjs --check   # 校验 lib/client.js 与源文件逐字节一致（提交前必跑）
 node scripts/verify.mjs          # 34 项打包/边界/契约校验；--json 可机读
-npm test                         # 全部 333 条（core 190 / send 71 / client 72；显式 glob，勿用裸 node --test）
+npm test                         # 全部 336 条（core 192 / send 71 / client 73；显式 glob，勿用裸 node --test）
 npm run test:core / test:send / test:client   # 分层跑
 ```
 
-> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**333 pass / 0 fail**（core 190 / send 71 / client 72；验收用例 181 条，以实际输出为准）。
+> `npm test` 的脚本已显式列出 glob；**不要**改成裸 `node --test`——Node 会把 `test/client/snapshot.mjs` 等 helper 当测试执行。当前基线：**336 pass / 0 fail**（core 192 / send 71 / client 73；验收用例 181 条，以实际输出为准）。
 >
 > **失败诊断默认隐藏**：发送失败 caption 默认只显示用户可读文案；诊断信息（`code`/`message`/`stage`/`build`）需 `?gc-debug=1` 或 `localStorage['group-chat:debug']='1'` 才显示；`data-send-debug` / `data-build` 属性**始终保留**（tester 可断言，不依赖开关）。
 
@@ -80,7 +80,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 
 > 加载新 bundle：**关闭并重开 DSH 窗口**。DSH 里 `Cmd+R` 是「重命名会话」，不是刷新页面；HMR 异常时以重开窗口为准。
 
-## 4. 架构硬约束（摘自架构 v1.7.4，违反即返工）
+## 4. 架构硬约束（摘自架构 v1.7.5，违反即返工）
 
 1. **纯 Client 插件**：Host 半（`lib/index.js`）只为满足 bundle 入口约定而存在，v1 不注册路由、不读写会话日志、不新增 Service（v2 启用条件见架构 §3.3 / §4.7，当前不排期）。
 2. **视图注册**：`conversation.view` 注册 `{id:'group-chat', order:5, label:localized thunk}`；不覆盖既有 view id（chat/trajectory/context/terminal-panel/fleet/capability）。
@@ -116,6 +116,12 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
     - **勿依赖 accept-gated echo**：0.2.2 的 `pendingSubmissions` 只含 Host 已接受的 echo、`beginSubmission` 新增 `onAccept`；发送仍走本地 echo + `clientBatchId`/`requestId` 去重，不得改用 `pendingSubmissions` 作为发送状态来源。
     - 证据：`docs/research/dsh-0.2.2-compat.md`、`tests/runs/2026-11-08-dsh-022-compat.md`、`test/core/end-seed.test.js`、`test/core/client-session-source.test.js`。
 
+13. **v1.7.5 关键契约（DSH 0.2.2-rc.2 适配，违反即返工）**：
+    - **成员目录来源**：rc2 起 `values.agentTeam` 只剩 `{enabled,tasks,failure}`（**无 members**）；成员权威目录 = `values.agentTeam.members`（rc1 兼容）∪ **`values.subagentCatalog`**（rc2）。catalog 独有条目 `kind='subagent'`、`parentSessionId=lead`，状态由 `sessions.list.byId[*].running` 补，保留「· {父名} 的子体」后缀。
+    - **短名契约**：`subagent/catalog` v3 的 `name` 是父会话内唯一短名（成员条 / `@` / 发送目标）；`label` 仅作 `description`（角色小字）；历史无 `name` 退回 label，**禁止把 id 当名字**。
+    - **兼容项不变**：`conversation.view`、`ISessions/binding/retain/SessionReference.ready`、`SessionEventWindow`、`prompt()`、`session/end-seed` 语义、locale `register`、`window.__ModuleLoader__` 协议、主题 token；`loadOlder` 新增可选 `{deferConsumption}` + `consumeOlder()`，插件无参调用兼容。
+    - 证据：`docs/research/dsh-0.2.2-rc2-compat.md`、`tests/runs/2026-11-13-dsh-022rc2-compat.md`、`test/core/rc2-subagent-catalog.test.js`、`test/client/locale.test.mjs`。
+
 ## 5. 开发/变更流程
 
 1. **先文档后代码**：需求 → `docs/specs/group-chat-prd.md`（F/SC 编号只增不改）；架构/UX 变更 → `docs/architecture`、`docs/ux`；调研结论进 `docs/research`。
@@ -125,7 +131,7 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
    node scripts/build.mjs && node scripts/verify.mjs && npm test
    ```
 4. **locale**：zh/en 同步改，构建会校验键集一致性。
-5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（333）全绿；有视觉变更时按 §6 更新证据。
+5. **提交前**：`node scripts/build.mjs --check` 必须 fresh；verify 34/34；npm test（336）全绿；有视觉变更时按 §6 更新证据。
 6. **原型门禁**：用户确认 Figma 原型（P1–P13）后才进入实现；原型未确认不得改 UI 源码。
 
 ## 6. 质量门与证据
@@ -134,10 +140,10 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | --- | --- | --- |
 | 构建 | `build --check` fresh；`lib/client.js` 由源码确定性生成 | 命令输出 |
 | 打包校验 | `node scripts/verify.mjs` **34/34 PASS**（含 locale 键集一致、边界、无 Host 业务、无绝对路径、无 Node 内建） | 命令输出 |
-| 单测 | `npm test` **333 pass / 0 fail**（core 190 / send 71 / client 72） | 命令输出 |
+| 单测 | `npm test` **336 pass / 0 fail**（core 192 / send 71 / client 73） | 命令输出 |
 | 验收用例 | `tests/design/test-plan.md` **181 条**；v0.8.1 真机验收：表格/成员条 1280/任务卡人物/展开态 **PASS（视觉）**，**仍缺 2 项交互截图**（任务卡「收起」、SC47 最终版回归——窗口 split/坐标漂移未取，由组件测试覆盖） | `tests/runs/2026-10-29-task-101.md`、`tests/artifacts/v42-*` |
 | 性能 | 1000 事件归一化 ≤50ms（本机 M1 中位数 ~1.5ms）；首屏 200 条 ≤250ms | `tests/runs/perf-01.log` |
-| DSH 适配 | DSH 版本升级后：两版内置包 asar 契约对比 + 隔离 profile 真机复验（tab/成员条/历史/任务卡/轨迹）；空 feed 或契约变化必须留证据 | `docs/research/dsh-0.2.2-compat.md`、`tests/runs/2026-11-08-dsh-022-compat.md`、`tests/artifacts/dsh022-*` |
+| DSH 适配 | DSH 版本升级后：两版内置包 asar 契约对比 + 隔离 profile 真机复验（tab/成员条/历史/任务卡/轨迹）；空 feed 或契约变化必须留证据 | `docs/research/dsh-0.2.2-compat.md`、`tests/runs/2026-11-08-dsh-022-compat.md`、`tests/artifacts/dsh022-*`；**rc2**：`docs/research/dsh-0.2.2-rc2-compat.md`、`tests/runs/2026-11-13-dsh-022rc2-compat.md`、`tests/artifacts/dsh022rc2-*` |
 | 真机走查 | tester 按 `tests/design/click-walk.md` 在 DSH Desktop 真实点击；不得以静态代码阅读代替 | `tests/runs/*.md`、`tests/interactions/click-walk-results.md` |
 | 视觉/原型 | 对比 `docs/ux/prototype/*.png`（2× 基线，1440×900）；结构/尺寸/令牌核对 | `tests/artifacts/`、`tests/runs/*.md` |
 | 裁定 | tester 给二值 PASS/FAIL，不接受「有条件通过」；HIGH/CRITICAL 即 FAIL | `tests/runs/` 最新记录 |
@@ -151,12 +157,12 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | 项 | 当前值 |
 | --- | --- |
 | 插件版本 | `0.1.0` |
-| 最近验证 bundle | `sha256=2180ef13bcf9df95cae150295639ac103be2207d225cbeefd4073569e5d708a6`（606,656 B，v1.7.4 DSH 0.2.2 适配包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
-| build 指纹 | `0.1.0+fbbb20ff471e`（v1.7.4 0.2.2 适配包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
+| 最近验证 bundle | `sha256=be41db8b0f1df6843f1eff86c5a3aea1ff52f7116d01a33dd5411f38309aae55`（562,038 B，v1.7.5 DSH 0.2.2-rc.2 适配包；改动源码后会变，以 `node scripts/verify.mjs` 输出为准） |
+| build 指纹 | `0.1.0+c59927edca90`（v1.7.5 DSH 0.2.2-rc.2 适配包；失败 caption 与 `data-build` 会显示实际加载版本；重跑构建后以 `lib/client.js` 内 `data-build` 为准） |
 | PRD | **v0.8.1**（F1–F35 / SC1–SC53；18 条反馈 + 5 条线上问题映射见 §1.6） |
-| 架构 | **v1.7.4**（含 DOM 契约、决策记录 v1.1–v1.7.4、成员条换行优先/全显修订、DSH 0.2.2 end-seed/窗口延迟适配） |
+| 架构 | **v1.7.5**（含 DOM 契约、决策记录 v1.1–v1.7.5、成员条换行优先/全显修订、DSH 0.2.2 end-seed/窗口延迟适配、DSH 0.2.2-rc.2 成员目录 subagentCatalog 适配） |
 | UX | **v4.2**；原型 Figma `team-group` **P1–P13**（v4.2 PNG 已重导；含 13-task-cards / 14-agent-trajectory） |
-| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 2180ef13…**（verify 34/34、**333 tests**、181 验收用例；视觉修复 + 冷启动修复 PASS；**DSH 0.2.2-rc.1 适配 PASS（真机隔离 profile，历史/成员条/任务卡/轨迹）**；**v0.1.1：sent 气泡说明/复制行移除、头像可点开自研轨迹**） |
+| 已安装验证 | 桌面 profile 已安装并可加载；**最终包 be41db8b…**（verify 34/34、**336 tests**、181 验收用例；视觉修复 + 冷启动修复 PASS；**DSH 0.2.2-rc.2 适配 PASS（真机隔离 profile，历史/成员条/任务卡/输入器）**；rc1 的 end-seed/窗口延迟修复继续有效；**v0.1.1：sent 气泡说明/复制行移除、头像可点开自研轨迹**） |
 
 ## 8. 安全与边界
 
@@ -174,6 +180,6 @@ plugin_manager remove_bundle target=@local/dsh-group-chat
 | 产品需求与验收（F/SC） | `docs/specs/group-chat-prd.md` |
 | 技术架构、数据/发送/UI 契约、DOM 契约 | `docs/architecture/group-chat-architecture.md` |
 | 视觉/交互/文案/令牌 | `docs/ux/group-chat-ux.md` + `docs/ux/prototype.md` + `docs/ux/prototype/*.png` |
-| 事件/接口/字段取证 | `docs/research/*.md`（api-feasibility、event-model、member-card-fields、task-card-fields、spikes-v1、**dsh-0.2.2-compat**） |
+| 事件/接口/字段取证 | `docs/research/*.md`（api-feasibility、event-model、member-card-fields、task-card-fields、spikes-v1、**dsh-0.2.2-compat**、**dsh-0.2.2-rc2-compat**） |
 | 测试设计与走查 | `tests/design/test-plan.md`、`click-walk.md`、`prototype-review.md` |
 | 测试记录 | `tests/runs/*.md`（v0.8.1 验收 `2026-10-29-task-101.md`；v0.8 基线 `2026-10-29-task-89.md`）、`tests/interactions/*.md`、`tests/artifacts/` |

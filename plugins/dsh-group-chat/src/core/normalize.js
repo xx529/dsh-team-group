@@ -340,6 +340,9 @@ export function collectSession(session) {
           scan.catalogs.push({
             childId,
             label: typeof data.label === 'string' ? data.label : undefined,
+            // DSH 0.2.2-rc.2 的 catalog v3 新增 name（父会话内唯一的 agent 名）：
+            // 成员条/发送 @ 用短名，label 仅作角色描述（F33/F25）。
+            name: typeof data.name === 'string' && data.name !== '' ? data.name : undefined,
             mode: data.mode,
             childCreatedAt: Number(data.childCreatedAt ?? e.time ?? 0),
             time: Number(e.time ?? 0),
